@@ -1,0 +1,14 @@
+[project]
+name = "financial-itinera-calculator"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "mdformat>=1.0.0",
+    "pre-commit>=4.3.0",
+    "ruff>=0.14.1",
+]
