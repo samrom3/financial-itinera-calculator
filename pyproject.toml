@@ -15,7 +15,6 @@ dependencies = [
 dev = [
     "ipykernel>=7.0.1",
     "itables>=2.5.2",
-    "mdformat>=1.0.0",
     "pre-commit>=4.3.0",
     "ruff>=0.14.1",
 ]

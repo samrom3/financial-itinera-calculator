@@ -120,20 +120,19 @@ and your **Goals**.
 The Time Horizon defines the duration and key milestones of the simulation. It is the foundational context for all
 events.
 
-| Parameter | Type | Description | | ----------------- | --------- |
---------------------------------------------------------------------------- | | `current_age` | `Age` | The starting age
-of the subject of the simulation. | | `life_expectancy` | `Age` | The end point of the simulation (default is 100
-years). |
+| Parameter         | Type  | Description                                             |
+| ----------------- | ----- | ------------------------------------------------------- |
+| `current_age`     | `Age` | The starting age of the subject of the simulation.      |
+| `life_expectancy` | `Age` | The end point of the simulation (default is 100 years). |
 
 ### 2. Retirement Goals
 
 This defines the primary objective of the simulation: achieving retirement.
 
-| Parameter | Type | Description | | ---------------------- | --------- |
-------------------------------------------------------------------------------------------------------- | |
-`retirement_age` | `Age` | The age you plan to stop working. This is a key milestone for the simulation. | |
-`desired_estate_value` | `float` | Optional (default: 0). The desired minimum total asset value you wish to have at the
-end of the simulation. |
+| Parameter              | Type    | Description                                                                                                 |
+| ---------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `retirement_age`       | `Age`   | The age you plan to stop working. This is a key milestone for the simulation.                               |
+| `desired_estate_value` | `float` | Optional (default: 0). The desired minimum total asset value you wish to have at the end of the simulation. |
 
 > **IMPORTANT**: The retirement age must be equal to or greater than the starting age and strictly less than the life
 > expectancy.
@@ -143,16 +142,15 @@ end of the simulation. |
 Assets represent your current and future investments that you can live off of. You can add multiple asset accounts to a
 simulation.
 
-| Parameter | Type | Description | | -------------------------- | ------------------- |
-\--------------------------------------------------------------------------------------------------------------------------------------
-| | `name` | `str` | A unique name that identifies the account/asset. | | `initial_value` | `float` | The starting value
-of the asset. | | `growth_strategy` | `GrowthStrategy` | The compounding growth rate of the asset. See
-[Core Data Types](#core-data-types). | | `contribution_priority` | `int` | A positive integer indicating the preference
-to contribute extra net cash flow to this asset. Higher numbers have higher priority. | | `withdrawal_priority` | `int`
-| A positive integer indicating the preference to withdraw from this asset to cover deficits. Higher numbers have higher
-priority. | | `max_monthly_contribution` | `float` | Optional. The maximum that can be contributed monthly. A negative
-value indicates no limit. | | `withdrawal_penalties` | `list[Penalty]` | Optional. A list of penalties applied to
-withdrawals, useful for modeling early withdrawal from tax-advantaged accounts. |
+| Parameter                  | Type             | Description                                                                                                                        |
+| -------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                     | `str`            | A unique name that identifies the account/asset.                                                                                   |
+| `initial_value`            | `float`          | The starting value of the asset.                                                                                                   |
+| `growth_strategy`          | `GrowthStrategy` | The compounding growth rate of the asset. See [Core Data Types](#6-core-data-types).                                               |
+| `contribution_priority`    | `int`            | A positive integer indicating the preference to contribute extra net cash flow to this asset. Higher numbers have higher priority. |
+| `withdrawal_priority`      | `int`            | A positive integer indicating the preference to withdraw from this asset to cover deficits. Higher numbers have higher priority.   |
+| `max_monthly_contribution` | `float`          | Optional. The maximum that can be contributed monthly. A negative value indicates no limit.                                        |
+| `withdrawal_penalties`     | `list[Penalty]`  | Optional. A list of penalties applied to withdrawals, useful for modeling early withdrawal from tax-advantaged accounts.           |
 
 ### 4. Cash Flow
 
@@ -163,41 +161,43 @@ income, taxes, and expenses.
 
 You can add any number of income sources. The `kind` of income is critical for determining financial independence.
 
-| Parameter | Type | Description | | ----------------- | ---------------- |
-------------------------------------------------------------------------------------------------------- | | `name` |
-`str` | A unique name for the income stream. | | `monthly_amount` | `float` | The initial monthly amount received. | |
-`time_bounds` | `TimeBounds` | The time range when this income is active. See [Core Data Types](#core-data-types). | |
-`kind` | `IncomeKind` | `ACTIVE` or `PASSIVE`. Passive income counts towards financial independence goals. | |
-`growth_strategy` | `GrowthStrategy` | The rate at which the income changes over time (e.g., raises). See
-[Core Data Types](#core-data-types). |
+| Parameter         | Type             | Description                                                                                               |
+| ----------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |
+| `name`            | `str`            | A unique name for the income stream.                                                                      |
+| `monthly_amount`  | `float`          | The initial monthly amount received.                                                                      |
+| `time_bounds`     | `TimeBounds`     | The time range when this income is active. See [Core Data Types](#6-core-data-types).                     |
+| `kind`            | `IncomeKind`     | `ACTIVE` or `PASSIVE`. Passive income counts towards financial independence goals.                        |
+| `growth_strategy` | `GrowthStrategy` | The rate at which the income changes over time (e.g., raises). See [Core Data Types](#6-core-data-types). |
 
 #### 4.2. Expense Streams
 
 You can add any number of after-tax expense sources.
 
-| Parameter | Type | Description | | ----------------- | ---------------- |
-------------------------------------------------------------------------------------------------------- | | `name` |
-`str` | A unique name for the expense stream. | | `monthly_amount` | `float` | The initial monthly amount spent. | |
-`time_bounds` | `TimeBounds` | The time range when this expense is active. See [Core Data Types](#core-data-types). | |
-`growth_strategy` | `GrowthStrategy` | The rate at which the expense changes over time (i.e., inflation). See
-[Core Data Types](#core-data-types). |
+| Parameter         | Type             | Description                                                                                                   |
+| ----------------- | ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| `name`            | `str`            | A unique name for the expense stream.                                                                         |
+| `monthly_amount`  | `float`          | The initial monthly amount spent.                                                                             |
+| `time_bounds`     | `TimeBounds`     | The time range when this expense is active. See [Core Data Types](#6-core-data-types).                        |
+| `growth_strategy` | `GrowthStrategy` | The rate at which the expense changes over time (i.e., inflation). See [Core Data Types](#6-core-data-types). |
 
 #### 4.3. Tax Rates
 
 Tax rates are applied to your gross income each month. You can specify different rates for different periods (e.g., pre-
 and post-retirement).
 
-| Parameter | Type | Description | | ------------- | ------------ |
------------------------------------------------------------------------------------ | | `rate` | `float` | A decimal
-between \[0.0, 1.0) representing the effective tax rate. | | `time_bounds` | `TimeBounds` | The time range when this tax
-rate is in effect. See [Core Data Types](#core-data-types). |
+| Parameter     | Type         | Description                                                                                |
+| ------------- | ------------ | ------------------------------------------------------------------------------------------ |
+| `rate`        | `float`      | A decimal between \[0.0, 1.0) representing the effective tax rate.                         |
+| `time_bounds` | `TimeBounds` | The time range when this tax rate is in effect. See [Core Data Types](#6-core-data-types). |
 
 #### 4.4. One-Time Payments
 
 The simulator allows for modeling one-off lump sum payments (positive for income, negative for expenses).
 
-| Parameter | Type | Description | | --------- | ----- | -------------------------------------------- | | `amount` |
-`float` | The value of the payment. | | `age` | `Age` | The age at which this payment occurs. |
+| Parameter | Type    | Description                           |
+| --------- | ------- | ------------------------------------- |
+| `amount`  | `float` | The value of the payment.             |
+| `age`     | `Age`   | The age at which this payment occurs. |
 
 ### 5. The Simulation Lifecycle
 
