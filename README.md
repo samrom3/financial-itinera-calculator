@@ -54,6 +54,8 @@ scenario = (
         .with_growth_strategy(MonthlyGrowth(annual_rate=0.07))
         .with_contribution_priority(1)
         .with_withdrawal_priority(2)
+        .with_max_monthly_contribution(23_500 / 12)
+        .with_max_contribution_age(Age(59, 6))
         .with_withdrawal_penalty(
             rate=0.10, end_age=Age(59, 6)
         )  # 10% penalty until 59.5
@@ -150,6 +152,7 @@ simulation.
 | `contribution_priority`    | `int`            | A positive integer indicating the preference to contribute extra net cash flow to this asset. Higher numbers have higher priority. |
 | `withdrawal_priority`      | `int`            | A positive integer indicating the preference to withdraw from this asset to cover deficits. Higher numbers have higher priority.   |
 | `max_monthly_contribution` | `float`          | Optional. The maximum that can be contributed monthly. A negative value indicates no limit.                                        |
+| `max_contribution_age`     | `Age`            | Optional. The maximum age that one can be to contribute into this Asset. See [Core Data Types](#6-core-data-types).                |
 | `withdrawal_penalties`     | `list[Penalty]`  | Optional. A list of penalties applied to withdrawals, useful for modeling early withdrawal from tax-advantaged accounts.           |
 
 ### 4. Cash Flow
