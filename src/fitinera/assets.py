@@ -18,7 +18,7 @@ class Penalty:
 
 
 @dataclass(frozen=True)
-class AssetContributionConstraint:
+class ContributionConstraint:
     """Represents a constraint on asset contributions."""
 
     effective_time_bounds: Optional[TimeBounds] = None
@@ -38,7 +38,7 @@ class Asset:
     growth_strategy: GrowthStrategy
     contribution_priority: int
     withdrawal_priority: int
-    contribution_constraints: List[AssetContributionConstraint] = field(default_factory=list)
+    contribution_constraints: List[ContributionConstraint] = field(default_factory=list)
     withdrawal_penalties: List[Penalty] = field(default_factory=list)
 
     def __post_init__(self):

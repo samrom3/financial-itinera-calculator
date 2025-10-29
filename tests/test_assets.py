@@ -1,5 +1,5 @@
 import pytest
-from fitinera.assets import Asset, AssetContributionConstraint, Penalty
+from fitinera.assets import Asset, ContributionConstraint, Penalty
 from fitinera.core import Age, Month, MonthlyGrowth, TimeBounds
 
 
@@ -16,14 +16,14 @@ def test_penalty_post_init_invalid_rate():
         Penalty(rate=-0.1, time_bounds=TimeBounds(end=Age(59, Month.JULY)))
 
 
-def test_asset_contribution_constraint_post_init_valid():
-    constraint = AssetContributionConstraint(effective_monthly_max=100)
+def test_contribution_constraint_post_init_valid():
+    constraint = ContributionConstraint(effective_monthly_max=100)
     assert constraint.effective_monthly_max == 100
 
 
-def test_asset_contribution_constraint_post_init_invalid_effective_monthly_max():
+def test_contribution_constraint_post_init_invalid_effective_monthly_max():
     with pytest.raises(ValueError, match="Effective monthly max cannot be negative."):
-        AssetContributionConstraint(effective_monthly_max=-1)
+        ContributionConstraint(effective_monthly_max=-1)
 
 
 def test_asset_post_init_valid():

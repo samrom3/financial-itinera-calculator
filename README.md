@@ -152,10 +152,10 @@ simulation.
 | `growth_strategy`          | `GrowthStrategy`                    | The compounding growth rate of the asset. See [Core Data Types](#6-core-data-types).                                               |
 | `contribution_priority`    | `int`                               | A positive integer indicating the preference to contribute extra net cash flow to this asset. Higher numbers have higher priority. |
 | `withdrawal_priority`      | `int`                               | A positive integer indicating the preference to withdraw from this asset to cover deficits. Higher numbers have higher priority.   |
-| `contribution_constraints` | `list[AssetContributionConstraint]` | Optional. A list of constraints that limit how much can be contributed to this asset.                                              |
+| `contribution_constraints` | `list[ContributionConstraint]` | Optional. A list of constraints that limit how much can be contributed to this asset.                                              |
 | `withdrawal_penalties`     | `list[Penalty]`                     | Optional. A list of penalties applied to withdrawals, useful for modeling early withdrawal from tax-advantaged accounts.           |
 
-#### 3.1. Asset Contribution Constraints
+#### 3.1. Contribution Constraints
 
 You can apply one or more constraints to an asset to model contribution limits, such as annual 401(k) or IRA maximums.
 
