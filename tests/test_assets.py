@@ -1,5 +1,5 @@
 import pytest
-from fitinera.assets import Asset, ContributionConstraint, Penalty
+from fitinera.assets import Asset, AssetBuilder, ContributionConstraint, Penalty
 from fitinera.core import Age, Month, MonthlyGrowth, TimeBounds
 
 
@@ -80,3 +80,46 @@ def test_asset_post_init_invalid_withdrawal_priority():
             contribution_priority=1,
             withdrawal_priority=0,
         )
+
+
+def test_asset_builder_valid():
+    constraint = ContributionConstraint(effective_monthly_max=200)
+    penalty = Penalty(rate=0.1, time_bounds=TimeBounds(end=Age(59, Month.JULY)))
+    asset = (
+        AssetBuilder("Test Asset")
+        .with_initial_value(1000)
+        .with_growth_strategy(MonthlyGrowth(annual_rate=0.05))
+        .with_contribution_priority(2)
+        .with_withdrawal_priority(3)
+        .with_contribution_constraint(constraint)
+        .with_withdrawal_penalty(penalty)
+        .build()
+    )
+
+    assert asset.name == "Test Asset"
+    assert asset.initial_value == 1000
+    assert isinstance(asset.growth_strategy, MonthlyGrowth)
+    assert asset.contribution_priority == 2
+    assert asset.withdrawal_priority == 3
+    assert asset.contribution_constraints == [constraint]
+    assert asset.withdrawal_penalties == [penalty]
+
+
+def test_asset_builder_minimal():
+    asset = AssetBuilder("Minimal Asset").with_growth_strategy(MonthlyGrowth(annual_rate=0.01)).build()
+    assert asset.name == "Minimal Asset"
+    assert asset.initial_value == 0.0
+    assert asset.contribution_priority == 1
+    assert asset.withdrawal_priority == 1
+    assert asset.contribution_constraints == []
+    assert asset.withdrawal_penalties == []
+
+
+def test_asset_builder_missing_growth_strategy():
+    with pytest.raises(ValueError, match="Growth strategy must be set before building the asset."):
+        AssetBuilder("Test Asset").build()
+
+
+def test_asset_builder_triggers_validation():
+    with pytest.raises(ValueError, match="Initial value cannot be negative."):
+        AssetBuilder("Invalid Asset").with_initial_value(-100).with_growth_strategy(MonthlyGrowth(0.05)).build()

@@ -50,3 +50,54 @@ class Asset:
             raise ValueError("Contribution priority must be positive.")
         if self.withdrawal_priority <= 0:
             raise ValueError("Withdrawal priority must be positive.")
+
+
+class AssetBuilder:
+    """A fluent builder for creating Asset instances."""
+
+    def __init__(self, name: str):
+        self._name = name
+        self._initial_value: float = 0.0
+        self._growth_strategy: Optional[GrowthStrategy] = None
+        self._contribution_priority: int = 1
+        self._withdrawal_priority: int = 1
+        self._contribution_constraints: List[ContributionConstraint] = []
+        self._withdrawal_penalties: List[Penalty] = []
+
+    def with_initial_value(self, value: float) -> AssetBuilder:
+        self._initial_value = value
+        return self
+
+    def with_growth_strategy(self, strategy: GrowthStrategy) -> AssetBuilder:
+        self._growth_strategy = strategy
+        return self
+
+    def with_contribution_priority(self, priority: int) -> AssetBuilder:
+        self._contribution_priority = priority
+        return self
+
+    def with_withdrawal_priority(self, priority: int) -> AssetBuilder:
+        self._withdrawal_priority = priority
+        return self
+
+    def with_contribution_constraint(self, constraint: ContributionConstraint) -> AssetBuilder:
+        self._contribution_constraints.append(constraint)
+        return self
+
+    def with_withdrawal_penalty(self, penalty: Penalty) -> AssetBuilder:
+        self._withdrawal_penalties.append(penalty)
+        return self
+
+    def build(self) -> Asset:
+        if self._growth_strategy is None:
+            raise ValueError("Growth strategy must be set before building the asset.")
+
+        return Asset(
+            name=self._name,
+            initial_value=self._initial_value,
+            growth_strategy=self._growth_strategy,
+            contribution_priority=self._contribution_priority,
+            withdrawal_priority=self._withdrawal_priority,
+            contribution_constraints=self._contribution_constraints,
+            withdrawal_penalties=self._withdrawal_penalties,
+        )
