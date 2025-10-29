@@ -39,3 +39,12 @@ repos:
           - mdformat-config
           - mdformat-ruff
           - mdformat-toc
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: uv run pytest tests --cov=src
+        language: system
+        types: [python]
+        pass_filenames: false
