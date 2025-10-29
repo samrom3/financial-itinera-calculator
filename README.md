@@ -22,13 +22,14 @@ Some common use cases we facilitate include:
 ## Quickstart API Examples
 
 ```python
-from itinera import (
+from fitinera import (
     Age,
     AnnualGrowth,
     AssetBuilder,
     ExpenseBuilder,
     FinancialScenarioBuilder,
     IncomeBuilder,
+    Month,
     MonthlyGrowth,
     Simulator,
     TimeHorizon,
@@ -37,9 +38,9 @@ from itinera import (
 )
 
 # 1. Define the simulation's time horizon and retirement goals.
-time_horizon = TimeHorizon(current_age=Age(30, 0), life_expectancy=Age(95, 0))
+time_horizon = TimeHorizon(current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY))
 retirement_goal = RetirementGoal(
-    retirement_age=Age(65, 0), desired_estate_value=1_000_000
+    retirement_age=Age(65, Month.JANUARY), desired_estate_value=1_000_000
 )
 
 # 2. Build the financial scenario using a builder pattern.
@@ -55,9 +56,9 @@ scenario = (
         .with_contribution_priority(1)
         .with_withdrawal_priority(2)
         .with_max_monthly_contribution(23_500 / 12)
-        .with_max_contribution_age(Age(59, 6))
+        .with_max_contribution_age(Age(59, Month.JULY))
         .with_withdrawal_penalty(
-            rate=0.10, end_age=Age(59, 6)
+            rate=0.10, end_age=Age(59, Month.JULY)
         )  # 10% penalty until 59.5
         .build()
     )
@@ -75,7 +76,7 @@ scenario = (
         IncomeBuilder("W2 Income", monthly_amount=6_000)
         .is_active_income()
         .with_growth_strategy(
-            AnnualGrowth(annual_rate=0.03, month_of_year=3)
+            AnnualGrowth(annual_rate=0.03, month_of_year=Month.MARCH)
         )  # 3% raise every March
         .with_time_bounds(end=retirement_goal.retirement_age)
         .build()
@@ -232,10 +233,10 @@ These are the common, low-level data structures used to configure the concepts a
 
 #### 6.1. Age and TimeBounds
 
-The simulator models time based on the subject's age, specified with a `Year` and `Month`. Most entities use a
-`TimeBounds` object to define when they are active.
+The simulator models time based on the subject's age, specified with a `Year` and `Month`. The `Month` is a strongly-
+typed enum to prevent invalid month values. Most entities use a `TimeBounds` object to define when they are active.
 
-- **`Age(year: int, month: int)`**: Represents a specific point in time (e.g., `Age(65, 0)`).
+- **`Age(year: int, month: Month)`**: Represents a specific point in time (e.g., `Age(65, Month.JANUARY)`).
 - **`TimeBounds(start: Age | RetirementGoal, end: Age | RetirementGoal)`**: Defines a time range. The `start` and `end`
   can be a specific `Age` or can be relative to the `RetirementGoal`. A `None` value means the start or end of the
   simulation.
@@ -246,7 +247,7 @@ This interface models how values change over time.
 
 - **`Monthly(annual_rate: float)`**: The preferred and simplest method. The value compounds each month by
   `annual_rate / 12`.
-- **`Annual(annual_rate: float, month_of_year: int)`**: The value compounds once per year in the specified month (1-12).
+- **`Annual(annual_rate: float, month_of_year: Month)`**: The value compounds once per year in the specified `Month`.
 
 Here are some common rules of thumb:
 
