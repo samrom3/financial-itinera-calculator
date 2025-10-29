@@ -1,5 +1,5 @@
 [project]
-name = "f-itinera"
+name = "fitinera"
 version = "0.1.0"
 description = "f-Itinera planning simulator library and examples"
 readme = "README.md"
