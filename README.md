@@ -26,15 +26,18 @@ from fitinera import (
     Age,
     AnnualGrowth,
     AssetBuilder,
+    ContributionConstraint,
     ExpenseBuilder,
     FinancialScenarioBuilder,
     IncomeBuilder,
     Month,
     MonthlyGrowth,
+    Penalty,
     Simulator,
     TimeHorizon,
     RetirementGoal,
     TaxRateBuilder,
+    TimeBounds,
 )
 
 # 1. Define the simulation's time horizon and retirement goals.
@@ -55,10 +58,14 @@ scenario = (
         .with_growth_strategy(MonthlyGrowth(annual_rate=0.07))
         .with_contribution_priority(1)
         .with_withdrawal_priority(2)
-        .with_max_monthly_contribution(23_500 / 12)
-        .with_max_contribution_age(Age(59, Month.JULY))
+        .with_contribution_constraint(
+            ContributionConstraint(
+                effective_monthly_max=23_500 / 12,
+                effective_time_bounds=TimeBounds(end=Age(59, Month.JULY)),
+            )
+        )
         .with_withdrawal_penalty(
-            rate=0.10, end_age=Age(59, Month.JULY)
+            Penalty(rate=0.10, time_bounds=TimeBounds(end=Age(59, Month.JULY)))
         )  # 10% penalty until 59.5
         .build()
     )
@@ -145,16 +152,33 @@ This defines the primary objective of the simulation: achieving retirement.
 Assets represent your current and future investments that you can live off of. You can add multiple asset accounts to a
 simulation.
 
-| Parameter                  | Type             | Description                                                                                                                        |
-| -------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `name`                     | `str`            | A unique name that identifies the account/asset.                                                                                   |
-| `initial_value`            | `float`          | The starting value of the asset.                                                                                                   |
-| `growth_strategy`          | `GrowthStrategy` | The compounding growth rate of the asset. See [Core Data Types](#6-core-data-types).                                               |
-| `contribution_priority`    | `int`            | A positive integer indicating the preference to contribute extra net cash flow to this asset. Higher numbers have higher priority. |
-| `withdrawal_priority`      | `int`            | A positive integer indicating the preference to withdraw from this asset to cover deficits. Higher numbers have higher priority.   |
-| `max_monthly_contribution` | `float`          | Optional. The maximum that can be contributed monthly. A negative value indicates no limit.                                        |
-| `max_contribution_age`     | `Age`            | Optional. The maximum age that one can be to contribute into this Asset. See [Core Data Types](#6-core-data-types).                |
-| `withdrawal_penalties`     | `list[Penalty]`  | Optional. A list of penalties applied to withdrawals, useful for modeling early withdrawal from tax-advantaged accounts.           |
+| Parameter                  | Type                                | Description                                                                                                                        |
+| -------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                     | `str`                               | A unique name that identifies the account/asset.                                                                                   |
+| `initial_value`            | `float`                             | The starting value of the asset.                                                                                                   |
+| `growth_strategy`          | `GrowthStrategy`                    | The compounding growth rate of the asset. See [Core Data Types](#6-core-data-types).                                               |
+| `contribution_priority`    | `int`                               | A positive integer indicating the preference to contribute extra net cash flow to this asset. Higher numbers have higher priority. |
+| `withdrawal_priority`      | `int`                               | A positive integer indicating the preference to withdraw from this asset to cover deficits. Higher numbers have higher priority.   |
+| `contribution_constraints` | `list[ContributionConstraint]` | Optional. A list of constraints that limit how much can be contributed to this asset.                                              |
+| `withdrawal_penalties`     | `list[Penalty]`                     | Optional. A list of penalties applied to withdrawals, useful for modeling early withdrawal from tax-advantaged accounts.           |
+
+#### 3.1. Contribution Constraints
+
+You can apply one or more constraints to an asset to model contribution limits, such as annual 401(k) or IRA maximums.
+
+| Parameter                 | Type         | Description                                                                          |
+| ------------------------- | ------------ | ------------------------------------------------------------------------------------ |
+| `effective_time_bounds`   | `TimeBounds` | Optional. The time range when this constraint is in effect.                          |
+| `effective_monthly_max`   | `float`      | The maximum that can be contributed monthly during the specified time range.         |
+
+#### 3.2. Withdrawal Penalties
+
+Withdrawal penalties can be used to model early withdrawal fees from tax-advantaged accounts.
+
+| Parameter     | Type         | Description                                                                  |
+| ------------- | ------------ | ---------------------------------------------------------------------------- |
+| `rate`        | `float`      | The penalty rate, expressed as a decimal between 0.0 and 1.0.                |
+| `time_bounds` | `TimeBounds` | The time range when this penalty is in effect.                               |
 
 ### 4. Cash Flow
 
