@@ -8,7 +8,7 @@ from fitinera.cashflows import (
     TaxRate,
     TaxRateBuilder,
 )
-from fitinera.core import MonthlyGrowth, TimeBounds
+from fitinera.core import MonthlyGrowth, NoGrowth, TimeBounds
 
 
 def test_income_post_init_valid():
@@ -97,10 +97,20 @@ def test_income_builder_valid():
 
 
 def test_income_builder_minimal():
-    income = IncomeBuilder("Minimal Income", 500).with_growth_strategy(MonthlyGrowth(0.01)).build()
+    income = IncomeBuilder("Minimal Income", 500).build()
     assert income.name == "Minimal Income"
     assert income.monthly_amount == 500
+    assert isinstance(income.growth_strategy, NoGrowth)
     assert income.kind == IncomeKind.ACTIVE
+
+
+def test_income_builder_with_strategy():
+    income = (
+        IncomeBuilder("Income With Strategy", 500)
+        .with_growth_strategy(MonthlyGrowth(annual_rate=0.05))
+        .build()
+    )
+    assert isinstance(income.growth_strategy, MonthlyGrowth)
 
 
 def test_income_builder_is_passive_income():
@@ -117,25 +127,20 @@ def test_income_builder_is_active_income():
     assert income.kind == IncomeKind.ACTIVE
 
 
-def test_income_builder_missing_growth_strategy():
-    with pytest.raises(ValueError, match="Growth strategy must be set before building the income."):
-        IncomeBuilder("Test Income", 1000).build()
+def test_expense_builder_minimal():
+    expense = ExpenseBuilder("Minimal Expense", 500).build()
+    assert expense.name == "Minimal Expense"
+    assert expense.monthly_amount == 500
+    assert isinstance(expense.growth_strategy, NoGrowth)
 
 
-def test_expense_builder_valid():
+def test_expense_builder_with_strategy():
     expense = (
-        ExpenseBuilder("Test Expense", 500)
-        .with_growth_strategy(MonthlyGrowth(annual_rate=0.02))
-        .with_time_bounds(TimeBounds())
+        ExpenseBuilder("Expense With Strategy", 500)
+        .with_growth_strategy(MonthlyGrowth(annual_rate=0.05))
         .build()
     )
-    assert expense.name == "Test Expense"
-    assert expense.monthly_amount == 500
-
-
-def test_expense_builder_missing_growth_strategy():
-    with pytest.raises(ValueError, match="Growth strategy must be set before building the expense."):
-        ExpenseBuilder("Test Expense", 500).build()
+    assert isinstance(expense.growth_strategy, MonthlyGrowth)
 
 
 def test_tax_rate_builder_valid():

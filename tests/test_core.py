@@ -1,5 +1,12 @@
 import pytest
-from fitinera.core import Age, TimeBounds, MonthlyGrowth, AnnualGrowth, Month
+from fitinera.core import (
+    Age,
+    AnnualGrowth,
+    Month,
+    MonthlyGrowth,
+    NoGrowth,
+    TimeBounds,
+)
 
 
 def test_age_creation():
@@ -45,3 +52,8 @@ def test_annual_growth_rate():
     growth = AnnualGrowth(annual_rate=0.12, month_of_year=Month.APRIL)
     assert growth.get_monthly_growth_rate(Month.APRIL) == 0.12
     assert growth.get_monthly_growth_rate(Month.MAY) == 0.0
+
+
+def test_no_growth():
+    growth = NoGrowth()
+    assert growth.get_monthly_growth_rate(Month.SEPTEMBER) == 0.0

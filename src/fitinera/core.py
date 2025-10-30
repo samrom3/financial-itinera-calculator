@@ -81,3 +81,11 @@ class AnnualGrowth(GrowthStrategy):
 
     def get_monthly_growth_rate(self, current_month: Month) -> float:
         return self.annual_rate if current_month == self.month_of_year else 0.0
+
+
+@dataclass(frozen=True)
+class NoGrowth(GrowthStrategy):
+    """Represents a strategy with no growth, always returning 0."""
+
+    def get_monthly_growth_rate(self, current_month: Month) -> float:
+        return 0.0
