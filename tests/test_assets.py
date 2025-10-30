@@ -1,6 +1,6 @@
 import pytest
 from fitinera.assets import Asset, AssetBuilder, ContributionConstraint, Penalty
-from fitinera.core import Age, Month, MonthlyGrowth, TimeBounds
+from fitinera.core import Age, Month, MonthlyGrowth, NoGrowth, TimeBounds
 
 
 def test_penalty_post_init_valid():
@@ -106,18 +106,23 @@ def test_asset_builder_valid():
 
 
 def test_asset_builder_minimal():
-    asset = AssetBuilder("Minimal Asset").with_growth_strategy(MonthlyGrowth(annual_rate=0.01)).build()
+    asset = AssetBuilder("Minimal Asset").build()
     assert asset.name == "Minimal Asset"
     assert asset.initial_value == 0.0
+    assert isinstance(asset.growth_strategy, NoGrowth)
     assert asset.contribution_priority == 1
     assert asset.withdrawal_priority == 1
     assert asset.contribution_constraints == []
     assert asset.withdrawal_penalties == []
 
 
-def test_asset_builder_missing_growth_strategy():
-    with pytest.raises(ValueError, match="Growth strategy must be set before building the asset."):
-        AssetBuilder("Test Asset").build()
+def test_asset_builder_with_strategy():
+    asset = (
+        AssetBuilder("Asset With Strategy")
+        .with_growth_strategy(MonthlyGrowth(annual_rate=0.05))
+        .build()
+    )
+    assert isinstance(asset.growth_strategy, MonthlyGrowth)
 
 
 def test_asset_builder_triggers_validation():

@@ -1,8 +1,8 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 
-from .core import GrowthStrategy, TimeBounds
+from .core import GrowthStrategy, NoGrowth, TimeBounds
 
 
 class IncomeKind(Enum):
@@ -19,7 +19,7 @@ class Income:
     name: str
     monthly_amount: float
     kind: IncomeKind
-    growth_strategy: GrowthStrategy
+    growth_strategy: GrowthStrategy = field(default_factory=NoGrowth)
     time_bounds: TimeBounds = TimeBounds()
 
     def __post_init__(self):
@@ -33,7 +33,7 @@ class Expense:
 
     name: str
     monthly_amount: float
-    growth_strategy: GrowthStrategy
+    growth_strategy: GrowthStrategy = field(default_factory=NoGrowth)
     time_bounds: TimeBounds = TimeBounds()
 
     def __post_init__(self):
@@ -60,7 +60,7 @@ class IncomeBuilder:
         self._name = name
         self._monthly_amount = monthly_amount
         self._kind: IncomeKind = IncomeKind.ACTIVE
-        self._growth_strategy: GrowthStrategy | None = None
+        self._growth_strategy: GrowthStrategy = NoGrowth()
         self._time_bounds: TimeBounds = TimeBounds()
 
     def is_active_income(self) -> IncomeBuilder:
@@ -80,8 +80,6 @@ class IncomeBuilder:
         return self
 
     def build(self) -> Income:
-        if self._growth_strategy is None:
-            raise ValueError("Growth strategy must be set before building the income.")
         return Income(
             name=self._name,
             monthly_amount=self._monthly_amount,
@@ -97,7 +95,7 @@ class ExpenseBuilder:
     def __init__(self, name: str, monthly_amount: float):
         self._name = name
         self._monthly_amount = monthly_amount
-        self._growth_strategy: GrowthStrategy | None = None
+        self._growth_strategy: GrowthStrategy = NoGrowth()
         self._time_bounds: TimeBounds = TimeBounds()
 
     def with_growth_strategy(self, strategy: GrowthStrategy) -> ExpenseBuilder:
@@ -109,8 +107,6 @@ class ExpenseBuilder:
         return self
 
     def build(self) -> Expense:
-        if self._growth_strategy is None:
-            raise ValueError("Growth strategy must be set before building the expense.")
         return Expense(
             name=self._name,
             monthly_amount=self._monthly_amount,

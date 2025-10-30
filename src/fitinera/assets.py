@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from .core import Age, GrowthStrategy, TimeBounds
+from .core import Age, GrowthStrategy, NoGrowth, TimeBounds
 
 
 @dataclass(frozen=True)
@@ -35,9 +35,9 @@ class Asset:
 
     name: str
     initial_value: float
-    growth_strategy: GrowthStrategy
     contribution_priority: int
     withdrawal_priority: int
+    growth_strategy: GrowthStrategy = field(default_factory=NoGrowth)
     contribution_constraints: List[ContributionConstraint] = field(default_factory=list)
     withdrawal_penalties: List[Penalty] = field(default_factory=list)
 
@@ -58,7 +58,7 @@ class AssetBuilder:
     def __init__(self, name: str):
         self._name = name
         self._initial_value: float = 0.0
-        self._growth_strategy: Optional[GrowthStrategy] = None
+        self._growth_strategy: GrowthStrategy = NoGrowth()
         self._contribution_priority: int = 1
         self._withdrawal_priority: int = 1
         self._contribution_constraints: List[ContributionConstraint] = []
@@ -89,9 +89,6 @@ class AssetBuilder:
         return self
 
     def build(self) -> Asset:
-        if self._growth_strategy is None:
-            raise ValueError("Growth strategy must be set before building the asset.")
-
         return Asset(
             name=self._name,
             initial_value=self._initial_value,
