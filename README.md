@@ -26,15 +26,18 @@ from fitinera import (
     Age,
     AnnualGrowth,
     AssetBuilder,
+    ContributionConstraint,
     ExpenseBuilder,
     FinancialScenarioBuilder,
     IncomeBuilder,
     Month,
     MonthlyGrowth,
+    Penalty,
     Simulator,
     TimeHorizon,
     RetirementGoal,
     TaxRateBuilder,
+    TimeBounds,
 )
 
 # 1. Define the simulation's time horizon and retirement goals.
@@ -55,10 +58,14 @@ scenario = (
         .with_growth_strategy(MonthlyGrowth(annual_rate=0.07))
         .with_contribution_priority(1)
         .with_withdrawal_priority(2)
-        .with_max_monthly_contribution(23_500 / 12)
-        .with_max_contribution_age(Age(59, Month.JULY))
+        .with_contribution_constraint(
+            ContributionConstraint(
+                effective_monthly_max=23_500 / 12,
+                effective_time_bounds=TimeBounds(end=Age(59, Month.JULY)),
+            )
+        )
         .with_withdrawal_penalty(
-            rate=0.10, end_age=Age(59, Month.JULY)
+            Penalty(rate=0.10, time_bounds=TimeBounds(end=Age(59, Month.JULY)))
         )  # 10% penalty until 59.5
         .build()
     )
