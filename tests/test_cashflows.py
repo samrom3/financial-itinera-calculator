@@ -110,6 +110,13 @@ def test_income_builder_is_passive_income():
     assert income.kind == IncomeKind.PASSIVE
 
 
+def test_income_builder_is_active_income():
+    builder = IncomeBuilder("Test Income", 1000)
+    builder.is_active_income()
+    income = builder.with_growth_strategy(MonthlyGrowth(annual_rate=0.03)).build()
+    assert income.kind == IncomeKind.ACTIVE
+
+
 def test_income_builder_missing_growth_strategy():
     with pytest.raises(ValueError, match="Growth strategy must be set before building the income."):
         IncomeBuilder("Test Income", 1000).build()
