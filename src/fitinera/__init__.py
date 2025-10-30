@@ -9,7 +9,12 @@ from .cashflows import (
     TaxRateBuilder,
 )
 from .core import Age, AnnualGrowth, GrowthStrategy, Month, MonthlyGrowth, TimeBounds
-from .planning import RetirementGoal, TimeHorizon
+from .planning import (
+    FinancialScenario,
+    FinancialScenarioBuilder,
+    RetirementGoal,
+    TimeHorizon,
+)
 
 __all__ = [
     # assets
@@ -33,6 +38,8 @@ __all__ = [
     "MonthlyGrowth",
     "TimeBounds",
     # planning
+    "FinancialScenario",
+    "FinancialScenarioBuilder",
     "RetirementGoal",
     "TimeHorizon",
 ]

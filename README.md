@@ -47,7 +47,7 @@ retirement_goal = RetirementGoal(
 )
 
 # 2. Build the financial scenario using a builder pattern.
-scenario_builder = FinancialScenarioBuilder(time_horizon)
+scenario_builder = FinancialScenarioBuilder(name="Retirement Plan", time_horizon=time_horizon)
 
 scenario = (
     scenario_builder
@@ -122,10 +122,25 @@ print(results.summary())
 The f-Itinera Simulator is built around a few core concepts that model your financial life. By providing inputs for each
 of these, you can create a detailed simulation of your journey to financial independence and retirement.
 
-At a high level, a simulation is defined by four components: the **Time Horizon**, your **Assets**, your **Cash Flow**,
+At a high level, a simulation is defined by four components: a **Financial Scenario**, the **Time Horizon**, your **Assets**, your **Cash Flow**,
 and your **Goals**.
 
-### 1. Time Horizon
+### 1. Financial Scenario
+
+The Financial Scenario is the top-level container for a simulation. It bundles together all the components of a
+financial plan.
+
+| Parameter         | Type                | Description                                                               |
+| ----------------- | ------------------- | ------------------------------------------------------------------------- |
+| `name`            | `str`               | A unique name to identify the scenario.                                   |
+| `time_horizon`    | `TimeHorizon`       | The time horizon for the simulation.                                      |
+| `retirement_goal` | `RetirementGoal`    | The retirement goal for the simulation.                                   |
+| `assets`          | `list[Asset]`       | A list of all assets in the scenario.                                     |
+| `incomes`         | `list[Income]`      | A list of all income streams in the scenario.                             |
+| `expenses`        | `list[Expense]`     | A list of all expense streams in the scenario.                            |
+| `tax_rates`       | `list[TaxRate]`     | A list of all tax rates in the scenario.                                  |
+
+### 2. Time Horizon
 
 The Time Horizon defines the duration and key milestones of the simulation. It is the foundational context for all
 events.
@@ -135,7 +150,7 @@ events.
 | `current_age`     | `Age` | The starting age of the subject of the simulation.      |
 | `life_expectancy` | `Age` | The end point of the simulation (default is 100 years). |
 
-### 2. Retirement Goals
+### 3. Retirement Goals
 
 This defines the primary objective of the simulation: achieving retirement.
 
@@ -147,7 +162,7 @@ This defines the primary objective of the simulation: achieving retirement.
 > **IMPORTANT**: The retirement age must be equal to or greater than the starting age and strictly less than the life
 > expectancy.
 
-### 3. Assets & Investments
+### 4. Assets & Investments
 
 Assets represent your current and future investments that you can live off of. You can add multiple asset accounts to a
 simulation.
@@ -162,7 +177,7 @@ simulation.
 | `contribution_constraints` | `list[ContributionConstraint]` | Optional. A list of constraints that limit how much can be contributed to this asset.                                              |
 | `withdrawal_penalties`     | `list[Penalty]`                     | Optional. A list of penalties applied to withdrawals, useful for modeling early withdrawal from tax-advantaged accounts.           |
 
-#### 3.1. Contribution Constraints
+#### 4.1. Contribution Constraints
 
 You can apply one or more constraints to an asset to model contribution limits, such as annual 401(k) or IRA maximums.
 
@@ -171,7 +186,7 @@ You can apply one or more constraints to an asset to model contribution limits, 
 | `effective_time_bounds`   | `TimeBounds` | Optional. The time range when this constraint is in effect.                          |
 | `effective_monthly_max`   | `float`      | The maximum that can be contributed monthly during the specified time range.         |
 
-#### 3.2. Withdrawal Penalties
+#### 4.2. Withdrawal Penalties
 
 Withdrawal penalties can be used to model early withdrawal fees from tax-advantaged accounts.
 
@@ -180,12 +195,12 @@ Withdrawal penalties can be used to model early withdrawal fees from tax-advanta
 | `rate`        | `float`      | The penalty rate, expressed as a decimal between 0.0 and 1.0.                |
 | `time_bounds` | `TimeBounds` | The time range when this penalty is in effect.                               |
 
-### 4. Cash Flow
+### 5. Cash Flow
 
 Cash Flow models the money moving in and out of your accounts over the course of the simulation. It is composed of
 income, taxes, and expenses.
 
-#### 4.1. Income Streams
+#### 5.1. Income Streams
 
 You can add any number of income sources. The `kind` of income is critical for determining financial independence.
 
@@ -197,7 +212,7 @@ You can add any number of income sources. The `kind` of income is critical for d
 | `kind`            | `IncomeKind`     | `ACTIVE` or `PASSIVE`. Passive income counts towards financial independence goals.                        |
 | `growth_strategy` | `GrowthStrategy` | The rate at which the income changes over time (e.g., raises). See [Core Data Types](#6-core-data-types). |
 
-#### 4.2. Expense Streams
+#### 5.2. Expense Streams
 
 You can add any number of after-tax expense sources.
 
@@ -208,7 +223,7 @@ You can add any number of after-tax expense sources.
 | `time_bounds`     | `TimeBounds`     | The time range when this expense is active. See [Core Data Types](#6-core-data-types).                        |
 | `growth_strategy` | `GrowthStrategy` | The rate at which the expense changes over time (i.e., inflation). See [Core Data Types](#6-core-data-types). |
 
-#### 4.3. Tax Rates
+#### 5.3. Tax Rates
 
 Tax rates are applied to your gross income each month. You can specify different rates for different periods (e.g., pre-
 and post-retirement).
@@ -218,7 +233,7 @@ and post-retirement).
 | `rate`        | `float`      | A decimal between \[0.0, 1.0) representing the effective tax rate.                         |
 | `time_bounds` | `TimeBounds` | The time range when this tax rate is in effect. See [Core Data Types](#6-core-data-types). |
 
-#### 4.4. One-Time Payments
+#### 5.4. One-Time Payments
 
 The simulator allows for modeling one-off lump sum payments (positive for income, negative for expenses).
 
@@ -227,7 +242,7 @@ The simulator allows for modeling one-off lump sum payments (positive for income
 | `amount`  | `float` | The value of the payment.             |
 | `age`     | `Age`   | The age at which this payment occurs. |
 
-### 5. The Simulation Lifecycle
+### 6. The Simulation Lifecycle
 
 The simulator executes on a month-by-month loop. For each month, the following operations are executed in order:
 
@@ -251,11 +266,11 @@ The simulation concludes when one of the following conditions is met:
   `desired_estate_value`.
 - **Success**: Life expectancy is reached with sufficient assets to meet the estate goal.
 
-### 6. Core Data Types
+### 7. Core Data Types
 
 These are the common, low-level data structures used to configure the concepts above.
 
-#### 6.1. Age and TimeBounds
+#### 7.1. Age and TimeBounds
 
 The simulator models time based on the subject's age, specified with a `Year` and `Month`. The `Month` is a strongly-
 typed enum to prevent invalid month values. Most entities use a `TimeBounds` object to define when they are active.
@@ -265,7 +280,7 @@ typed enum to prevent invalid month values. Most entities use a `TimeBounds` obj
   can be a specific `Age` or can be relative to the `RetirementGoal`. A `None` value means the start or end of the
   simulation.
 
-#### 6.2. Growth Strategy
+#### 7.2. Growth Strategy
 
 This interface models how values change over time.
 
