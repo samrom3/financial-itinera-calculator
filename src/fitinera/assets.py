@@ -2,6 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+from .cashflows import TaxRate
 from .core import Age, GrowthStrategy, NoGrowth, TimeBounds
 
 
@@ -40,6 +41,7 @@ class Asset:
     growth_strategy: GrowthStrategy = field(default_factory=NoGrowth)
     contribution_constraints: List[ContributionConstraint] = field(default_factory=list)
     withdrawal_penalties: List[Penalty] = field(default_factory=list)
+    override_withdrawal_taxes: List[TaxRate] = field(default_factory=list)
 
     def __post_init__(self):
         if not self.name:
@@ -50,6 +52,31 @@ class Asset:
             raise ValueError("Contribution priority must be positive.")
         if self.withdrawal_priority <= 0:
             raise ValueError("Withdrawal priority must be positive.")
+
+    def get_max_contribution(self, current_age: Age) -> float:
+        """Get the maximum allowed contribution for the current age."""
+        max_contrib = float("inf")
+        for constraint in self.contribution_constraints:
+            if (
+                constraint.effective_time_bounds is None
+                or constraint.effective_time_bounds.is_active(current_age)
+            ):
+                max_contrib = min(max_contrib, constraint.effective_monthly_max)
+        return max_contrib
+
+    def get_penalty(self, current_age: Age) -> Optional[Penalty]:
+        """Get the withdrawal penalty for the current age, if any."""
+        for penalty in self.withdrawal_penalties:
+            if penalty.time_bounds.is_active(current_age):
+                return penalty
+        return None
+
+    def get_override_tax_rate(self, current_age: Age) -> Optional[TaxRate]:
+        """Get the override withdrawal tax rate for the current age, if any."""
+        for tax_rate in self.override_withdrawal_taxes:
+            if tax_rate.time_bounds.is_active(current_age):
+                return tax_rate
+        return None
 
 
 class AssetBuilder:
@@ -63,6 +90,7 @@ class AssetBuilder:
         self._withdrawal_priority: int = 1
         self._contribution_constraints: List[ContributionConstraint] = []
         self._withdrawal_penalties: List[Penalty] = []
+        self._override_withdrawal_taxes: List[TaxRate] = []
 
     def with_initial_value(self, value: float) -> AssetBuilder:
         self._initial_value = value
@@ -88,6 +116,10 @@ class AssetBuilder:
         self._withdrawal_penalties.append(penalty)
         return self
 
+    def with_override_withdrawal_tax(self, tax_rate: TaxRate) -> AssetBuilder:
+        self._override_withdrawal_taxes.append(tax_rate)
+        return self
+
     def build(self) -> Asset:
         return Asset(
             name=self._name,
@@ -97,4 +129,5 @@ class AssetBuilder:
             withdrawal_priority=self._withdrawal_priority,
             contribution_constraints=self._contribution_constraints,
             withdrawal_penalties=self._withdrawal_penalties,
+            override_withdrawal_taxes=self._override_withdrawal_taxes,
         )
