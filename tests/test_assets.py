@@ -128,3 +128,29 @@ def test_asset_builder_with_strategy():
 def test_asset_builder_triggers_validation():
     with pytest.raises(ValueError, match="Initial value cannot be negative."):
         AssetBuilder("Invalid Asset").with_initial_value(-100).with_growth_strategy(MonthlyGrowth(0.05)).build()
+
+
+def test_asset_helper_methods():
+    """Tests the helper methods on the Asset class."""
+    from fitinera.cashflows import TaxRate
+
+    penalty = Penalty(rate=0.1, time_bounds=TimeBounds(end=Age(59, Month.JULY)))
+    tax_rate = TaxRate(rate=0.15, time_bounds=TimeBounds(start=Age(59, Month.JULY)))
+    constraint = ContributionConstraint(
+        effective_monthly_max=100,
+        effective_time_bounds=TimeBounds(end=Age(50, Month.JANUARY)),
+    )
+    asset = (
+        AssetBuilder("Test Asset")
+        .with_withdrawal_penalty(penalty)
+        .with_withdrawal_tax(tax_rate)
+        .with_contribution_constraint(constraint)
+        .build()
+    )
+
+    assert asset.get_max_contribution(Age(40, Month.JUNE)) == 100
+    assert asset.get_max_contribution(Age(55, Month.JUNE)) == float("inf")
+    assert asset.get_penalty(Age(50, Month.JUNE)) == penalty
+    assert asset.get_penalty(Age(60, Month.JUNE)) is None
+    assert asset.get_tax_rate(Age(60, Month.JUNE)) == tax_rate
+    assert asset.get_tax_rate(Age(50, Month.JUNE)) is None
