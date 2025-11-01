@@ -76,6 +76,9 @@ scenario = (
         .with_growth_strategy(MonthlyGrowth(annual_rate=0.07))
         .with_contribution_priority(2)
         .with_withdrawal_priority(1)
+        .with_withdrawal_tax(
+            TaxRateBuilder(0.15).build()
+        )  # 15% capital gains tax on withdrawals
         .build()
     )
     # Add an active W2 income stream
@@ -85,7 +88,7 @@ scenario = (
         .with_growth_strategy(
             AnnualGrowth(annual_rate=0.03, month_of_year=Month.MARCH)
         )  # 3% raise every March
-        .with_time_bounds(end=retirement_goal.retirement_age)
+        .with_time_bounds(TimeBounds(end=retirement_goal.retirement_age))
         .build()
     )
     # Add a recurring expense stream
@@ -97,12 +100,12 @@ scenario = (
     # Add a tax strategy
     .with_tax_rate(
         TaxRateBuilder(0.22)
-        .with_time_bounds(end=retirement_goal.retirement_age)
+        .with_time_bounds(TimeBounds(end=retirement_goal.retirement_age))
         .build()
     )
     .with_tax_rate(
         TaxRateBuilder(0.12)
-        .with_time_bounds(start=retirement_goal.retirement_age)
+        .with_time_bounds(TimeBounds(start=retirement_goal.retirement_age))
         .build()
     )
     # Set the final retirement goal
@@ -176,6 +179,7 @@ simulation.
 | `withdrawal_priority`      | `int`                               | A positive integer indicating the preference to withdraw from this asset to cover deficits. Higher numbers have higher priority.   |
 | `contribution_constraints` | `list[ContributionConstraint]` | Optional. A list of constraints that limit how much can be contributed to this asset.                                              |
 | `withdrawal_penalties`     | `list[Penalty]`                     | Optional. A list of penalties applied to withdrawals, useful for modeling early withdrawal from tax-advantaged accounts.           |
+| `withdrawal_taxes`         | `list[TaxRate]`                     | Optional. A list of tax rates applied to withdrawals, useful for modeling capital gains or income tax on withdrawals.            |
 
 #### 4.1. Contribution Constraints
 
@@ -265,6 +269,20 @@ The simulation concludes when one of the following conditions is met:
 - **Insufficient Estate (Partial Success)**: Life expectancy is reached, but the final asset value is less than the
   `desired_estate_value`.
 - **Success**: Life expectancy is reached with sufficient assets to meet the estate goal.
+
+#### 6.1. Simulation Results
+
+The `simulator.run()` method returns a `SimulationResult` object that contains the final status of the simulation and a
+detailed history of each time step.
+
+| Parameter | Type                  | Description                                                                    |
+| --------- | --------------------- | ------------------------------------------------------------------------------ |
+| `status`  | `SimulationStatus`    | The final status of the simulation (e.g., `SUCCESS`, `PRE_RETIREMENT_BANKRUPTCY`). |
+| `history` | `list[SimulationTurn]` | A list of `SimulationTurn` objects, one for each month of the simulation.      |
+| `scenario`| `FinancialScenario`   | The original financial scenario that was simulated.                            |
+
+Each `SimulationTurn` object provides a detailed breakdown of the financial state for a single month, including income,
+expenses, taxes, asset growth, and key metrics like the financial freedom ratio and savings rate.
 
 ### 7. Core Data Types
 

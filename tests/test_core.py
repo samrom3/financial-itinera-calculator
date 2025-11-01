@@ -24,6 +24,10 @@ def test_age_comparison():
     assert Age(30, Month.JUNE) < Age(31, Month.JUNE)
     assert Age(30, Month.JUNE) < Age(30, Month.JULY)
     assert Age(30, Month.JUNE) == Age(30, Month.JUNE)
+    assert Age(30, Month.JUNE) > Age(29, Month.JUNE)
+    assert Age(30, Month.JUNE) > Age(30, Month.MAY)
+    assert Age(30, Month.JUNE) >= Age(30, Month.JUNE)
+    assert Age(30, Month.JUNE) <= Age(30, Month.JUNE)
 
 
 def test_time_bounds_creation():
@@ -35,6 +39,18 @@ def test_time_bounds_creation():
 def test_time_bounds_invalid_range():
     with pytest.raises(ValueError, match="Start age cannot be after end age."):
         TimeBounds(start=Age(65, Month.JANUARY), end=Age(30, Month.JANUARY))
+
+
+def test_age_next_month():
+    assert Age(30, Month.JANUARY).next_month() == Age(30, Month.FEBRUARY)
+    assert Age(30, Month.DECEMBER).next_month() == Age(31, Month.JANUARY)
+
+
+def test_time_bounds_is_active():
+    time_bounds = TimeBounds(start=Age(30, Month.JANUARY), end=Age(65, Month.JANUARY))
+    assert time_bounds.is_active(Age(45, Month.JUNE))
+    assert not time_bounds.is_active(Age(29, Month.DECEMBER))
+    assert not time_bounds.is_active(Age(65, Month.JANUARY))
 
 
 def test_monthly_growth():

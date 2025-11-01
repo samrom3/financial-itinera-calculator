@@ -32,6 +32,16 @@ class Age:
         if self.year < 0:
             raise ValueError("Year must be non-negative.")
 
+    def next_month(self) -> Age:
+        """
+        Returns the next month's age.
+
+        :return: The age of the next month.
+        """
+        if self.month == Month.DECEMBER:
+            return Age(self.year + 1, Month.JANUARY)
+        return Age(self.year, self.month + 1)
+
 
 @dataclass(frozen=True)
 class TimeBounds:
@@ -43,6 +53,19 @@ class TimeBounds:
     def __post_init__(self):
         if self.start and self.end and self.start > self.end:
             raise ValueError("Start age cannot be after end age.")
+
+    def is_active(self, current_age: Age) -> bool:
+        """
+        Checks if the current age is within the time bounds.
+
+        :param current_age: The current age to check.
+        :return: True if the current age is within the bounds, False otherwise.
+        """
+        if self.start and current_age < self.start:
+            return False
+        if self.end and current_age >= self.end:
+            return False
+        return True
 
 
 from abc import ABC, abstractmethod
