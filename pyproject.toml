@@ -3,6 +3,7 @@ name = "fitinera"
 version = "0.1.0"
 description = "f-Itinera planning simulator library and examples"
 readme = "README.md"
+license = "GPL-3.0-or-later"
 requires-python = ">=3.13"
 dependencies = [
     "matplotlib>=3.10.3",
@@ -10,6 +11,10 @@ dependencies = [
     "pandas>=2.3.3",
     "seaborn>=0.13.2",
 ]
+
+[build-system]
+requires = ["uv_build>=0.9.11,<0.10.0"]
+build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
