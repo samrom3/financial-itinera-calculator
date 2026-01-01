@@ -3,6 +3,7 @@ name = "fitinera"
 version = "0.1.0"
 description = "f-Itinera planning simulator library and examples"
 readme = "README.md"
+license = "GPL-3.0-or-later"
 requires-python = ">=3.13"
 dependencies = [
     "matplotlib>=3.10.3",
