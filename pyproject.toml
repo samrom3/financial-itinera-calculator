@@ -6,10 +6,8 @@ readme = "README.md"
 license = "GPL-3.0-or-later"
 requires-python = ">=3.13"
 dependencies = [
-    "matplotlib>=3.10.3",
     "numpy>=2.3.1",
     "pandas>=2.3.3",
-    "seaborn>=0.13.2",
 ]
 
 [build-system]
@@ -18,8 +16,6 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "ipykernel>=7.0.1",
-    "itables>=2.5.2",
     "pre-commit>=4.3.0",
     "ruff>=0.14.1",
 ]
