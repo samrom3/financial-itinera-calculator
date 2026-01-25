@@ -2,7 +2,7 @@ from fitinera.assets import AssetBuilder
 from fitinera.cashflows import ExpenseBuilder, IncomeBuilder, TaxRateBuilder
 from fitinera.planning import FinancialScenarioBuilder, RetirementGoal, TimeHorizon
 from fitinera.core import Age, Month
-from fitinera.turn import Turn
+from fitinera.turn_handler import TurnHandler
 
 
 def test_single_turn_logic():
@@ -24,7 +24,8 @@ def test_single_turn_logic():
         .build()
     )
 
-    turn_handler = Turn(
+    turn_handler = TurnHandler()
+    turn_result, _, _, _ = turn_handler.run(
         scenario,
         scenario.time_horizon.current_age,
         scenario.assets,
@@ -32,7 +33,6 @@ def test_single_turn_logic():
         scenario.expenses,
         scenario.tax_rates,
     )
-    turn_result = turn_handler.run()
 
     assert turn_result.current_age == Age(30, Month.JANUARY)
     assert turn_result.current_asset_breakdown["Savings"] == 10_000
@@ -73,7 +73,8 @@ def test_multi_asset_turn_logic():
         .build()
     )
 
-    turn_handler = Turn(
+    turn_handler = TurnHandler()
+    turn_result, _, _, _ = turn_handler.run(
         scenario,
         scenario.time_horizon.current_age,
         scenario.assets,
@@ -81,7 +82,6 @@ def test_multi_asset_turn_logic():
         scenario.expenses,
         scenario.tax_rates,
     )
-    turn_result = turn_handler.run()
 
     # Net cash flow is 4000 (5000 * 0.8). Asset 2 has higher priority.
     asset_1_final = 10_000

@@ -2,7 +2,7 @@ import copy
 
 from .planning import FinancialScenario
 from .results import SimulationResult, SimulationStatus
-from .turn import Turn
+from .turn_handler import TurnHandler
 
 
 class Simulator:
@@ -22,16 +22,13 @@ class Simulator:
         tax_rates = scenario.tax_rates[:]
         current_age = scenario.time_horizon.current_age
 
+        turn_handler = TurnHandler()
+
         while current_age < scenario.time_horizon.life_expectancy:
-            turn_handler = Turn(
+            turn_result, assets, incomes, expenses = turn_handler.run(
                 scenario, current_age, assets, incomes, expenses, tax_rates
             )
-            turn_result = turn_handler.run()
             history.append(turn_result)
-
-            assets = turn_handler.assets
-            incomes = turn_handler.incomes
-            expenses = turn_handler.expenses
 
             if sum(turn_result.next_asset_breakdown.values()) <= 0:
                 is_retired = current_age >= scenario.retirement_goal.retirement_age

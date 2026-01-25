@@ -44,6 +44,19 @@ class FinancialScenario:
     tax_rates: List[TaxRate] = field(default_factory=list)
 
     def __post_init__(self):
+        """
+        Validate the financial scenario after initialization.
+
+        Ensures that:
+        - The scenario name is not empty
+        - The retirement age is logically consistent with the time horizon
+          (i.e., retirement age is greater than or equal to current age and
+           less than life expectancy)
+
+        Raises:
+            ValueError: If the name is empty or if the retirement age is not
+                       between current age and life expectancy.
+        """
         if not self.name:
             raise ValueError("Name cannot be empty.")
         if not (
@@ -92,7 +105,9 @@ class FinancialScenarioBuilder:
 
     def build(self) -> FinancialScenario:
         if self._retirement_goal is None:
-            raise ValueError("Retirement goal must be set before building the scenario.")
+            raise ValueError(
+                "Retirement goal must be set before building the scenario."
+            )
 
         return FinancialScenario(
             name=self._name,
