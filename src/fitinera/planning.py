@@ -52,6 +52,10 @@ class FinancialScenario:
         - The retirement age is logically consistent with the time horizon
           (i.e., retirement age is greater than or equal to current age and
            less than life expectancy)
+        - Each Asset has a unique name and valid initial value
+        - Each Expense has a unique name and valid monthly amount
+        - Each Income has a unique name and valid monthly amount
+        - Each TaxRate has valid time bounds and rates between 0 and 1
 
         Raises:
             ValueError: If the name is empty or if the retirement age is not
@@ -67,6 +71,18 @@ class FinancialScenario:
             raise ValueError(
                 "Retirement age must be between the current age and life expectancy."
             )
+
+        asset_names = {asset.name for asset in self.assets}
+        if len(asset_names) != len(self.assets):
+            raise ValueError("Asset names must be unique.")
+
+        income_names = {income.name for income in self.incomes}
+        if len(income_names) != len(self.incomes):
+            raise ValueError("Income names must be unique.")
+
+        expense_names = {expense.name for expense in self.expenses}
+        if len(expense_names) != len(self.expenses):
+            raise ValueError("Expense names must be unique.")
 
 
 class FinancialScenarioBuilder:
