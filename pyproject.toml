@@ -1,10 +1,11 @@
 [project]
 name = "fitinera"
-version = "0.1.0"
+version = "0.1.1"
 description = "Fitinera is a Python library for mathematically validating a wide range of financial planning scenarios."
 readme = "README.md"
 license = "GPL-3.0-or-later"
 requires-python = ">=3.13"
+keywords = ["finance", "planning", "simulation", "retirement"]
 dependencies = [
     "numpy>=2.3.1",
     "pandas>=2.3.3",
