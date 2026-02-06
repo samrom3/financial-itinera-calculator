@@ -80,7 +80,7 @@ scenario = (
         .with_growth_strategy(MonthlyGrowth(annual_rate=0.07))
         .with_contribution_priority(2)
         .with_withdrawal_priority(1)
-        .with_withdrawal_tax(
+        .with_override_withdrawal_tax(
             TaxRateBuilder(0.15).build()
         )  # 15% capital gains tax on withdrawals
         .build()
@@ -137,15 +137,15 @@ At a high level, a simulation is defined by four components: a **Financial Scena
 The Financial Scenario is the top-level container for a simulation. It bundles together all the components of a
 financial plan.
 
-| Parameter         | Type             | Description                                    |
-| ----------------- | ---------------- | ---------------------------------------------- |
-| `name`            | `str`            | A unique name to identify the scenario.        |
-| `time_horizon`    | `TimeHorizon`    | The time horizon for the simulation.           |
-| `retirement_goal` | `RetirementGoal` | The retirement goal for the simulation.        |
-| `assets`          | `list[Asset]`    | A list of all assets in the scenario.          |
-| `incomes`         | `list[Income]`   | A list of all income streams in the scenario.  |
-| `expenses`        | `list[Expense]`  | A list of all expense streams in the scenario. |
-| `tax_rates`       | `list[TaxRate]`  | A list of all tax rates in the scenario.       |
+| Parameter         | Type                 | Description                                    |
+| ----------------- | -------------------- | ---------------------------------------------- |
+| `name`            | `str`                | A unique name to identify the scenario.        |
+| `time_horizon`    | `TimeHorizon`        | The time horizon for the simulation.           |
+| `retirement_goal` | `RetirementGoal`     | The retirement goal for the simulation.        |
+| `assets`          | `dict[str, Asset]`   | A list of all assets in the scenario.          |
+| `incomes`         | `dict[str, Income]`  | A list of all income streams in the scenario.  |
+| `expenses`        | `dict[str, Expense]` | A list of all expense streams in the scenario. |
+| `tax_rates`       | `list[TaxRate]`      | A list of all tax rates in the scenario.       |
 
 ### 2. Time Horizon
 
@@ -174,16 +174,16 @@ This defines the primary objective of the simulation: achieving retirement.
 Assets represent your current and future investments that you can live off of. You can add multiple asset accounts to a
 simulation.
 
-| Parameter                  | Type                           | Description                                                                                                                        |
-| -------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `name`                     | `str`                          | A unique name that identifies the account/asset.                                                                                   |
-| `initial_value`            | `float`                        | The starting value of the asset.                                                                                                   |
-| `growth_strategy`          | `GrowthStrategy`               | The compounding growth rate of the asset. See [Core Data Types](#6-core-data-types).                                               |
-| `contribution_priority`    | `int`                          | A positive integer indicating the preference to contribute extra net cash flow to this asset. Higher numbers have higher priority. |
-| `withdrawal_priority`      | `int`                          | A positive integer indicating the preference to withdraw from this asset to cover deficits. Higher numbers have higher priority.   |
-| `contribution_constraints` | `list[ContributionConstraint]` | Optional. A list of constraints that limit how much can be contributed to this asset.                                              |
-| `withdrawal_penalties`     | `list[Penalty]`                | Optional. A list of penalties applied to withdrawals, useful for modeling early withdrawal from tax-advantaged accounts.           |
-| `withdrawal_taxes`         | `list[TaxRate]`                | Optional. A list of tax rates applied to withdrawals, useful for modeling capital gains or income tax on withdrawals.              |
+| Parameter                   | Type                           | Description                                                                                                                        |
+| --------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                      | `str`                          | A unique name that identifies the account/asset.                                                                                   |
+| `initial_value`             | `float`                        | The starting value of the asset.                                                                                                   |
+| `growth_strategy`           | `GrowthStrategy`               | The compounding growth rate of the asset. See [Core Data Types](#6-core-data-types).                                               |
+| `contribution_priority`     | `int`                          | A positive integer indicating the preference to contribute extra net cash flow to this asset. Higher numbers have higher priority. |
+| `withdrawal_priority`       | `int`                          | A positive integer indicating the preference to withdraw from this asset to cover deficits. Higher numbers have higher priority.   |
+| `contribution_constraints`  | `list[ContributionConstraint]` | Optional. A list of constraints that limit how much can be contributed to this asset.                                              |
+| `withdrawal_penalties`      | `list[Penalty]`                | Optional. A list of penalties applied to withdrawals, useful for modeling early withdrawal from tax-advantaged accounts.           |
+| `override_withdrawal_taxes` | `list[TaxRate]`                | Optional. A list of tax rates applied to withdrawals, useful for modeling capital gains or income tax on withdrawals.              |
 
 #### 4.1. Contribution Constraints
 
@@ -240,6 +240,15 @@ and post-retirement).
 | ------------- | ------------ | ------------------------------------------------------------------------------------------ |
 | `rate`        | `float`      | A decimal between \[0.0, 1.0) representing the effective tax rate.                         |
 | `time_bounds` | `TimeBounds` | The time range when this tax rate is in effect. See [Core Data Types](#6-core-data-types). |
+
+#### 5.4. One-Time Payments
+
+The simulator allows for modeling one-off lump sum payments (positive for income, negative for expenses).
+
+| Parameter | Type    | Description                           |
+| --------- | ------- | ------------------------------------- |
+| `amount`  | `float` | The value of the payment.             |
+| `age`     | `Age`   | The age at which this payment occurs. |
 
 #### 5.4. One-Time Payments
 
