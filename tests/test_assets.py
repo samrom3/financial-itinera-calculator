@@ -49,17 +49,6 @@ def test_asset_post_init_invalid_name():
         )
 
 
-def test_asset_post_init_invalid_initial_value():
-    with pytest.raises(ValueError, match="Initial value cannot be negative."):
-        Asset(
-            name="Test Asset",
-            initial_value=-1000,
-            growth_strategy=MonthlyGrowth(annual_rate=0.05),
-            contribution_priority=1,
-            withdrawal_priority=1,
-        )
-
-
 def test_asset_post_init_invalid_contribution_priority():
     with pytest.raises(ValueError, match="Contribution priority must be positive."):
         Asset(
@@ -123,13 +112,6 @@ def test_asset_builder_with_strategy():
         .build()
     )
     assert isinstance(asset.growth_strategy, MonthlyGrowth)
-
-
-def test_asset_builder_triggers_validation():
-    with pytest.raises(ValueError, match="Initial value cannot be negative."):
-        AssetBuilder("Invalid Asset").with_initial_value(-100).with_growth_strategy(
-            MonthlyGrowth(0.05)
-        ).build()
 
 
 def test_asset_helper_methods():

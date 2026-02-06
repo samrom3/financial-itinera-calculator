@@ -55,7 +55,7 @@ def test_simulator_success_scenario():
 
     # 4. Assert the results.
     assert results.status == SimulationStatus.SUCCESS
-    assert len(results.history) > 0
+    assert len(results.history) == 780  # 65 years * 12 months/year
 
 
 def test_simulator_pre_retirement_bankruptcy_scenario():
@@ -63,9 +63,9 @@ def test_simulator_pre_retirement_bankruptcy_scenario():
     Tests a simulation that should result in pre-retirement bankruptcy.
     """
     time_horizon = TimeHorizon(
-        current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
+        current_age=Age(30, Month.JANUARY), life_expectancy=Age(40, Month.JANUARY)
     )
-    retirement_goal = RetirementGoal(retirement_age=Age(65, Month.JANUARY))
+    retirement_goal = RetirementGoal(retirement_age=Age(35, Month.JANUARY))
 
     scenario = (
         FinancialScenarioBuilder(name="Bankruptcy Plan", time_horizon=time_horizon)
@@ -130,3 +130,29 @@ def test_simulator_insufficient_estate_scenario():
     results = simulator.run(scenario)
 
     assert results.status == SimulationStatus.INSUFFICIENT_ESTATE
+
+
+def test_simulator_perfect_zero_scenario():
+    """
+    Tests a simulation that should result in a successful retirement
+    with exactly zero assets at the end.
+    """
+    time_horizon = TimeHorizon(
+        current_age=Age(65, Month.JANUARY), life_expectancy=Age(65, Month.MARCH)
+    )
+    retirement_goal = RetirementGoal(
+        retirement_age=Age(65, Month.JANUARY), desired_estate_value=0
+    )
+
+    scenario = (
+        FinancialScenarioBuilder(name="Perfect Zero Plan", time_horizon=time_horizon)
+        .with_asset(AssetBuilder("Retirement Fund").with_initial_value(1000).build())
+        .with_expense(ExpenseBuilder("Expenses", monthly_amount=500).build())
+        .with_retirement_goal(retirement_goal)
+        .build()
+    )
+
+    simulator = Simulator()
+    results = simulator.run(scenario)
+
+    assert results.status == SimulationStatus.SUCCESS

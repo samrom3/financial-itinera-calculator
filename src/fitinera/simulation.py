@@ -19,10 +19,8 @@ class Simulator:
         turn_handler = TurnHandler()
 
         while turn_state.current_age < scenario.time_horizon.life_expectancy:
-            turn_result = turn_handler.run(scenario=scenario, turn_state=turn_state)
-            history.append(turn_result)
-
-            if sum(turn_result.next_asset_breakdown.values()) <= 0:
+            # Check for bankruptcy before running the turn. If assets are negative, the simulation ends immediately.
+            if sum(a.initial_value for a in turn_state.assets.values()) < 0:
                 is_retired = (
                     turn_state.current_age >= scenario.retirement_goal.retirement_age
                 )
@@ -35,6 +33,8 @@ class Simulator:
                     status=status, history=history, scenario=scenario
                 )
 
+            turn_result = turn_handler.run(scenario=scenario, turn_state=turn_state)
+            history.append(turn_result)
             turn_state.current_age = turn_state.current_age.next_month()
 
         # Final check for estate goal

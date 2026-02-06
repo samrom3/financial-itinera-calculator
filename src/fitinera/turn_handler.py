@@ -85,6 +85,7 @@ class TurnHandler:
         total_contributions = 0
         withdrawal_breakdown = defaultdict(float)
         total_penalties = 0
+        needed_cash = 0
 
         if net_cash_flow > 0:
             # Contribute to assets
@@ -113,23 +114,29 @@ class TurnHandler:
                 reverse=True,
             )
             needed_cash = abs(net_cash_flow)
-            for asset in sorted_assets:
+            for i, asset in enumerate(sorted_assets):
                 if needed_cash <= 0:
                     break
-                withdrawal = min(needed_cash, asset.initial_value)
-                new_asset = replace(
-                    asset, initial_value=asset.initial_value - withdrawal
+                if asset.initial_value <= 0 and i < len(sorted_assets) - 1:
+                    continue  # Skip assets with no value unless it's the last one.
+
+                new_asset = copy.deepcopy(asset)
+                # Compute how much we can withdraw from this asset
+                net_withdrawal = (
+                    min(needed_cash, asset.initial_value)
+                    if i < len(sorted_assets) - 1
+                    else needed_cash  # Withdraw whatever is needed from the last asset
                 )
-                withdrawal_breakdown[asset.name] += withdrawal
-                needed_cash -= withdrawal
+                gross_withdrawal = net_withdrawal
 
                 # Apply penalties and taxes on withdrawal. Assume penalties apply before taxes.
                 penalty = new_asset.get_penalty(turn_state.current_age)
                 if penalty:
-                    penalty_amount = withdrawal * penalty.rate
-                    new_asset = replace(
-                        new_asset,
-                        initial_value=new_asset.initial_value - penalty_amount,
+                    penalty_amount = net_withdrawal * penalty.rate
+                    gross_withdrawal += penalty_amount
+                    needed_cash += penalty_amount  # Need to cover the penalty too!
+                    net_cash_flow -= (
+                        penalty_amount  # This reduces our net cash flow for the turn.
                     )
                     total_penalties += penalty_amount
 
@@ -138,15 +145,30 @@ class TurnHandler:
                     or active_tax_rate
                 )
                 if tax_rate:
-                    tax_amount = withdrawal * tax_rate.rate
-                    new_asset = replace(
-                        new_asset,
-                        initial_value=new_asset.initial_value - tax_amount,
+                    tax_amount = net_withdrawal * tax_rate.rate
+                    gross_withdrawal += tax_amount
+                    needed_cash += tax_amount  # Need to cover the tax too!
+                    net_cash_flow -= (
+                        tax_amount  # This reduces our net cash flow for the turn.
                     )
                     tax_breakdown[
                         f"Withdrawal Tax ({tax_rate.rate:.2%}) on {asset.name}"
                     ] += tax_amount
+
+                # Apply withdrawal
+                actual_withdrawal = (
+                    gross_withdrawal
+                    if i == len(sorted_assets) - 1
+                    else min(gross_withdrawal, asset.initial_value)
+                )
+                new_asset = replace(
+                    asset, initial_value=asset.initial_value - actual_withdrawal
+                )
                 turn_state.assets[asset.name] = new_asset
+                withdrawal_breakdown[asset.name] += actual_withdrawal
+                needed_cash -= (
+                    actual_withdrawal  # This reduces the cash we still need to cover
+                )
 
         # Compound Values
         asset_growth_breakdown = []
