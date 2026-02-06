@@ -1,7 +1,7 @@
 import pytest
 
 from fitinera.assets import Asset
-from fitinera.cashflows import Expense, Income, TaxRate
+from fitinera.cashflows import Expense, Income, IncomeKind, TaxRate
 from fitinera.core import Age, AnnualGrowth, Month
 from fitinera.planning import (
     FinancialScenario,
@@ -12,20 +12,32 @@ from fitinera.planning import (
 
 
 def test_time_horizon_post_init_valid():
-    time_horizon = TimeHorizon(current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY))
+    time_horizon = TimeHorizon(
+        current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
+    )
     assert time_horizon.current_age == Age(30, Month.JANUARY)
     assert time_horizon.life_expectancy == Age(95, Month.JANUARY)
 
 
 def test_time_horizon_post_init_invalid():
-    with pytest.raises(ValueError, match="Current age must be less than life expectancy."):
-        TimeHorizon(current_age=Age(95, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY))
-    with pytest.raises(ValueError, match="Current age must be less than life expectancy."):
-        TimeHorizon(current_age=Age(96, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY))
+    with pytest.raises(
+        ValueError, match="Current age must be less than life expectancy."
+    ):
+        TimeHorizon(
+            current_age=Age(95, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
+        )
+    with pytest.raises(
+        ValueError, match="Current age must be less than life expectancy."
+    ):
+        TimeHorizon(
+            current_age=Age(96, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
+        )
 
 
 def test_retirement_goal_post_init_valid():
-    retirement_goal = RetirementGoal(retirement_age=Age(65, Month.JANUARY), desired_estate_value=1_000_000)
+    retirement_goal = RetirementGoal(
+        retirement_age=Age(65, Month.JANUARY), desired_estate_value=1_000_000
+    )
     assert retirement_goal.retirement_age == Age(65, Month.JANUARY)
     assert retirement_goal.desired_estate_value == 1_000_000
 
@@ -36,7 +48,9 @@ def test_retirement_goal_post_init_invalid_desired_estate_value():
 
 
 def test_financial_scenario_post_init_valid():
-    time_horizon = TimeHorizon(current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY))
+    time_horizon = TimeHorizon(
+        current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
+    )
     retirement_goal = RetirementGoal(retirement_age=Age(65, Month.JANUARY))
     scenario = FinancialScenario(
         name="Test Scenario", time_horizon=time_horizon, retirement_goal=retirement_goal
@@ -47,16 +61,23 @@ def test_financial_scenario_post_init_valid():
 
 
 def test_financial_scenario_post_init_invalid_name():
-    time_horizon = TimeHorizon(current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY))
+    time_horizon = TimeHorizon(
+        current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
+    )
     retirement_goal = RetirementGoal(retirement_age=Age(65, Month.JANUARY))
     with pytest.raises(ValueError, match="Name cannot be empty."):
-        FinancialScenario(name="", time_horizon=time_horizon, retirement_goal=retirement_goal)
+        FinancialScenario(
+            name="", time_horizon=time_horizon, retirement_goal=retirement_goal
+        )
 
 
 def test_financial_scenario_post_init_invalid_retirement_age():
-    time_horizon = TimeHorizon(current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY))
+    time_horizon = TimeHorizon(
+        current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
+    )
     with pytest.raises(
-        ValueError, match="Retirement age must be between the current age and life expectancy."
+        ValueError,
+        match="Retirement age must be between the current age and life expectancy.",
     ):
         FinancialScenario(
             name="Test Scenario",
@@ -64,7 +85,8 @@ def test_financial_scenario_post_init_invalid_retirement_age():
             retirement_goal=RetirementGoal(retirement_age=Age(29, Month.DECEMBER)),
         )
     with pytest.raises(
-        ValueError, match="Retirement age must be between the current age and life expectancy."
+        ValueError,
+        match="Retirement age must be between the current age and life expectancy.",
     ):
         FinancialScenario(
             name="Test Scenario",
@@ -73,8 +95,68 @@ def test_financial_scenario_post_init_invalid_retirement_age():
         )
 
 
+def test_financial_scenario_builder_duplicate_asset_names():
+    time_horizon = TimeHorizon(
+        current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
+    )
+    retirement_goal = RetirementGoal(retirement_age=Age(65, Month.JANUARY))
+    asset1 = Asset(
+        name="Duplicate",
+        initial_value=1000,
+        contribution_priority=1,
+        withdrawal_priority=1,
+    )
+    asset2 = Asset(
+        name="Duplicate",
+        initial_value=2000,
+        contribution_priority=2,
+        withdrawal_priority=2,
+    )
+    with pytest.raises(ValueError, match="Asset names must be unique."):
+        FinancialScenarioBuilder(
+            name="Test Scenario",
+            time_horizon=time_horizon,
+        ).with_retirement_goal(retirement_goal).with_asset(asset1).with_asset(
+            asset2
+        ).build()
+
+
+def test_financial_scenario_builder_duplicate_income_names():
+    time_horizon = TimeHorizon(
+        current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
+    )
+    retirement_goal = RetirementGoal(retirement_age=Age(65, Month.JANUARY))
+    income1 = Income(name="Duplicate", monthly_amount=100, kind=IncomeKind.ACTIVE)
+    income2 = Income(name="Duplicate", monthly_amount=200, kind=IncomeKind.PASSIVE)
+    with pytest.raises(ValueError, match="Income names must be unique."):
+        FinancialScenarioBuilder(
+            name="Test Scenario",
+            time_horizon=time_horizon,
+        ).with_retirement_goal(retirement_goal).with_income(income1).with_income(
+            income2
+        ).build()
+
+
+def test_financial_scenario_builder_duplicate_expense_names():
+    time_horizon = TimeHorizon(
+        current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
+    )
+    retirement_goal = RetirementGoal(retirement_age=Age(65, Month.JANUARY))
+    expense1 = Expense(name="Duplicate", monthly_amount=50)
+    expense2 = Expense(name="Duplicate", monthly_amount=100)
+    with pytest.raises(ValueError, match="Expense names must be unique."):
+        FinancialScenarioBuilder(
+            name="Test Scenario",
+            time_horizon=time_horizon,
+        ).with_retirement_goal(retirement_goal).with_expense(expense1).with_expense(
+            expense2
+        ).build()
+
+
 def test_financial_scenario_builder():
-    time_horizon = TimeHorizon(current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY))
+    time_horizon = TimeHorizon(
+        current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
+    )
     retirement_goal = RetirementGoal(retirement_age=Age(65, Month.JANUARY))
     asset = Asset(
         name="Test Asset",
@@ -86,7 +168,7 @@ def test_financial_scenario_builder():
     income = Income(
         name="Test Income",
         monthly_amount=100,
-        kind="ACTIVE",
+        kind=IncomeKind.ACTIVE,
         growth_strategy=AnnualGrowth(0.02, Month.JANUARY),
     )
     expense = Expense(
@@ -109,13 +191,19 @@ def test_financial_scenario_builder():
     assert scenario.name == "Test Scenario"
     assert scenario.time_horizon == time_horizon
     assert scenario.retirement_goal == retirement_goal
-    assert scenario.assets == [asset]
-    assert scenario.incomes == [income]
-    assert scenario.expenses == [expense]
+    assert scenario.assets == {asset.name: asset}
+    assert scenario.incomes == {income.name: income}
+    assert scenario.expenses == {expense.name: expense}
     assert scenario.tax_rates == [tax_rate]
 
 
 def test_financial_scenario_builder_missing_retirement_goal():
-    time_horizon = TimeHorizon(current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY))
-    with pytest.raises(ValueError, match="Retirement goal must be set before building the scenario."):
-        FinancialScenarioBuilder(name="Test Scenario", time_horizon=time_horizon).build()
+    time_horizon = TimeHorizon(
+        current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
+    )
+    with pytest.raises(
+        ValueError, match="Retirement goal must be set before building the scenario."
+    ):
+        FinancialScenarioBuilder(
+            name="Test Scenario", time_horizon=time_horizon
+        ).build()

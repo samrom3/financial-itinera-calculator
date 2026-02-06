@@ -1,4 +1,5 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import Optional
@@ -66,9 +67,6 @@ class TimeBounds:
         if self.end and current_age >= self.end:
             return False
         return True
-
-
-from abc import ABC, abstractmethod
 
 
 class GrowthStrategy(ABC):

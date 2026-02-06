@@ -41,13 +41,17 @@ from fitinera import (
 )
 
 # 1. Define the simulation's time horizon and retirement goals.
-time_horizon = TimeHorizon(current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY))
+time_horizon = TimeHorizon(
+    current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
+)
 retirement_goal = RetirementGoal(
     retirement_age=Age(65, Month.JANUARY), desired_estate_value=1_000_000
 )
 
 # 2. Build the financial scenario using a builder pattern.
-scenario_builder = FinancialScenarioBuilder(name="Retirement Plan", time_horizon=time_horizon)
+scenario_builder = FinancialScenarioBuilder(
+    name="Retirement Plan", time_horizon=time_horizon
+)
 
 scenario = (
     scenario_builder
@@ -125,23 +129,23 @@ print(results.summary())
 The f-Itinera Simulator is built around a few core concepts that model your financial life. By providing inputs for each
 of these, you can create a detailed simulation of your journey to financial independence and retirement.
 
-At a high level, a simulation is defined by four components: a **Financial Scenario**, the **Time Horizon**, your **Assets**, your **Cash Flow**,
-and your **Goals**.
+At a high level, a simulation is defined by four components: a **Financial Scenario**, the **Time Horizon**, your
+**Assets**, your **Cash Flow**, and your **Goals**.
 
 ### 1. Financial Scenario
 
 The Financial Scenario is the top-level container for a simulation. It bundles together all the components of a
 financial plan.
 
-| Parameter         | Type                | Description                                                               |
-| ----------------- | ------------------- | ------------------------------------------------------------------------- |
-| `name`            | `str`               | A unique name to identify the scenario.                                   |
-| `time_horizon`    | `TimeHorizon`       | The time horizon for the simulation.                                      |
-| `retirement_goal` | `RetirementGoal`    | The retirement goal for the simulation.                                   |
-| `assets`          | `list[Asset]`       | A list of all assets in the scenario.                                     |
-| `incomes`         | `list[Income]`      | A list of all income streams in the scenario.                             |
-| `expenses`        | `list[Expense]`     | A list of all expense streams in the scenario.                            |
-| `tax_rates`       | `list[TaxRate]`     | A list of all tax rates in the scenario.                                  |
+| Parameter         | Type             | Description                                    |
+| ----------------- | ---------------- | ---------------------------------------------- |
+| `name`            | `str`            | A unique name to identify the scenario.        |
+| `time_horizon`    | `TimeHorizon`    | The time horizon for the simulation.           |
+| `retirement_goal` | `RetirementGoal` | The retirement goal for the simulation.        |
+| `assets`          | `list[Asset]`    | A list of all assets in the scenario.          |
+| `incomes`         | `list[Income]`   | A list of all income streams in the scenario.  |
+| `expenses`        | `list[Expense]`  | A list of all expense streams in the scenario. |
+| `tax_rates`       | `list[TaxRate]`  | A list of all tax rates in the scenario.       |
 
 ### 2. Time Horizon
 
@@ -170,34 +174,34 @@ This defines the primary objective of the simulation: achieving retirement.
 Assets represent your current and future investments that you can live off of. You can add multiple asset accounts to a
 simulation.
 
-| Parameter                  | Type                                | Description                                                                                                                        |
-| -------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `name`                     | `str`                               | A unique name that identifies the account/asset.                                                                                   |
-| `initial_value`            | `float`                             | The starting value of the asset.                                                                                                   |
-| `growth_strategy`          | `GrowthStrategy`                    | The compounding growth rate of the asset. See [Core Data Types](#6-core-data-types).                                               |
-| `contribution_priority`    | `int`                               | A positive integer indicating the preference to contribute extra net cash flow to this asset. Higher numbers have higher priority. |
-| `withdrawal_priority`      | `int`                               | A positive integer indicating the preference to withdraw from this asset to cover deficits. Higher numbers have higher priority.   |
+| Parameter                  | Type                           | Description                                                                                                                        |
+| -------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                     | `str`                          | A unique name that identifies the account/asset.                                                                                   |
+| `initial_value`            | `float`                        | The starting value of the asset.                                                                                                   |
+| `growth_strategy`          | `GrowthStrategy`               | The compounding growth rate of the asset. See [Core Data Types](#6-core-data-types).                                               |
+| `contribution_priority`    | `int`                          | A positive integer indicating the preference to contribute extra net cash flow to this asset. Higher numbers have higher priority. |
+| `withdrawal_priority`      | `int`                          | A positive integer indicating the preference to withdraw from this asset to cover deficits. Higher numbers have higher priority.   |
 | `contribution_constraints` | `list[ContributionConstraint]` | Optional. A list of constraints that limit how much can be contributed to this asset.                                              |
-| `withdrawal_penalties`     | `list[Penalty]`                     | Optional. A list of penalties applied to withdrawals, useful for modeling early withdrawal from tax-advantaged accounts.           |
-| `withdrawal_taxes`         | `list[TaxRate]`                     | Optional. A list of tax rates applied to withdrawals, useful for modeling capital gains or income tax on withdrawals.            |
+| `withdrawal_penalties`     | `list[Penalty]`                | Optional. A list of penalties applied to withdrawals, useful for modeling early withdrawal from tax-advantaged accounts.           |
+| `withdrawal_taxes`         | `list[TaxRate]`                | Optional. A list of tax rates applied to withdrawals, useful for modeling capital gains or income tax on withdrawals.              |
 
 #### 4.1. Contribution Constraints
 
 You can apply one or more constraints to an asset to model contribution limits, such as annual 401(k) or IRA maximums.
 
-| Parameter                 | Type         | Description                                                                          |
-| ------------------------- | ------------ | ------------------------------------------------------------------------------------ |
-| `effective_time_bounds`   | `TimeBounds` | Optional. The time range when this constraint is in effect.                          |
-| `effective_monthly_max`   | `float`      | The maximum that can be contributed monthly during the specified time range.         |
+| Parameter               | Type         | Description                                                                  |
+| ----------------------- | ------------ | ---------------------------------------------------------------------------- |
+| `effective_time_bounds` | `TimeBounds` | Optional. The time range when this constraint is in effect.                  |
+| `effective_monthly_max` | `float`      | The maximum that can be contributed monthly during the specified time range. |
 
 #### 4.2. Withdrawal Penalties
 
 Withdrawal penalties can be used to model early withdrawal fees from tax-advantaged accounts.
 
-| Parameter     | Type         | Description                                                                  |
-| ------------- | ------------ | ---------------------------------------------------------------------------- |
-| `rate`        | `float`      | The penalty rate, expressed as a decimal between 0.0 and 1.0.                |
-| `time_bounds` | `TimeBounds` | The time range when this penalty is in effect.                               |
+| Parameter     | Type         | Description                                                   |
+| ------------- | ------------ | ------------------------------------------------------------- |
+| `rate`        | `float`      | The penalty rate, expressed as a decimal between 0.0 and 1.0. |
+| `time_bounds` | `TimeBounds` | The time range when this penalty is in effect.                |
 
 ### 5. Cash Flow
 
@@ -275,11 +279,11 @@ The simulation concludes when one of the following conditions is met:
 The `simulator.run()` method returns a `SimulationResult` object that contains the final status of the simulation and a
 detailed history of each time step.
 
-| Parameter | Type                  | Description                                                                    |
-| --------- | --------------------- | ------------------------------------------------------------------------------ |
-| `status`  | `SimulationStatus`    | The final status of the simulation (e.g., `SUCCESS`, `PRE_RETIREMENT_BANKRUPTCY`). |
-| `history` | `list[SimulationTurn]` | A list of `SimulationTurn` objects, one for each month of the simulation.      |
-| `scenario`| `FinancialScenario`   | The original financial scenario that was simulated.                            |
+| Parameter  | Type                   | Description                                                                        |
+| ---------- | ---------------------- | ---------------------------------------------------------------------------------- |
+| `status`   | `SimulationStatus`     | The final status of the simulation (e.g., `SUCCESS`, `PRE_RETIREMENT_BANKRUPTCY`). |
+| `history`  | `list[SimulationTurn]` | A list of `SimulationTurn` objects, one for each month of the simulation.          |
+| `scenario` | `FinancialScenario`    | The original financial scenario that was simulated.                                |
 
 Each `SimulationTurn` object provides a detailed breakdown of the financial state for a single month, including income,
 expenses, taxes, asset growth, and key metrics like the financial freedom ratio and savings rate.

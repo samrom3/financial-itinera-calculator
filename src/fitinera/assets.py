@@ -46,8 +46,6 @@ class Asset:
     def __post_init__(self):
         if not self.name:
             raise ValueError("Name cannot be empty.")
-        if self.initial_value < 0:
-            raise ValueError("Initial value cannot be negative.")
         if self.contribution_priority <= 0:
             raise ValueError("Contribution priority must be positive.")
         if self.withdrawal_priority <= 0:
@@ -108,7 +106,9 @@ class AssetBuilder:
         self._withdrawal_priority = priority
         return self
 
-    def with_contribution_constraint(self, constraint: ContributionConstraint) -> AssetBuilder:
+    def with_contribution_constraint(
+        self, constraint: ContributionConstraint
+    ) -> AssetBuilder:
         self._contribution_constraints.append(constraint)
         return self
 
