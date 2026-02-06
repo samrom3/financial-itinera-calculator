@@ -38,9 +38,9 @@ class FinancialScenario:
     name: str
     time_horizon: TimeHorizon
     retirement_goal: RetirementGoal
-    assets: List[Asset] = field(default_factory=list)
-    incomes: List[Income] = field(default_factory=list)
-    expenses: List[Expense] = field(default_factory=list)
+    assets: dict[str, Asset] = field(default_factory=dict)
+    incomes: dict[str, Income] = field(default_factory=dict)
+    expenses: dict[str, Expense] = field(default_factory=dict)
     tax_rates: List[TaxRate] = field(default_factory=list)
 
     def __post_init__(self):
@@ -52,9 +52,6 @@ class FinancialScenario:
         - The retirement age is logically consistent with the time horizon
           (i.e., retirement age is greater than or equal to current age and
            less than life expectancy)
-        - Each Asset has a unique name and valid initial value
-        - Each Expense has a unique name and valid monthly amount
-        - Each Income has a unique name and valid monthly amount
         - Each TaxRate has valid time bounds and rates between 0 and 1
 
         Raises:
@@ -71,18 +68,6 @@ class FinancialScenario:
             raise ValueError(
                 "Retirement age must be between the current age and life expectancy."
             )
-
-        asset_names = {asset.name for asset in self.assets}
-        if len(asset_names) != len(self.assets):
-            raise ValueError("Asset names must be unique.")
-
-        income_names = {income.name for income in self.incomes}
-        if len(income_names) != len(self.incomes):
-            raise ValueError("Income names must be unique.")
-
-        expense_names = {expense.name for expense in self.expenses}
-        if len(expense_names) != len(self.expenses):
-            raise ValueError("Expense names must be unique.")
 
 
 class FinancialScenarioBuilder:
@@ -120,17 +105,43 @@ class FinancialScenarioBuilder:
         return self
 
     def build(self) -> FinancialScenario:
+        """
+        Builds the FinancialScenario instance.
+
+        Ensures that:
+        - Each Asset has a unique name
+        - Each Expense has a unique name
+        - Each Income has a unique name
+
+        Raises:
+            ValueError: If the retirement goal is not set or if there are duplicate names among assets, incomes, or expenses.
+
+        Returns:
+            FinancialScenario: The built FinancialScenario instance.
+        """
         if self._retirement_goal is None:
             raise ValueError(
                 "Retirement goal must be set before building the scenario."
             )
 
+        assets = {asset.name: asset for asset in self._assets}
+        if len(assets) != len(self._assets):
+            raise ValueError("Asset names must be unique.")
+
+        incomes = {income.name: income for income in self._incomes}
+        if len(incomes) != len(self._incomes):
+            raise ValueError("Income names must be unique.")
+
+        expenses = {expense.name: expense for expense in self._expenses}
+        if len(expenses) != len(self._expenses):
+            raise ValueError("Expense names must be unique.")
+
         return FinancialScenario(
             name=self._name,
             time_horizon=self._time_horizon,
             retirement_goal=self._retirement_goal,
-            assets=self._assets,
-            incomes=self._incomes,
-            expenses=self._expenses,
+            assets=assets,
+            incomes=incomes,
+            expenses=expenses,
             tax_rates=self._tax_rates,
         )

@@ -108,7 +108,9 @@ class AssetBuilder:
         self._withdrawal_priority = priority
         return self
 
-    def with_contribution_constraint(self, constraint: ContributionConstraint) -> AssetBuilder:
+    def with_contribution_constraint(
+        self, constraint: ContributionConstraint
+    ) -> AssetBuilder:
         self._contribution_constraints.append(constraint)
         return self
 

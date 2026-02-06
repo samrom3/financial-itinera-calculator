@@ -95,7 +95,7 @@ def test_financial_scenario_post_init_invalid_retirement_age():
         )
 
 
-def test_financial_scenario_post_init_duplicate_asset_names():
+def test_financial_scenario_builder_duplicate_asset_names():
     time_horizon = TimeHorizon(
         current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
     )
@@ -113,15 +113,15 @@ def test_financial_scenario_post_init_duplicate_asset_names():
         withdrawal_priority=2,
     )
     with pytest.raises(ValueError, match="Asset names must be unique."):
-        FinancialScenario(
+        FinancialScenarioBuilder(
             name="Test Scenario",
             time_horizon=time_horizon,
-            retirement_goal=retirement_goal,
-            assets=[asset1, asset2],
-        )
+        ).with_retirement_goal(retirement_goal).with_asset(asset1).with_asset(
+            asset2
+        ).build()
 
 
-def test_financial_scenario_post_init_duplicate_income_names():
+def test_financial_scenario_builder_duplicate_income_names():
     time_horizon = TimeHorizon(
         current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
     )
@@ -129,15 +129,15 @@ def test_financial_scenario_post_init_duplicate_income_names():
     income1 = Income(name="Duplicate", monthly_amount=100, kind=IncomeKind.ACTIVE)
     income2 = Income(name="Duplicate", monthly_amount=200, kind=IncomeKind.PASSIVE)
     with pytest.raises(ValueError, match="Income names must be unique."):
-        FinancialScenario(
+        FinancialScenarioBuilder(
             name="Test Scenario",
             time_horizon=time_horizon,
-            retirement_goal=retirement_goal,
-            incomes=[income1, income2],
-        )
+        ).with_retirement_goal(retirement_goal).with_income(income1).with_income(
+            income2
+        ).build()
 
 
-def test_financial_scenario_post_init_duplicate_expense_names():
+def test_financial_scenario_builder_duplicate_expense_names():
     time_horizon = TimeHorizon(
         current_age=Age(30, Month.JANUARY), life_expectancy=Age(95, Month.JANUARY)
     )
@@ -145,12 +145,12 @@ def test_financial_scenario_post_init_duplicate_expense_names():
     expense1 = Expense(name="Duplicate", monthly_amount=50)
     expense2 = Expense(name="Duplicate", monthly_amount=100)
     with pytest.raises(ValueError, match="Expense names must be unique."):
-        FinancialScenario(
+        FinancialScenarioBuilder(
             name="Test Scenario",
             time_horizon=time_horizon,
-            retirement_goal=retirement_goal,
-            expenses=[expense1, expense2],
-        )
+        ).with_retirement_goal(retirement_goal).with_expense(expense1).with_expense(
+            expense2
+        ).build()
 
 
 def test_financial_scenario_builder():
@@ -191,9 +191,9 @@ def test_financial_scenario_builder():
     assert scenario.name == "Test Scenario"
     assert scenario.time_horizon == time_horizon
     assert scenario.retirement_goal == retirement_goal
-    assert scenario.assets == [asset]
-    assert scenario.incomes == [income]
-    assert scenario.expenses == [expense]
+    assert scenario.assets == {asset.name: asset}
+    assert scenario.incomes == {income.name: income}
+    assert scenario.expenses == {expense.name: expense}
     assert scenario.tax_rates == [tax_rate]
 
 

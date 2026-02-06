@@ -127,7 +127,9 @@ def test_asset_builder_with_strategy():
 
 def test_asset_builder_triggers_validation():
     with pytest.raises(ValueError, match="Initial value cannot be negative."):
-        AssetBuilder("Invalid Asset").with_initial_value(-100).with_growth_strategy(MonthlyGrowth(0.05)).build()
+        AssetBuilder("Invalid Asset").with_initial_value(-100).with_growth_strategy(
+            MonthlyGrowth(0.05)
+        ).build()
 
 
 def test_asset_helper_methods():
