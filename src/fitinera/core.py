@@ -43,6 +43,15 @@ class Age:
             return Age(self.year + 1, Month.JANUARY)
         return Age(self.year, self.month + 1)
 
+    @property
+    def decimal_age(self) -> float:
+        """
+        Returns the age as a decimal number (i.e., year + (month / 12)).
+
+        :return: The decimal representation of the age.
+        """
+        return self.year + (self.month / 12)
+
 
 @dataclass(frozen=True)
 class TimeBounds:
