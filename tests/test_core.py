@@ -73,3 +73,8 @@ def test_annual_growth_rate():
 def test_no_growth():
     growth = NoGrowth()
     assert growth.get_monthly_growth_rate(Month.SEPTEMBER) == 0.0
+
+
+def test_age_decimal_age():
+    age = Age(30, Month.MARCH)
+    assert age.decimal_age == 30 + (3 / 12)
