@@ -1,0 +1,74 @@
+# Architecture Decision Records
+
+This directory contains the Architecture Decision Records (ADRs) for Fitinera. ADRs are short documents that capture an
+important architectural or design decision, the context that motivated it, and its consequences.
+
+## What is an ADR?
+
+An ADR is a lightweight record of a significant design decision made during the project's development. It is **not** a
+design document for the whole system — that role belongs to the top-level [README.md](../../README.md). Instead, ADRs
+serve as **"designs in the small"**: focused, numbered records of a single consequential choice.
+
+**Further reading:**
+
+- [Documenting Architecture Decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) —
+  Michael Nygard's original post that popularised ADRs
+- [adr.github.io](https://adr.github.io/) — community tooling, templates, and guidance
+
+______________________________________________________________________
+
+## When to Write an ADR
+
+Create an ADR when a decision meets one or more of the following criteria:
+
+- **Cross-cutting**: affects multiple modules or layers (e.g. turn granularity, transaction model)
+- **Non-obvious**: future contributors would likely ask "why was this done this way?"
+- **Costly to reverse**: changing it later would require significant refactoring
+- **Alternative approaches were seriously considered**: the rejected options are worth remembering
+
+You generally do **not** need an ADR for routine implementation choices, stylistic preferences, or decisions that are
+entirely local to one file or function.
+
+______________________________________________________________________
+
+## Process
+
+1. **Draft** — copy `0000-adr-template.md`, assign the next available number, and fill in Context and Decision. Set
+   status to `Draft`.
+1. **Discuss** — open a PR or discussion thread. Collect feedback and revise.
+1. **Resolve** — set status to one of:
+   - `Accepted` — the decision is adopted
+   - `Rejected` — the decision was considered but not adopted; document why
+   - `Superseded by ADR-XXXX` — a later ADR replaces this one; update both documents
+1. **Commit** — merge the ADR into `main` alongside (or just before) the code it describes.
+
+ADRs are **always additive** — never delete or heavily edit an accepted record. If circumstances change, write a new ADR
+that supersedes the old one.
+
+______________________________________________________________________
+
+## File Naming Convention
+
+```
+NNNN-short-hyphenated-title.md
+```
+
+`NNNN` is a zero-padded, monotonically increasing integer. Example: `0005-intra-turn-causality-and-execution-order.md`.
+
+Start from `0000-adr-template.md` as your template (it is reserved and never represents an actual decision).
+
+______________________________________________________________________
+
+## Index
+
+| ADR                                                          | Title                                      | Status   |
+| ------------------------------------------------------------ | ------------------------------------------ | -------- |
+| [0001](./0001-pipeline-framework-paradigm.md)                | Pipeline Framework Paradigm                | Accepted |
+| [0002](./0002-view-updater-state-isolation.md)               | View/Updater State Isolation               | Accepted |
+| [0003](./0003-double-entry-transaction-model.md)             | Double-Entry Transaction Model             | Accepted |
+| [0004](./0004-labeled-entities-and-domain-modeling.md)       | Labeled Entities and Domain Modeling       | Accepted |
+| [0005](./0005-intra-turn-causality-and-execution-order.md)   | Intra-Turn Causality and Execution Order   | Accepted |
+| [0006](./0006-lazy-metric-generation-vs-snapshotting.md)     | Lazy Metric Generation vs. Snapshotting    | Accepted |
+| [0007](./0007-flow-observability-and-error-handling.md)      | Flow Observability and Error Handling      | Accepted |
+| [0008](./0008-monthly-turn-granularity-and-calendar-time.md) | Monthly Turn Granularity and Calendar Time | Accepted |
+| [0009](./0009-domain-grouped-standard-flow-modules.md)       | Domain-Grouped Standard Flow Modules       | Accepted |
