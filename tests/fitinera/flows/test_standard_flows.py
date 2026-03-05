@@ -1,4 +1,4 @@
-from fitinera_v1.flows import (
+from fitinera.flows import (
     MortgagePaymentFlow,
     LivingExpenseFlow,
 )

@@ -1,4 +1,4 @@
-from fitinera_v1.models import SimulationScenario
+from fitinera.models import SimulationScenario
 
 
 def test_turn_contains_immutable_snapshot_of_state():

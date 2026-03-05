@@ -1,6 +1,6 @@
 import pytest
-from fitinera_v1.engine import SimulationEngine, EngineConfiguration
-from fitinera_v1.models import SimulationScenario, Date, TurnDuration
+from fitinera.engine import SimulationEngine, EngineConfiguration
+from fitinera.models import SimulationScenario, Date, TurnDuration
 
 
 def test_simulation_engine_initialization_takes_configuration():

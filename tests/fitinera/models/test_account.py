@@ -1,5 +1,5 @@
 import pytest
-from fitinera_v1.models import Account
+from fitinera.models import Account
 
 
 def test_account_balance_cannot_be_mutated_directly():

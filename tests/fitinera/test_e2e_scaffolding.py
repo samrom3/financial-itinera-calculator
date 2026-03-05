@@ -1,5 +1,5 @@
 import pytest
-from fitinera_v1.models import (
+from fitinera.models import (
     SimulationScenario,
     Person,
     Age,
@@ -7,8 +7,8 @@ from fitinera_v1.models import (
     Date,
     TurnDuration,
 )
-from fitinera_v1.engine import SimulationEngine, EngineConfiguration
-from fitinera_v1.flows import (
+from fitinera.engine import SimulationEngine, EngineConfiguration
+from fitinera.flows import (
     MetricGenerator,
     JobIncomeFlow,
     MortgagePaymentFlow,

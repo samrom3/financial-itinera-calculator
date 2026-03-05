@@ -1,5 +1,5 @@
-from fitinera_v1.engine import EngineConfiguration
-from fitinera_v1.models import Date, TurnDuration
+from fitinera.engine import EngineConfiguration
+from fitinera.models import Date, TurnDuration
 
 
 def test_engine_configuration_holds_start_date_and_max_turns():

@@ -1,5 +1,5 @@
 import pytest
-from fitinera_v1.models import Person, Age
+from fitinera.models import Person, Age
 
 
 def test_person_initialization_requires_id_and_ages():

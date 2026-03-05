@@ -50,7 +50,7 @@ pip install fitinera
 Import the core components to get started:
 
 ```python
-from fitinera_v1 import (
+from fitinera import (
     SimulationScenario,
     Person,
     Account,
