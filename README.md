@@ -145,15 +145,12 @@ class RetirementCheckFlow(Flow):
 
 # Note: Simulation ends when all people pass their expectancy or max_turns is reached, whichever is first.
 pipeline = EngineConfiguration(
-    start_date=TurnDate(year=2026, month=2),  # Engine tracks calendar date across turns
+    start_date=Date(year=2026, month=2),  # Engine tracks calendar date across turns
     max_turns=TurnDuration(years=60, months=8),
     metrics={"Net_Worth": NetWorthGenerator()},
     flows=[
         JobIncomeFlow(),
-        MortgagePaymentFlow(
-            from_account="Joint Checking", to_account="Mortgage", amount=1500
-        ),
-        LivingExpenseFlow(from_account="Joint Checking", amount=2500),
+        # ... additional user-defined flows (e.g. MortgagePaymentFlow, LivingExpenseFlow) ...
         RetirementCheckFlow(),
     ],
 )

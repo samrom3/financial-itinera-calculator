@@ -17,5 +17,6 @@ def test_engine_run_raises_not_implemented():
         engine.run(scenario)
 
 
+@pytest.mark.skip(reason="Not yet implemented")
 def test_engine_halts_on_logger_error():
     pass

@@ -2,6 +2,7 @@ import pytest
 from fitinera.models import Account
 
 
+@pytest.mark.skip(reason="Not yet implemented")
 def test_account_balance_cannot_be_mutated_directly():
     pass
 

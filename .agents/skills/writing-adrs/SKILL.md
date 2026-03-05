@@ -40,7 +40,7 @@ Follow the standard four-section format:
 # ADR-NNNN: Short Descriptive Title
 
 ## Status
-[Draft | Accepted | Rejected | Superseded by ADR-XXXX]
+[Draft | Proposed | Accepted | Rejected | Superseded]
 
 ## Context
 What is the problem or situation that forced a decision?
