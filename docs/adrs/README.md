@@ -71,3 +71,4 @@ ______________________________________________________________________
 | [0006](./0006-lazy-metric-generation-vs-snapshotting.md)     | Lazy Metric Generation vs. Snapshotting    | Accepted |
 | [0007](./0007-flow-observability-and-error-handling.md)      | Flow Observability and Error Handling      | Accepted |
 | [0008](./0008-monthly-turn-granularity-and-calendar-time.md) | Monthly Turn Granularity and Calendar Time | Accepted |
+| [0009](./0009-domain-grouped-standard-flow-modules.md)       | Domain-Grouped Standard Flow Modules       | Accepted |
