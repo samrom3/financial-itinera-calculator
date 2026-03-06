@@ -1,6 +1,10 @@
-______________________________________________________________________
-
-## name: prd description: "Multi-phase PRD generator for fitinera features. Outputs plans/<branch>-prd.md ready for /prd-tasks." argument-hint: "\<feature description or path/to/seedling.md>" user-invocable: true disable-model-invocation: true
+---
+name: prd
+description: "Multi-phase PRD generator for fitinera features. Outputs plans/<branch>-prd.md ready for /prd-tasks."
+argument-hint: "<feature description or path/to/seedling.md>"
+user-invocable: true
+disable-model-invocation: true
+---
 
 # PRD Generator
 
@@ -45,7 +49,7 @@ ______________________________________________________________________
 1. Derive `<slug>` as a short, lowercase-kebab-case label:
    - Seedling mode: derive from the seedling document's title.
    - Text mode: derive from the feature description (e.g., "Account Rollover" → `account-rollover`).
-1. Generate `<branch>` as `feat/<slug>` (e.g., `feat/account-rollover`).
+1. Generate `<branch>` as `feat-<slug>` (e.g., `feat-account-rollover`).
 1. Update `.claude/settings.json`: set `env.CLAUDE_CODE_TASK_LIST_ID` to `<branch>`.
 1. Create the `plans/` directory if it does not exist:
    ```
@@ -106,13 +110,13 @@ ______________________________________________________________________
    raise it via **AskUserQuestion** and resolve before saving.
 1. Save the final version to `plans/<branch>-prd.md`.
 
-**Important:** Do NOT start implementing. Just create the PRD.
+> **Important:** Do NOT start implementing. Just create the PRD.
 
 ______________________________________________________________________
 
 ## Before Saving
 
-- [ ] Phase 0 completed: `<branch>` chosen (`feat/<slug>`), `CLAUDE_CODE_TASK_LIST_ID` updated in
+- [ ] Phase 0 completed: `<branch>` chosen (`feat-<slug>`), `CLAUDE_CODE_TASK_LIST_ID` updated in
   `.claude/settings.json`, `plans/` directory exists, symlink `plans/<branch>` → `~/.claude/tasks/<branch>` created
 - [ ] Input mode detected: seedling (file path) or text description
 - [ ] `CLAUDE.md`, `docs/adrs/`, and `src/fitinera/` searched for conflicts before generating
@@ -125,7 +129,7 @@ ______________________________________________________________________
 - [ ] Developer stories are small, specific, and follow the story format in the annotated example below
 - [ ] Functional requirements are numbered (`FR-###`) and unambiguous
 - [ ] Any old `plans/<branch>-prd.md` is archived to `plans/archive/`
-- [ ] Non-goals section defines clear boundaries
+- [ ] Non-goals section clarifies Goal section boundaries
 - [ ] Any newly discovered questions were appended to the bottom of **Open Questions** (with a phase marker)
 
 ______________________________________________________________________

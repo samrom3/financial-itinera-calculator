@@ -75,10 +75,10 @@ You are an autonomous coding agent working on the fitinera Python project.
 
 1. Search the codebase **BEFORE implementing** — do not assume code is missing.
 
-1. **TDD CYCLE** (repeat for each sub-behaviour within the task): a. Write the test **FIRST** — as if the desired
-   behaviour already exists. (DAMP style, Google-style docstrings explaining why each test matters) b. Implement ONLY
-   enough production code to make the test pass. c. Refactor: clean up for high code quality, readability,
-   maintainability.
+1. **TDD CYCLE** (repeat for each sub-behaviour within the task):
+  a. Write the test **FIRST** — as if the desired behaviour already exists. (DAMP style, Google-style docstrings explaining why each test matters)
+  b. Implement ONLY enough production code to make the test pass.
+  c. Refactor: clean up for high code quality, readability, maintainability.
 
 1. If an ADR-worthy decision arises, write the ADR following the process in `.agents/skills/writing-adrs/SKILL.md` and
    update `docs/adrs/README.md`.

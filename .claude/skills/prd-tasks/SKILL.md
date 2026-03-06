@@ -264,10 +264,46 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
+## Phase 1.5: Documentation Authoring Tasks
+
+**After all implementation stories are created (Phase 1) but before setting dependencies (Phase 2), create documentation
+tasks for files that are known ahead of time from the finalized PRD.**
+
+Documentation written early becomes the source of truth that implementation agents align with. This eliminates
+mismatches between docs and code.
+
+### What qualifies as a documentation task
+
+Any documentation artifact whose content can be derived from the PRD's design decisions, functional requirements, or API
+shapes:
+
+- `docs/` files referenced or implied by the PRD (e.g., developer guides, architecture overviews)
+- `README.md` updates (new feature descriptions, usage examples, API reference changes)
+- `CONTRIBUTING.md` updates (new conventions, workflow changes)
+- Any other documentation artifacts mentioned in the PRD
+
+### Task format
+
+- **Subject prefix:** `DOC-<slug>-##` (e.g., `DOC-account-rollover-01`) — distinct from `FEAT-` to make them visually
+  identifiable in the task DAG.
+- **Numbering:** Sequential two-digit zero-padded, independent of `FEAT-` numbering.
+- **Sizing:** Same rules as implementation stories — each must be completable in one agent iteration.
+- **Description:** Instruct the agent to write the documentation content based on the PRD's design decisions, functional
+  requirements, and API shapes. The agent should write the documentation **as if the feature were already implemented**,
+  establishing the contract that implementation agents will fulfil.
+
+### Dependency rule
+
+`DOC-` tasks block `FEAT-` tasks that touch the same areas. For example, if a `DOC-` task writes the API reference for a
+module, the `FEAT-` task that implements that module should be `is_blocked_by` the `DOC-` task. This ensures
+implementation agents have documentation to align with before they start coding.
+
+______________________________________________________________________
+
 ## Phase 2: Set Task Dependencies
 
-**After all tasks have been created via `TaskCreate`, use the `TaskUpdate` tool to explicitly set the dependencies
-between tasks.**
+**After all tasks have been created via `TaskCreate` (both `DOC-` and `FEAT-` tasks), use the `TaskUpdate` tool to
+explicitly set the dependencies between tasks.**
 
 ### Step 1: Analyze and Build the Dependency Tree
 
@@ -282,6 +318,7 @@ between tasks.**
      necessary for correctness or to avoid rework).
    - Prefer minimal dependency chains; only encode necessary gates, not organisational process or review steps.
    - Scaffold stories always block their corresponding implementation stories.
+   - **`DOC-` tasks block `FEAT-` tasks that touch the same areas** (see Phase 1.5).
 
 ### Step 2: Update Task Records
 
@@ -302,6 +339,77 @@ between tasks.**
 
 ______________________________________________________________________
 
+## Phase 3: Back-Pressure Gate Task
+
+**After all dependencies are set (Phase 2), create one final high-level back-pressure gate task that depends on all other
+tasks.**
+
+This task is the last thing that runs. It validates that everything is aligned and correct before the feature branch is
+considered done.
+
+### Task format
+
+- **Subject:** `GATE-<slug>-01: Final back-pressure gate check`
+- **Dependencies:** `is_blocked_by` **all** `DOC-` and `FEAT-` tasks. Blocks nothing.
+
+### Gate task description
+
+The description must instruct the executing agent to perform all five checks below, **in order**:
+
+#### Check 1 — Documentation–code alignment
+
+Verify that all `docs/`, `README.md`, `CONTRIBUTING.md` content matches the implemented code.
+
+- If mismatched **and** the PRD makes it clear which is correct → fix the out-of-sync artifact.
+- If mismatched **and** the PRD is ambiguous → use **AskUserQuestion** to resolve the difference. Append the resolution
+  to a new **"Implementation Conflict Resolutions"** section at the bottom of the PRD file (`plans/<branch>-prd.md`).
+  **Do not modify any other section of the PRD.**
+
+#### Check 2 — ADR sync
+
+Verify that all applicable design choices made during implementation have been documented as ADRs (per
+`.agents/skills/writing-adrs/SKILL.md`) and that each ADR's `Status` field is set correctly (`Accepted`, `Rejected`,
+`Superseded`, etc.). If ADRs are out of sync, update them and re-validate.
+
+#### Check 3 — Pre-commit checks
+
+Run `uv run pre-commit run`. This includes unit tests. Must exit 0.
+
+#### Check 4 — Acceptance criteria
+
+Verify every acceptance criterion in each developer story in the PRD has been met.
+
+#### Check 5 — Success metrics
+
+Verify every success metric listed in the PRD's **Success Metrics** section has been met.
+
+### Failure escalation
+
+If any of checks 1–2 fail, fix them in-place as described above.
+
+If any of checks 3–5 fail, the gate agent must:
+
+1. **Iteration guard:** If the current gate task suffix is **`-04` or higher** (i.e., this is the 4th or later
+   back-pressure gate iteration), use **AskUserQuestion** before proceeding with the escalation steps below. The message
+   must include:
+   - The current gate iteration number.
+   - A summary of which checks have been failing and whether the same checks have failed repeatedly across prior gate
+     iterations (recurring) or are new failures.
+   - What problems still remain and what remediation tasks would be created if the user approves.
+   - A clear question: should the escalation proceed, or should the user intervene directly?
+
+   **Do not proceed with steps 2–3 until the user responds.** This guard applies on **every** gate iteration from `-04`
+   onward (i.e., `-04`, `-05`, `-06`, …).
+
+1. Use **TaskCreate** for each discrete problem category to create remediation tasks.
+1. Create another `GATE-<slug>-NN` task (increment the number suffix, e.g., `GATE-<slug>-02`, `GATE-<slug>-03`) that is
+   `is_blocked_by` all newly created remediation tasks. This creates a re-validation loop with an audit trail.
+
+> **Numbering convention:** Each successive gate task increments its suffix (`-01`, `-02`, `-03`, …) so you can see how
+> many times the back-pressure gate had to re-run.
+
+______________________________________________________________________
+
 ## Checklist Before Creating Tasks
 
 Before calling `TaskCreate`, verify:
@@ -316,21 +424,27 @@ Before calling `TaskCreate`, verify:
 - [ ] Acceptance criteria are verifiable (not vague)
 - [ ] No story depends on a later story
 - [ ] Every functional requirement from the PRD is traceable to at least one story's acceptance criteria
+- [ ] Documentation tasks (`DOC-`) identified for all known-ahead-of-time docs from the PRD
 
 ______________________________________________________________________
 
-## Checklist After Task Creation (Phase 2)
+## Checklist After Task Creation (Phase 2 + Phase 3)
 
 Before finishing, ensure:
 
-- [ ] All tasks have been created via `TaskCreate`
+- [ ] All `DOC-` documentation tasks have been created via `TaskCreate` (Phase 1.5)
+- [ ] All `FEAT-` implementation tasks have been created via `TaskCreate` (Phase 1)
 - [ ] FR → story traceability mapping is documented
+- [ ] `DOC-` tasks block `FEAT-` tasks that touch the same areas
 - [ ] For each task, `blocks` and `is_blocked_by` dependency fields have been set via `TaskUpdate`
 - [ ] Dependency mapping is documented after the FR → story mapping
+- [ ] `GATE-<slug>-01` back-pressure gate task created via `TaskCreate`, blocked by all other tasks (Phase 3)
+- [ ] Gate task description includes all five checks (doc–code sync, ADR sync, pre-commit, acceptance criteria, success
+  metrics)
 
 ______________________________________________________________________
 
 ## Checklist for Each Task
 
-- [ ] Subject follows format: `FEAT-<slug>-##: [Title]`
+- [ ] Subject follows format: `FEAT-<slug>-##`, `DOC-<slug>-##`, or `GATE-<slug>-##: [Title]`
 - [ ] Description includes full story description + all acceptance criteria + Required Final Criteria
