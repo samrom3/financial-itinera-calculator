@@ -1,0 +1,32 @@
+{
+  "env": {
+    "CLAUDE_CODE_TASK_LIST_ID": ""
+  },
+  "permissions": {
+    "allow": [
+      "Bash(uv run*)",
+      "Bash(uv sync*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git checkout*)",
+      "Bash(git branch*)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(mkdir*)",
+      "Bash(ln -sf*)",
+      "Bash(find*)",
+      "Bash(grep*)",
+      "Bash(ls*)",
+      "Bash(echo*)",
+      "Bash(touch*)"
+    ],
+    "deny": [
+      "Bash(cat *.env*)",
+      "Bash(cat *.envrc*)",
+      "Bash(git push*)",
+      "Bash(pip install*)",
+      "Bash(python -m pip*)"
+    ]
+  }
+}
