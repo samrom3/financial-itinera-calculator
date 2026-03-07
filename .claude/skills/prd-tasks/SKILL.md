@@ -27,24 +27,24 @@ Before doing anything else, run these checks in order. **Stop and surface each i
    - **If they do NOT match** — tell the user:
      > The current git branch (`<actual-git-branch>`) does not match the task list branch (`<branch>`). Would you like
      > to continue anyway, or pause so you can check out a different branch?
-   - Use **AskUserQuestion** and wait for their response. If they say pause, **stop here** — do not continue.
+   - Wait for their response. If they say pause, **stop here** — do not continue.
 
-#### Step 2 — Validate branch name vs Claude settings
+#### Step 2 — Validate branch name vs PRD context
 
 1. Confirm that `<branch>` in `.claude/settings.json` matches the branch slug used in the PRD file's story IDs.
 1. **If they do not match**, warn the user:
    > ⚠️ The `CLAUDE_CODE_TASK_LIST_ID` in `.claude/settings.json` (`<branch>`) does not appear to match the PRD's branch
    > context. You may need to update settings or re-run the `/prd` skill.
 
-#### Step 3 — Warn about stale Claude Code session
+#### Step 3 — Stale session check
 
-1. If the **PRD skill** (`prd`) was invoked earlier in this same Claude Code session (i.e., `.claude/settings.json` was
-   updated during this session), the running session may still be using the **old** `CLAUDE_CODE_TASK_LIST_ID` value.
-1. In that case, warn the user:
-   > ⚠️ It looks like the PRD skill was run during this session, which updated `.claude/settings.json`. You need to
-   > **restart your Claude Code session** so the tasks agent picks up the new `CLAUDE_CODE_TASK_LIST_ID` value. Please
-   > restart and re-invoke this skill.
-1. Use **AskUserQuestion** to confirm whether the user wants to continue or restart. If they say restart, **stop here**.
+1. Check the modification time of `.claude/settings.json` (e.g., via `stat` or `ls -l`).
+1. If the file was modified **within the last 10 minutes**, it is likely that the `/prd` skill updated it during this
+   session. Warn the user:
+   > ⚠️ `.claude/settings.json` was recently modified (within the last 10 minutes). If the `/prd` skill was run during
+   > this session, you may need to **restart your Claude Code session** so the tasks agent picks up the new
+   > `CLAUDE_CODE_TASK_LIST_ID` value.
+1. Wait for the user to confirm whether to continue or restart. If they say restart, **stop here**.
 
 Once all three steps pass, proceed to Phase 1.
 
@@ -199,68 +199,7 @@ Each is one focused change that can be completed and verified independently.
 
 ______________________________________________________________________
 
-## Example
-
-**Input PRD (abbreviated):**
-
-```markdown
-# Account Rollover
-
-## Developer Stories
-
-- FEAT-account-rollover-01: Scaffold RolloverParams and RolloverFlow API
-- FEAT-account-rollover-02: Implement RolloverFlow logic
-
-## Functional Requirements
-
-- FR-1: RolloverParams must be immutable (frozen=True)
-- FR-2: RolloverFlow.run() must return a Transaction object
-- FR-3: A zero-amount rollover must be skipped
-```
-
-**Output: `TaskCreate` calls**
-
-**Task 1:**
-
-- **Subject:** `FEAT-account-rollover-01: Scaffold RolloverParams and RolloverFlow API`
-- **Description:**
-  ```
-  As a developer, I want typed stubs for RolloverParams and RolloverFlow so that I can validate the
-  API surface and write tests before implementing real logic.
-
-  Acceptance Criteria:
-  - RolloverParams frozen dataclass in src/fitinera/models/ with fields: from_period_id, to_period_id, amount, account_id
-  - RolloverFlow subclass in src/fitinera/flows/ with run() stub raising NotImplementedError
-  - Tests exist covering the expected API shape (will fail on NotImplementedError)
-  - Pre-commit passes (uv run pre-commit run)
-  - Tests written in DAMP style with Google-style docstrings
-  - TDD cycle followed: test first → implement → refactor
-  ```
-
-**Task 2:**
-
-- **Subject:** `FEAT-account-rollover-02: Implement RolloverFlow logic`
-- **Description:**
-  ```
-  As a developer, I want RolloverFlow.run() to produce a rollover transaction so that the pipeline
-  correctly carries balances across periods.
-
-  Acceptance Criteria:
-  - RolloverFlow.run() emits a Transaction carrying the rollover amount
-  - All scaffold-story tests now pass
-  - Zero-amount rollover is skipped (FR-3)
-  - Pre-commit passes (uv run pre-commit run)
-  - Tests written in DAMP style with Google-style docstrings
-  - TDD cycle followed: test first → implement → refactor
-  ```
-
-**FR → Story traceability (listed after all tasks are created):**
-
-| FR   | Covered by               |
-| ---- | ------------------------ |
-| FR-1 | FEAT-account-rollover-01 |
-| FR-2 | FEAT-account-rollover-02 |
-| FR-3 | FEAT-account-rollover-02 |
+See `references/example-task-output.md` for a complete example of what the `TaskCreate` calls should look like.
 
 ______________________________________________________________________
 
@@ -341,110 +280,24 @@ ______________________________________________________________________
 
 ## Phase 3: Back-Pressure Gate Task
 
-**After all dependencies are set (Phase 2), create one final high-level back-pressure gate task that depends on all other
-tasks.**
+**After all dependencies are set (Phase 2), create one final back-pressure gate task that depends on all other tasks.**
 
-This task is the last thing that runs. It validates that everything is aligned and correct before the feature branch is
-considered done.
-
-### Task format
-
-- **Subject:** `GATE-<slug>-01: Final back-pressure gate check`
-- **Dependencies:** `is_blocked_by` **all** `DOC-` and `FEAT-` tasks. Blocks nothing.
-
-### Gate task description
-
-The description must instruct the executing agent to perform all five checks below, **in order**:
-
-#### Check 1 — Documentation–code alignment
-
-Verify that all `docs/`, `README.md`, `CONTRIBUTING.md` content matches the implemented code.
-
-- If mismatched **and** the PRD makes it clear which is correct → fix the out-of-sync artifact.
-- If mismatched **and** the PRD is ambiguous → use **AskUserQuestion** to resolve the difference. Append the resolution
-  to a new **"Implementation Conflict Resolutions"** section at the bottom of the PRD file (`plans/<branch>-prd.md`).
-  **Do not modify any other section of the PRD.**
-
-#### Check 2 — ADR sync
-
-Verify that all applicable design choices made during implementation have been documented as ADRs (per
-`.agents/skills/writing-adrs/SKILL.md`) and that each ADR's `Status` field is set correctly (`Accepted`, `Rejected`,
-`Superseded`, etc.). If ADRs are out of sync, update them and re-validate.
-
-#### Check 3 — Pre-commit checks
-
-Run `uv run pre-commit run`. This includes unit tests. Must exit 0.
-
-#### Check 4 — Acceptance criteria
-
-Verify every acceptance criterion in each developer story in the PRD has been met.
-
-#### Check 5 — Success metrics
-
-Verify every success metric listed in the PRD's **Success Metrics** section has been met.
-
-### Failure escalation
-
-If any of checks 1–2 fail, fix them in-place as described above.
-
-If any of checks 3–5 fail, the gate agent must:
-
-1. **Iteration guard:** If the current gate task suffix is **`-04` or higher** (i.e., this is the 4th or later
-   back-pressure gate iteration), use **AskUserQuestion** before proceeding with the escalation steps below. The message
-   must include:
-   - The current gate iteration number.
-   - A summary of which checks have been failing and whether the same checks have failed repeatedly across prior gate
-     iterations (recurring) or are new failures.
-   - What problems still remain and what remediation tasks would be created if the user approves.
-   - A clear question: should the escalation proceed, or should the user intervene directly?
-
-   **Do not proceed with steps 2–3 until the user responds.** This guard applies on **every** gate iteration from `-04`
-   onward (i.e., `-04`, `-05`, `-06`, …).
-
-1. Use **TaskCreate** for each discrete problem category to create remediation tasks.
-1. Create another `GATE-<slug>-NN` task (increment the number suffix, e.g., `GATE-<slug>-02`, `GATE-<slug>-03`) that is
-   `is_blocked_by` all newly created remediation tasks. This creates a re-validation loop with an audit trail.
-
-> **Numbering convention:** Each successive gate task increments its suffix (`-01`, `-02`, `-03`, …) so you can see how
-> many times the back-pressure gate had to re-run.
+Read `references/gate-task-template.md` for the full gate task description template. Substitute `<slug>` and `<branch>`
+with the actual values, then use the template as the `TaskCreate` description verbatim.
 
 ______________________________________________________________________
 
-## Checklist Before Creating Tasks
+## Final Checklist
 
-Before calling `TaskCreate`, verify:
+Before finishing, verify all of the following:
 
-- [ ] **Phase 0 passed:** symlink `plans/<branch>` exists and points to `~/.claude/tasks/<branch>`
-- [ ] **Phase 0 passed:** git branch matches `<branch>` (or user explicitly chose to continue)
-- [ ] **Phase 0 passed:** `CLAUDE_CODE_TASK_LIST_ID` in `.claude/settings.json` is consistent with the PRD
-- [ ] **Phase 0 passed:** no stale-session warning (or user explicitly chose to continue)
-- [ ] Each story is completable in one iteration (small enough)
-- [ ] Stories ordered: domain models → flows/computations → API surface → integration
-- [ ] New/changed API stories follow scaffold-first / implement-second pattern
-- [ ] Acceptance criteria are verifiable (not vague)
-- [ ] No story depends on a later story
-- [ ] Every functional requirement from the PRD is traceable to at least one story's acceptance criteria
-- [ ] Documentation tasks (`DOC-`) identified for all known-ahead-of-time docs from the PRD
-
-______________________________________________________________________
-
-## Checklist After Task Creation (Phase 2 + Phase 3)
-
-Before finishing, ensure:
-
-- [ ] All `DOC-` documentation tasks have been created via `TaskCreate` (Phase 1.5)
-- [ ] All `FEAT-` implementation tasks have been created via `TaskCreate` (Phase 1)
-- [ ] FR → story traceability mapping is documented
+- [ ] Phase 0 pre-flight passed (symlink valid, branch matches or user approved, settings consistent)
+- [ ] Each story is completable in one iteration; new/changed APIs use scaffold-first pattern
+- [ ] Stories ordered by dependency; no story depends on a later story
+- [ ] Every FR from the PRD is traceable to at least one story (FR → story mapping documented)
+- [ ] `DOC-` documentation tasks created for all known-ahead-of-time docs from the PRD
 - [ ] `DOC-` tasks block `FEAT-` tasks that touch the same areas
-- [ ] For each task, `blocks` and `is_blocked_by` dependency fields have been set via `TaskUpdate`
-- [ ] Dependency mapping is documented after the FR → story mapping
-- [ ] `GATE-<slug>-01` back-pressure gate task created via `TaskCreate`, blocked by all other tasks (Phase 3)
-- [ ] Gate task description includes all five checks (doc–code sync, ADR sync, pre-commit, acceptance criteria, success
-  metrics)
-
-______________________________________________________________________
-
-## Checklist for Each Task
-
-- [ ] Subject follows format: `FEAT-<slug>-##`, `DOC-<slug>-##`, or `GATE-<slug>-##: [Title]`
-- [ ] Description includes full story description + all acceptance criteria + Required Final Criteria
+- [ ] All `blocks` / `is_blocked_by` dependencies set via `TaskUpdate`; dependency mapping documented
+- [ ] `GATE-<slug>-01` created, blocked by all other tasks, description includes all five checks + progress logging
+- [ ] Every task subject follows `FEAT-<slug>-##`, `DOC-<slug>-##`, or `GATE-<slug>-##: [Title]`
+- [ ] Every task description includes full story + acceptance criteria + Required Final Criteria

@@ -17,7 +17,7 @@ Retrieve the `<branch>` name from `.claude/settings.json` at `env.CLAUDE_CODE_TA
 Retrieve all Task data using the `TaskList` system tool. Build the dependency DAG from the `blocked_by` fields using a
 level-width heuristic.
 
-Use **AskUserQuestion** to get a draft approved. Present:
+Ask the user for approval before proceeding. Present:
 
 - The basic ASCII DAG tree showing the topology with condensed ASCII and task IDs.
 - The `<branch>` name which will be used as the Agent Team name.
@@ -38,15 +38,40 @@ Once the user approves or makes modifications, move on to Phase 1.
 
 ______________________________________________________________________
 
-## Phase 1
+## Phase 1: Dispatch Loop
 
 1. Use your `TeamCreate` tool to create a team named `<branch>`.
-1. Use the `Task` tool to assign agents to the next workable (unblocked) tasks:
-   - Give each agent the **Agent Prompt** below.
-   - Parallelise as much as you can based on how many unblocked tasks are available.
-   - Try not to parallelise above **4 agents**.
-   - Name the agents `agent-001`, `agent-002`, … (incrementing).
-1. When an agent is done working, ensure it is shut down and is **not** picking up another task.
+
+2. **Dispatch loop — repeat until no unblocked tasks remain:**
+
+   a. Re-fetch the task list via `TaskList`. Identify all tasks whose status is not complete and whose blockers are all
+      complete (i.e., the task is "unblocked").
+
+   b. If no unblocked tasks remain, proceed to Phase 2.
+
+   c. Assign agents to the unblocked tasks:
+      - Give each agent the **Agent Prompt** below.
+      - Parallelise as much as you can based on how many unblocked tasks are available.
+      - Try not to parallelise above **4 agents**.
+      - Name the agents `agent-001`, `agent-002`, … (incrementing across the entire run, not resetting per loop).
+
+   d. Wait for all assigned agents to complete. When an agent is done working, ensure it is shut down and is **not**
+      picking up another task.
+
+   e. Return to step (a).
+
+> **Why re-fetch?** Gate-task failures create remediation tasks and new gate tasks at runtime. Re-fetching after each
+> batch ensures these dynamically created tasks are picked up.
+
+______________________________________________________________________
+
+## Phase 2: Completion
+
+When no unblocked tasks remain and all agents have shut down, report the final status to the user:
+
+- Total tasks completed.
+- Any tasks that could not be unblocked (stuck due to unsatisfied dependencies — indicates a problem).
+- A reminder to review `plans/<branch>-progress.txt` for the full work log.
 
 ______________________________________________________________________
 
@@ -75,10 +100,8 @@ You are an autonomous coding agent working on the fitinera Python project.
 
 1. Search the codebase **BEFORE implementing** — do not assume code is missing.
 
-1. **TDD CYCLE** (repeat for each sub-behaviour within the task):
-  a. Write the test **FIRST** — as if the desired behaviour already exists. (DAMP style, Google-style docstrings explaining why each test matters)
-  b. Implement ONLY enough production code to make the test pass.
-  c. Refactor: clean up for high code quality, readability, maintainability.
+1. Follow all acceptance criteria and quality requirements in your task description — including the TDD cycle and
+   pre-commit gate. These are baked into every task by the `/prd-tasks` skill.
 
 1. If an ADR-worthy decision arises, write the ADR following the process in `.agents/skills/writing-adrs/SKILL.md` and
    update `docs/adrs/README.md`.
@@ -86,8 +109,7 @@ You are an autonomous coding agent working on the fitinera Python project.
 1. **BACKPRESSURE GATE** (must be the last action before committing):
 
    - Run: `uv run pre-commit run`
-   - Run: `uv run pytest tests/fitinera/ -v`
-   - If either fails, fix and re-run until green.
+   - If it fails, fix and re-run until green.
    - Do **NOT** implement anything after validation passes.
 
 1. Commit ALL changes: `[Story-ID] - [Story Title]`
@@ -113,30 +135,6 @@ APPEND to `plans/<branch>-progress.txt` (never replace, always append):
   - Useful context (e.g., "the RolloverFlow lives in src/fitinera/flows/rollover.py")
 ---
 ```
-
-## Consolidating Patterns to CLAUDE.md
-
-Before committing, check if any edited files have learnings worth preserving in `CLAUDE.md`:
-
-1. Identify directories with edited files.
-1. Check for existing `CLAUDE.md` entries relevant to those directories.
-1. Add valuable learnings only if they are **genuinely reusable knowledge** that would help future agents.
-   - API patterns or conventions specific to a module
-   - Non-obvious requirements or gotchas
-   - Dependencies between files
-   - Testing approaches for that area
-
-> IMPORTANT: Only add patterns that are **general and reusable**, not story-specific details or temporary debugging
-> notes.
-
-## Quality Requirements
-
-- ALL commits must pass `uv run pre-commit run` (lint + format + test)
-- Do **NOT** commit broken code
-- Keep changes focused and minimal
-- Follow existing code patterns from `CLAUDE.md`
-- Follow DAMP principles for tests (per `CONTRIBUTING.md`)
-- Use TDD: test first, then implement, then refactor
 
 ## Important
 
