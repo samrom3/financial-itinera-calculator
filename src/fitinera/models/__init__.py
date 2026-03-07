@@ -1,6 +1,6 @@
-from .primitives import Age, Date, TurnDuration, Label, Metric
+from .primitives import Age, Date, TurnDuration, Label, Metric, ElapsedDuration
 from .person import Person
-from .account import Account
+from .account import Account, AccountState
 from .transaction import Transaction, Income, Expense, Transfer
 from .scenario import Turn, SimulationScenario
 
@@ -10,8 +10,10 @@ __all__ = [
     "TurnDuration",
     "Label",
     "Metric",
+    "ElapsedDuration",
     "Person",
     "Account",
+    "AccountState",
     "Turn",
     "SimulationScenario",
     "Transaction",
