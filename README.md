@@ -64,6 +64,9 @@ from fitinera import (
     Income,
     Expense,
     Transfer,
+    PersonRetirementLabelFlow,
+    MetricCondition,
+    ComparisonOperator,
 )
 ```
 
@@ -119,7 +122,7 @@ class JobIncomeFlow(Flow):
             return
         if not sam.living():
             logger.info("Person Sam not living.")
-        if sam.get_label("Status").current_value() != "Working":
+        if sam.get_label("Status") != "Working":
             logger.info("Person Sam not working.")
             return
 
@@ -132,17 +135,6 @@ class JobIncomeFlow(Flow):
         )
 
 
-class RetirementCheckFlow(Flow):
-    def executeFlow(self, view, updater, logger):
-        # Lazily evaluates NetWorthGenerator based on exact account balances RIGHT NOW.
-        # This means it accounts for JobIncomeFlow that just ran before it in the pipeline.
-        current_net_worth = view.get_metric("Net_Worth")
-        if current_net_worth > 1000000:
-            logger.info("Net worth target reached! Sam and Alex are now retired.")
-            updater.update_person_label("Sam", "Status", "Retired")
-            updater.update_person_label("Alex", "Status", "Retired")
-
-
 # Note: Simulation ends when all people pass their expectancy or max_turns is reached, whichever is first.
 pipeline = EngineConfiguration(
     start_date=Date(year=2026, month=2),  # Engine tracks calendar date across turns
@@ -151,7 +143,12 @@ pipeline = EngineConfiguration(
     flows=[
         JobIncomeFlow(),
         # ... additional user-defined flows (e.g. MortgagePaymentFlow, LivingExpenseFlow) ...
-        RetirementCheckFlow(),
+        # Lazily evaluates NetWorthGenerator based on exact account balances RIGHT NOW.
+        # This means it accounts for JobIncomeFlow that just ran before it in the pipeline.
+        PersonRetirementLabelFlow(
+            person_ids=["Sam", "Alex"],
+            condition=MetricCondition("Net_Worth", ComparisonOperator.GT, 1_000_000),
+        ),
     ],
 )
 
