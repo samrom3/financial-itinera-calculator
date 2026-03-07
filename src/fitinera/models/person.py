@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Dict, Optional
-from .primitives import Age, Label
+from .primitives import Age
 
 
 @dataclass(frozen=True)
@@ -15,5 +15,5 @@ class Person:
     def living(self) -> bool:
         raise NotImplementedError("Pending implementation")
 
-    def get_label(self, facet: str) -> Optional[Label]:
+    def get_label(self, facet: str) -> Optional[str]:
         raise NotImplementedError("Pending implementation")

@@ -42,3 +42,20 @@ class Metric:
 
     name: str
     value: float | str
+
+
+@dataclass(frozen=True)
+class ElapsedDuration:
+    """Elapsed time since simulation start, expressed in months."""
+
+    months: int
+
+    @property
+    def years(self) -> int:
+        """Whole years elapsed (floor division of months by 12)."""
+        return self.months // 12
+
+    @property
+    def years_frac(self) -> float:
+        """Fractional years elapsed (months / 12)."""
+        return self.months / 12

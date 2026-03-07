@@ -1,5 +1,5 @@
-from typing import Any
 from .configuration import EngineConfiguration
+from .result import SimulationResult
 from ..models import SimulationScenario
 
 
@@ -9,5 +9,5 @@ class SimulationEngine:
     def __init__(self, configuration: EngineConfiguration):
         self.configuration = configuration
 
-    def run(self, scenario: SimulationScenario) -> Any:
+    def run(self, scenario: SimulationScenario) -> SimulationResult:
         raise NotImplementedError("Pending implementation")
