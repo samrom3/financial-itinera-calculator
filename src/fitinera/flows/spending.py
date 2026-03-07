@@ -4,6 +4,7 @@ from ..engine.interfaces import (
     SimulationStateUpdater,
     SimulationLogger,
 )
+from ..models.transaction import Expense
 
 
 class LivingExpenseFlow(Flow):
@@ -22,4 +23,7 @@ class LivingExpenseFlow(Flow):
         updater: SimulationStateUpdater,
         logger: SimulationLogger,
     ) -> None:
-        raise NotImplementedError("Pending implementation")
+        """Emit a fixed living expense; inflation path not yet implemented."""
+        updater.emit_transaction(
+            Expense(amount=self.amount, from_account=self.from_account)
+        )
