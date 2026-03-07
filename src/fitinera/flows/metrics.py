@@ -6,4 +6,22 @@ class NetWorthGenerator(MetricGenerator):
     """Calculates global net worth as total ASSET balances minus total LIABILITY balances."""
 
     def evaluate(self, view: SimulationStateView) -> float:
-        raise NotImplementedError("Pending implementation")
+        """Sums ASSET balances and subtracts LIABILITY balances across all accounts.
+
+        Accounts without a 'Type' label, or with an unrecognised Type value,
+        are ignored and do not affect the result.
+
+        Args:
+            view: Read-only interface to the current simulation state.
+
+        Returns:
+            Net worth as a float (assets minus liabilities).
+        """
+        net_worth = 0.0
+        for account in view.get_accounts():
+            account_type = account.get_label("Type")
+            if account_type == "ASSET":
+                net_worth += account.balance
+            elif account_type == "LIABILITY":
+                net_worth -= account.balance
+        return net_worth

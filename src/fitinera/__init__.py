@@ -31,6 +31,14 @@ from .flows import (
     LivingExpenseFlow,
     RetirementCheckFlow,
     NetWorthGenerator,
+    ComparisonOperator,
+    Condition,
+    MetricCondition,
+    AccountBalanceIs,
+    PersonLabelIs,
+    PersonAgeIs,
+    ConditionOr,
+    ConditionAnd,
 )
 
 __all__ = [
@@ -62,4 +70,12 @@ __all__ = [
     "LivingExpenseFlow",
     "RetirementCheckFlow",
     "NetWorthGenerator",
+    "ComparisonOperator",
+    "Condition",
+    "MetricCondition",
+    "AccountBalanceIs",
+    "PersonLabelIs",
+    "PersonAgeIs",
+    "ConditionOr",
+    "ConditionAnd",
 ]

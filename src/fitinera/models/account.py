@@ -40,8 +40,5 @@ class AccountState:
     labels: Dict[str, str] = field(default_factory=dict)
 
     def get_label(self, facet: str) -> Optional[str]:
-        """Returns the label value for the given facet, or None if absent.
-
-        Stub — implemented in story-02.
-        """
-        raise NotImplementedError("Pending implementation")
+        """Returns the label value for the given facet, or None if absent."""
+        return self.labels.get(facet)
