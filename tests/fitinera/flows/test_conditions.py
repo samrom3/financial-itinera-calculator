@@ -4,21 +4,22 @@ All tests are DAMP-style: each test is self-contained and explicit about
 the objects it constructs. Google-style docstrings are used throughout.
 """
 
-import pytest
 from unittest.mock import MagicMock
 
 from fitinera import (
     Age,
+    AccountBalanceIs,
+    AccountState,
     ComparisonOperator,
     Condition,
-    MetricCondition,
-    AccountBalanceIs,
-    PersonLabelIs,
-    PersonAgeIs,
-    ConditionOr,
     ConditionAnd,
+    ConditionOr,
+    MetricCondition,
+    PersonAgeIs,
+    PersonLabelIs,
     SimulationStateView,
 )
+from fitinera.models.person import Person
 
 
 # ---------------------------------------------------------------------------
@@ -90,16 +91,98 @@ class TestMetricConditionShape:
         assert cond.operator is ComparisonOperator.GE
         assert cond.value == 1_000_000.0
 
-    def test_evaluate_raises_not_implemented(self):
-        """MetricCondition.evaluate() should raise NotImplementedError (stub)."""
+
+class TestMetricConditionEvaluate:
+    """Verify MetricCondition.evaluate() logic."""
+
+    def test_evaluate_true_when_metric_ge_threshold(self):
+        """evaluate() returns True when the metric satisfies the GE condition."""
         cond = MetricCondition(
             metric_name="net_worth",
             operator=ComparisonOperator.GE,
-            value=1_000_000.0,
+            value=1_000.0,
         )
-        mock_view = MagicMock(spec=SimulationStateView)
-        with pytest.raises(NotImplementedError):
-            cond.evaluate(mock_view)
+        view = MagicMock(spec=SimulationStateView)
+        view.get_metric.return_value = 2_000.0
+        assert cond.evaluate(view) is True
+
+    def test_evaluate_false_when_metric_lt_threshold(self):
+        """evaluate() returns False when the metric does not satisfy the GE condition."""
+        cond = MetricCondition(
+            metric_name="net_worth",
+            operator=ComparisonOperator.GE,
+            value=1_000.0,
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_metric.return_value = 500.0
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_returns_false_when_metric_not_found(self):
+        """evaluate() returns False when get_metric() returns None."""
+        cond = MetricCondition(
+            metric_name="missing_metric",
+            operator=ComparisonOperator.EQ,
+            value=42.0,
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_metric.return_value = None
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_calls_get_metric_with_correct_name(self):
+        """evaluate() calls view.get_metric() with the configured metric_name."""
+        cond = MetricCondition(
+            metric_name="inflation_rate",
+            operator=ComparisonOperator.LT,
+            value=0.05,
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_metric.return_value = 0.03
+        cond.evaluate(view)
+        view.get_metric.assert_called_once_with("inflation_rate")
+
+    def test_evaluate_eq_operator_true(self):
+        """evaluate() returns True for EQ when metric equals threshold exactly."""
+        cond = MetricCondition(
+            metric_name="rate",
+            operator=ComparisonOperator.EQ,
+            value=5.0,
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_metric.return_value = 5.0
+        assert cond.evaluate(view) is True
+
+    def test_evaluate_ne_operator_true(self):
+        """evaluate() returns True for NE when metric does not equal threshold."""
+        cond = MetricCondition(
+            metric_name="rate",
+            operator=ComparisonOperator.NE,
+            value=5.0,
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_metric.return_value = 3.0
+        assert cond.evaluate(view) is True
+
+    def test_evaluate_le_operator_true_on_equality(self):
+        """evaluate() returns True for LE when metric equals threshold."""
+        cond = MetricCondition(
+            metric_name="score",
+            operator=ComparisonOperator.LE,
+            value=100.0,
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_metric.return_value = 100.0
+        assert cond.evaluate(view) is True
+
+    def test_evaluate_gt_operator_false_on_equality(self):
+        """evaluate() returns False for GT when metric equals threshold."""
+        cond = MetricCondition(
+            metric_name="score",
+            operator=ComparisonOperator.GT,
+            value=100.0,
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_metric.return_value = 100.0
+        assert cond.evaluate(view) is False
 
 
 # ---------------------------------------------------------------------------
@@ -121,16 +204,69 @@ class TestAccountBalanceIsShape:
         assert cond.operator is ComparisonOperator.GT
         assert cond.value == 500.0
 
-    def test_evaluate_raises_not_implemented(self):
-        """AccountBalanceIs.evaluate() should raise NotImplementedError (stub)."""
+
+class TestAccountBalanceIsEvaluate:
+    """Verify AccountBalanceIs.evaluate() logic."""
+
+    def test_evaluate_true_when_balance_gt_threshold(self):
+        """evaluate() returns True when the account balance satisfies GT."""
         cond = AccountBalanceIs(
             account_id="checking",
             operator=ComparisonOperator.GT,
             value=500.0,
         )
-        mock_view = MagicMock(spec=SimulationStateView)
-        with pytest.raises(NotImplementedError):
-            cond.evaluate(mock_view)
+        account = AccountState(id="checking", balance=1000.0)
+        view = MagicMock(spec=SimulationStateView)
+        view.get_accounts.return_value = [account]
+        assert cond.evaluate(view) is True
+
+    def test_evaluate_false_when_balance_le_threshold(self):
+        """evaluate() returns False when the account balance does not satisfy GT."""
+        cond = AccountBalanceIs(
+            account_id="checking",
+            operator=ComparisonOperator.GT,
+            value=500.0,
+        )
+        account = AccountState(id="checking", balance=400.0)
+        view = MagicMock(spec=SimulationStateView)
+        view.get_accounts.return_value = [account]
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_returns_false_when_account_not_found(self):
+        """evaluate() returns False when no account with the given id exists."""
+        cond = AccountBalanceIs(
+            account_id="missing_account",
+            operator=ComparisonOperator.EQ,
+            value=0.0,
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_accounts.return_value = []
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_returns_false_when_account_list_does_not_contain_id(self):
+        """evaluate() returns False when the account_id is absent from the list."""
+        cond = AccountBalanceIs(
+            account_id="savings",
+            operator=ComparisonOperator.GE,
+            value=0.0,
+        )
+        account = AccountState(id="checking", balance=1000.0)
+        view = MagicMock(spec=SimulationStateView)
+        view.get_accounts.return_value = [account]
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_matches_correct_account_when_multiple_exist(self):
+        """evaluate() matches only the account with the configured account_id."""
+        cond = AccountBalanceIs(
+            account_id="savings",
+            operator=ComparisonOperator.GE,
+            value=5000.0,
+        )
+        checking = AccountState(id="checking", balance=100.0)
+        savings = AccountState(id="savings", balance=10000.0)
+        view = MagicMock(spec=SimulationStateView)
+        view.get_accounts.return_value = [checking, savings]
+        assert cond.evaluate(view) is True
 
 
 # ---------------------------------------------------------------------------
@@ -152,16 +288,89 @@ class TestPersonLabelIsShape:
         assert cond.facet == "employment_status"
         assert cond.value == "retired"
 
-    def test_evaluate_raises_not_implemented(self):
-        """PersonLabelIs.evaluate() should raise NotImplementedError (stub)."""
+
+class TestPersonLabelIsEvaluate:
+    """Verify PersonLabelIs.evaluate() logic."""
+
+    def test_evaluate_true_when_label_matches(self):
+        """evaluate() returns True when the person's label facet matches the value."""
         cond = PersonLabelIs(
             person_id="alice",
             facet="employment_status",
             value="retired",
         )
-        mock_view = MagicMock(spec=SimulationStateView)
-        with pytest.raises(NotImplementedError):
-            cond.evaluate(mock_view)
+        person = Person(
+            id="alice",
+            age=Age(years=65),
+            expectancy=Age(years=85),
+            labels={"employment_status": "retired"},
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_person.return_value = person
+        assert cond.evaluate(view) is True
+
+    def test_evaluate_false_when_label_does_not_match(self):
+        """evaluate() returns False when the person's label facet has a different value."""
+        cond = PersonLabelIs(
+            person_id="alice",
+            facet="employment_status",
+            value="retired",
+        )
+        person = Person(
+            id="alice",
+            age=Age(years=40),
+            expectancy=Age(years=85),
+            labels={"employment_status": "employed"},
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_person.return_value = person
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_false_when_person_not_found(self):
+        """evaluate() returns False when get_person() returns None."""
+        cond = PersonLabelIs(
+            person_id="unknown",
+            facet="employment_status",
+            value="retired",
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_person.return_value = None
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_false_when_label_facet_absent(self):
+        """evaluate() returns False when the person has no label for the facet."""
+        cond = PersonLabelIs(
+            person_id="alice",
+            facet="employment_status",
+            value="retired",
+        )
+        person = Person(
+            id="alice",
+            age=Age(years=65),
+            expectancy=Age(years=85),
+            labels={},
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_person.return_value = person
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_calls_get_person_with_correct_id(self):
+        """evaluate() calls view.get_person() with the configured person_id."""
+        cond = PersonLabelIs(
+            person_id="bob",
+            facet="risk_tolerance",
+            value="high",
+        )
+        person = Person(
+            id="bob",
+            age=Age(years=30),
+            expectancy=Age(years=80),
+            labels={"risk_tolerance": "high"},
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_person.return_value = person
+        cond.evaluate(view)
+        view.get_person.assert_called_once_with("bob")
 
 
 # ---------------------------------------------------------------------------
@@ -184,17 +393,85 @@ class TestPersonAgeIsShape:
         assert cond.operator is ComparisonOperator.GE
         assert cond.age == age
 
-    def test_evaluate_raises_not_implemented(self):
-        """PersonAgeIs.evaluate() should raise NotImplementedError (stub)."""
-        age = Age(years=65)
+
+class TestPersonAgeIsEvaluate:
+    """Verify PersonAgeIs.evaluate() logic."""
+
+    def test_evaluate_true_when_age_ge_threshold(self):
+        """evaluate() returns True when the person's age satisfies GE."""
         cond = PersonAgeIs(
             person_id="alice",
             operator=ComparisonOperator.GE,
-            age=age,
+            age=Age(years=65),
         )
-        mock_view = MagicMock(spec=SimulationStateView)
-        with pytest.raises(NotImplementedError):
-            cond.evaluate(mock_view)
+        person = Person(
+            id="alice",
+            age=Age(years=70),
+            expectancy=Age(years=85),
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_person.return_value = person
+        assert cond.evaluate(view) is True
+
+    def test_evaluate_false_when_age_lt_threshold(self):
+        """evaluate() returns False when the person's age does not satisfy GE."""
+        cond = PersonAgeIs(
+            person_id="alice",
+            operator=ComparisonOperator.GE,
+            age=Age(years=65),
+        )
+        person = Person(
+            id="alice",
+            age=Age(years=40),
+            expectancy=Age(years=85),
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_person.return_value = person
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_returns_false_when_person_not_found(self):
+        """evaluate() returns False when get_person() returns None."""
+        cond = PersonAgeIs(
+            person_id="unknown",
+            operator=ComparisonOperator.EQ,
+            age=Age(years=30),
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_person.return_value = None
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_considers_months_in_age_comparison(self):
+        """evaluate() considers months when comparing ages with the same year count."""
+        cond = PersonAgeIs(
+            person_id="alice",
+            operator=ComparisonOperator.GT,
+            age=Age(years=65, months=6),
+        )
+        person = Person(
+            id="alice",
+            age=Age(years=65, months=9),
+            expectancy=Age(years=85),
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_person.return_value = person
+        assert cond.evaluate(view) is True
+
+    def test_evaluate_calls_get_person_with_correct_id(self):
+        """evaluate() calls view.get_person() with the configured person_id."""
+        cond = PersonAgeIs(
+            person_id="bob",
+            operator=ComparisonOperator.LT,
+            age=Age(years=67),
+        )
+        person = Person(
+            id="bob",
+            age=Age(years=50),
+            expectancy=Age(years=80),
+        )
+        view = MagicMock(spec=SimulationStateView)
+        view.get_person.return_value = person
+        cond.evaluate(view)
+        view.get_person.assert_called_once_with("bob")
 
 
 # ---------------------------------------------------------------------------
@@ -217,18 +494,71 @@ class TestConditionOrShape:
         assert cond.left is left
         assert cond.right is right
 
-    def test_evaluate_raises_not_implemented(self):
-        """ConditionOr.evaluate() should raise NotImplementedError (stub)."""
-        left = MetricCondition(
-            metric_name="net_worth", operator=ComparisonOperator.GE, value=0.0
-        )
-        right = AccountBalanceIs(
-            account_id="checking", operator=ComparisonOperator.GT, value=0.0
-        )
+
+class TestConditionOrEvaluate:
+    """Verify ConditionOr.evaluate() logic including short-circuit behavior."""
+
+    def test_evaluate_true_when_left_is_true(self):
+        """evaluate() returns True when left evaluates to True."""
+        view = MagicMock(spec=SimulationStateView)
+        left = MagicMock(spec=Condition)
+        left.evaluate.return_value = True
+        right = MagicMock(spec=Condition)
+        right.evaluate.return_value = False
         cond = ConditionOr(left=left, right=right)
-        mock_view = MagicMock(spec=SimulationStateView)
-        with pytest.raises(NotImplementedError):
-            cond.evaluate(mock_view)
+        assert cond.evaluate(view) is True
+
+    def test_evaluate_true_when_right_is_true(self):
+        """evaluate() returns True when left is False but right is True."""
+        view = MagicMock(spec=SimulationStateView)
+        left = MagicMock(spec=Condition)
+        left.evaluate.return_value = False
+        right = MagicMock(spec=Condition)
+        right.evaluate.return_value = True
+        cond = ConditionOr(left=left, right=right)
+        assert cond.evaluate(view) is True
+
+    def test_evaluate_false_when_both_are_false(self):
+        """evaluate() returns False when both left and right are False."""
+        view = MagicMock(spec=SimulationStateView)
+        left = MagicMock(spec=Condition)
+        left.evaluate.return_value = False
+        right = MagicMock(spec=Condition)
+        right.evaluate.return_value = False
+        cond = ConditionOr(left=left, right=right)
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_true_when_both_are_true(self):
+        """evaluate() returns True when both left and right are True."""
+        view = MagicMock(spec=SimulationStateView)
+        left = MagicMock(spec=Condition)
+        left.evaluate.return_value = True
+        right = MagicMock(spec=Condition)
+        right.evaluate.return_value = True
+        cond = ConditionOr(left=left, right=right)
+        assert cond.evaluate(view) is True
+
+    def test_evaluate_short_circuits_right_when_left_is_true(self):
+        """evaluate() does not call right.evaluate() when left is True (short-circuit)."""
+        view = MagicMock(spec=SimulationStateView)
+        left = MagicMock(spec=Condition)
+        left.evaluate.return_value = True
+        right = MagicMock(spec=Condition)
+        right.evaluate.return_value = False
+        cond = ConditionOr(left=left, right=right)
+        cond.evaluate(view)
+        right.evaluate.assert_not_called()
+
+    def test_evaluate_calls_right_when_left_is_false(self):
+        """evaluate() calls right.evaluate() when left is False."""
+        view = MagicMock(spec=SimulationStateView)
+        left = MagicMock(spec=Condition)
+        left.evaluate.return_value = False
+        right = MagicMock(spec=Condition)
+        right.evaluate.return_value = True
+        cond = ConditionOr(left=left, right=right)
+        cond.evaluate(view)
+        right.evaluate.assert_called_once_with(view)
 
 
 # ---------------------------------------------------------------------------
@@ -251,15 +581,68 @@ class TestConditionAndShape:
         assert cond.left is left
         assert cond.right is right
 
-    def test_evaluate_raises_not_implemented(self):
-        """ConditionAnd.evaluate() should raise NotImplementedError (stub)."""
-        left = MetricCondition(
-            metric_name="net_worth", operator=ComparisonOperator.GE, value=0.0
-        )
-        right = PersonLabelIs(
-            person_id="alice", facet="employment_status", value="retired"
-        )
+
+class TestConditionAndEvaluate:
+    """Verify ConditionAnd.evaluate() logic including short-circuit behavior."""
+
+    def test_evaluate_true_when_both_are_true(self):
+        """evaluate() returns True only when both left and right are True."""
+        view = MagicMock(spec=SimulationStateView)
+        left = MagicMock(spec=Condition)
+        left.evaluate.return_value = True
+        right = MagicMock(spec=Condition)
+        right.evaluate.return_value = True
         cond = ConditionAnd(left=left, right=right)
-        mock_view = MagicMock(spec=SimulationStateView)
-        with pytest.raises(NotImplementedError):
-            cond.evaluate(mock_view)
+        assert cond.evaluate(view) is True
+
+    def test_evaluate_false_when_left_is_false(self):
+        """evaluate() returns False when left is False."""
+        view = MagicMock(spec=SimulationStateView)
+        left = MagicMock(spec=Condition)
+        left.evaluate.return_value = False
+        right = MagicMock(spec=Condition)
+        right.evaluate.return_value = True
+        cond = ConditionAnd(left=left, right=right)
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_false_when_right_is_false(self):
+        """evaluate() returns False when right is False."""
+        view = MagicMock(spec=SimulationStateView)
+        left = MagicMock(spec=Condition)
+        left.evaluate.return_value = True
+        right = MagicMock(spec=Condition)
+        right.evaluate.return_value = False
+        cond = ConditionAnd(left=left, right=right)
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_false_when_both_are_false(self):
+        """evaluate() returns False when both left and right are False."""
+        view = MagicMock(spec=SimulationStateView)
+        left = MagicMock(spec=Condition)
+        left.evaluate.return_value = False
+        right = MagicMock(spec=Condition)
+        right.evaluate.return_value = False
+        cond = ConditionAnd(left=left, right=right)
+        assert cond.evaluate(view) is False
+
+    def test_evaluate_short_circuits_right_when_left_is_false(self):
+        """evaluate() does not call right.evaluate() when left is False (short-circuit)."""
+        view = MagicMock(spec=SimulationStateView)
+        left = MagicMock(spec=Condition)
+        left.evaluate.return_value = False
+        right = MagicMock(spec=Condition)
+        right.evaluate.return_value = True
+        cond = ConditionAnd(left=left, right=right)
+        cond.evaluate(view)
+        right.evaluate.assert_not_called()
+
+    def test_evaluate_calls_right_when_left_is_true(self):
+        """evaluate() calls right.evaluate() when left is True."""
+        view = MagicMock(spec=SimulationStateView)
+        left = MagicMock(spec=Condition)
+        left.evaluate.return_value = True
+        right = MagicMock(spec=Condition)
+        right.evaluate.return_value = False
+        cond = ConditionAnd(left=left, right=right)
+        cond.evaluate(view)
+        right.evaluate.assert_called_once_with(view)

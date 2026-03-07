@@ -111,7 +111,7 @@ class TestEngineIntegration:
         config = EngineConfiguration(
             start_date=Date(2026, 1),
             max_turns=TurnDuration(1, 0),
-            flows=[AccountSolvencyGuardFlow(account_id="checking")],
+            flows=[AccountSolvencyGuardFlow()],
         )
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
