@@ -1,6 +1,7 @@
 import pytest
 from fitinera.engine import SimulationEngine, EngineConfiguration
-from fitinera.models import SimulationScenario, Date, TurnDuration
+from fitinera.flows import AccountSolvencyGuardFlow
+from fitinera.models import Account, SimulationScenario, Date, TurnDuration
 from fitinera import SimulationResult
 
 
@@ -58,3 +59,65 @@ class TestSimulationResultShape:
 @pytest.mark.skip(reason="Not yet implemented")
 def test_engine_halts_on_logger_error():
     pass
+
+
+class TestEngineIntegration:
+    """Integration-level tests for SimulationEngine.run().
+
+    These tests define the expected engine behaviour for end-to-end scenarios.
+    They are expected to fail with NotImplementedError until story-10 wires the
+    engine internals, and are therefore marked xfail.
+    """
+
+    @pytest.mark.xfail(
+        raises=NotImplementedError,
+        strict=True,
+        reason="Pending story-10 engine implementation",
+    )
+    def test_minimal_single_turn_scenario_returns_success(self):
+        """A scenario with one person and one account and no flows produces at least one turn.
+
+        The engine must produce a SimulationResult where result.turns has at least
+        one entry and result.success is True when no flows signal an error.
+        """
+        from fitinera.models import Age, Person
+
+        config = EngineConfiguration(
+            start_date=Date(2026, 1), max_turns=TurnDuration(1, 0)
+        )
+        engine = SimulationEngine(config)
+        scenario = SimulationScenario(
+            initial_persons=[Person(id="p1", age=Age(30), expectancy=Age(90))],
+            initial_accounts=[Account(id="checking", initial_balance=1000.0)],
+        )
+
+        result = engine.run(scenario)
+
+        assert len(result.turns) >= 1
+        assert result.success is True
+
+    @pytest.mark.xfail(
+        raises=NotImplementedError,
+        strict=True,
+        reason="Pending story-10 engine implementation",
+    )
+    def test_solvency_guard_flow_triggers_failure_on_negative_balance(self):
+        """AccountSolvencyGuardFlow causes result.success to be False when checking account is negative.
+
+        When AccountSolvencyGuardFlow is included in the pipeline and the initial
+        balance of the guarded account is negative, the engine must halt and return
+        a SimulationResult where result.success is False.
+        """
+        config = EngineConfiguration(
+            start_date=Date(2026, 1),
+            max_turns=TurnDuration(1, 0),
+            flows=[AccountSolvencyGuardFlow(account_id="checking")],
+        )
+        engine = SimulationEngine(config)
+        scenario = SimulationScenario(
+            initial_accounts=[Account(id="checking", initial_balance=-500.0)],
+        )
+
+        result = engine.run(scenario)
+
+        assert result.success is False
