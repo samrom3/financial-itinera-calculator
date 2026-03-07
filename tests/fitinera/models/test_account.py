@@ -1,6 +1,5 @@
 """Tests for Account and AccountState models."""
 
-import pytest
 from fitinera.models import Account, AccountState
 
 
@@ -66,8 +65,17 @@ class TestAccountState:
         state = AccountState(id="savings", balance=0.0)
         assert state.labels == {}
 
-    def test_account_state_get_label_raises_not_implemented(self):
-        """AccountState.get_label raises NotImplementedError (stub, implemented in story-02)."""
+    def test_account_state_get_label_returns_value_for_existing_facet(self):
+        """AccountState.get_label returns the label value for a known facet."""
         state = AccountState(id="checking", balance=0.0, labels={"Type": "ASSET"})
-        with pytest.raises(NotImplementedError):
-            state.get_label("Type")
+        assert state.get_label("Type") == "ASSET"
+
+    def test_account_state_get_label_returns_none_for_missing_facet(self):
+        """AccountState.get_label returns None when the facet is not present."""
+        state = AccountState(id="checking", balance=0.0, labels={"Type": "ASSET"})
+        assert state.get_label("Category") is None
+
+    def test_account_state_get_label_returns_none_when_labels_empty(self):
+        """AccountState.get_label returns None when labels dict is empty."""
+        state = AccountState(id="savings", balance=500.0)
+        assert state.get_label("Type") is None
