@@ -61,14 +61,15 @@ ______________________________________________________________________
 
 ## Index
 
-| ADR                                                          | Title                                      | Status   |
-| ------------------------------------------------------------ | ------------------------------------------ | -------- |
-| [0001](./0001-pipeline-framework-paradigm.md)                | Pipeline Framework Paradigm                | Accepted |
-| [0002](./0002-view-updater-state-isolation.md)               | View/Updater State Isolation               | Accepted |
-| [0003](./0003-double-entry-transaction-model.md)             | Double-Entry Transaction Model             | Accepted |
-| [0004](./0004-labeled-entities-and-domain-modeling.md)       | Labeled Entities and Domain Modeling       | Accepted |
-| [0005](./0005-intra-turn-causality-and-execution-order.md)   | Intra-Turn Causality and Execution Order   | Accepted |
-| [0006](./0006-lazy-metric-generation-vs-snapshotting.md)     | Lazy Metric Generation vs. Snapshotting    | Accepted |
-| [0007](./0007-flow-observability-and-error-handling.md)      | Flow Observability and Error Handling      | Accepted |
-| [0008](./0008-monthly-turn-granularity-and-calendar-time.md) | Monthly Turn Granularity and Calendar Time | Accepted |
-| [0009](./0009-domain-grouped-standard-flow-modules.md)       | Domain-Grouped Standard Flow Modules       | Accepted |
+| ADR                                                          | Title                                                                      | Status   |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------- | -------- |
+| [0001](./0001-pipeline-framework-paradigm.md)                | Pipeline Framework Paradigm                                                | Accepted |
+| [0002](./0002-view-updater-state-isolation.md)               | View/Updater State Isolation                                               | Accepted |
+| [0003](./0003-double-entry-transaction-model.md)             | Double-Entry Transaction Model                                             | Accepted |
+| [0004](./0004-labeled-entities-and-domain-modeling.md)       | Labeled Entities and Domain Modeling                                       | Accepted |
+| [0005](./0005-intra-turn-causality-and-execution-order.md)   | Intra-Turn Causality and Execution Order                                   | Accepted |
+| [0006](./0006-lazy-metric-generation-vs-snapshotting.md)     | Lazy Metric Generation vs. Snapshotting                                    | Accepted |
+| [0007](./0007-flow-observability-and-error-handling.md)      | Flow Observability and Error Handling                                      | Accepted |
+| [0008](./0008-monthly-turn-granularity-and-calendar-time.md) | Monthly Turn Granularity and Calendar Time                                 | Accepted |
+| [0009](./0009-domain-grouped-standard-flow-modules.md)       | Domain-Grouped Standard Flow Modules                                       | Accepted |
+| [0010](./0010-account-state-split-and-view-contract.md)      | AccountState Split from Account and SimulationStateView Contract Extension | Accepted |
