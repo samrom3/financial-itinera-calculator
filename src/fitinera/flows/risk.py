@@ -30,4 +30,10 @@ class AccountSolvencyGuardFlow(Flow):
         updater: SimulationStateUpdater,
         logger: SimulationLogger,
     ) -> None:
-        raise NotImplementedError("Pending implementation")
+        """Log an error for each ASSET-labeled account with a negative balance."""
+        for account in view.get_accounts():
+            if account.get_label(self.asset_label_facet) == self.asset_label_value:
+                if account.balance < 0:
+                    logger.error(
+                        f"Account '{account.id}' has negative balance: {account.balance}"
+                    )

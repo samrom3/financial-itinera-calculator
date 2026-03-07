@@ -14,8 +14,6 @@ Covers API shapes for:
 TDD cycle: tests written first (red), then implementation (green).
 """
 
-import pytest
-
 from fitinera.flows.lifecycle import PersonRetirementLabelFlow, ConditionalLabelFlow
 from fitinera.flows.risk import AccountSolvencyGuardFlow
 from fitinera.flows.investments import (
@@ -89,17 +87,26 @@ class TestPersonRetirementLabelFlow:
         assert flow.status_facet == "LifeStage"
         assert flow.retired_value == "FIRE"
 
-    def test_execute_flow_raises_not_implemented(self):
-        """PersonRetirementLabelFlow.executeFlow raises NotImplementedError.
+    def test_execute_flow_calls_update_person_label_when_condition_true(self):
+        """PersonRetirementLabelFlow.executeFlow calls update_person_label when condition is True.
 
-        The stub must raise NotImplementedError until real logic is added.
+        When condition.evaluate(view) returns True, update_person_label must be called
+        for each configured person_id with the default status_facet and retired_value.
         """
         from unittest.mock import MagicMock
 
-        condition = MetricCondition("net_worth", ComparisonOperator.GE, 0.0)
+        condition = MagicMock()
+        condition.evaluate.return_value = True
         flow = PersonRetirementLabelFlow(["alice"], condition)
-        with pytest.raises(NotImplementedError):
-            flow.executeFlow(MagicMock(), MagicMock(), MagicMock())
+        view = MagicMock()
+        updater = MagicMock()
+        logger = MagicMock()
+
+        flow.executeFlow(view, updater, logger)
+
+        updater.update_person_label.assert_called_once_with(
+            "alice", "Status", "Retired"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -146,17 +153,24 @@ class TestConditionalLabelFlow:
         flow = ConditionalLabelFlow(condition, "alice", "Status", "Active")
         assert flow.value == "Active"
 
-    def test_execute_flow_raises_not_implemented(self):
-        """ConditionalLabelFlow.executeFlow raises NotImplementedError.
+    def test_execute_flow_calls_update_person_label_when_condition_true(self):
+        """ConditionalLabelFlow.executeFlow calls update_person_label when condition is True.
 
-        The stub must raise NotImplementedError until real logic is added.
+        When condition.evaluate(view) returns True, update_person_label must be called
+        with the configured person_id, facet, and value.
         """
         from unittest.mock import MagicMock
 
-        condition = MetricCondition("score", ComparisonOperator.GT, 50.0)
+        condition = MagicMock()
+        condition.evaluate.return_value = True
         flow = ConditionalLabelFlow(condition, "alice", "Status", "Active")
-        with pytest.raises(NotImplementedError):
-            flow.executeFlow(MagicMock(), MagicMock(), MagicMock())
+        view = MagicMock()
+        updater = MagicMock()
+        logger = MagicMock()
+
+        flow.executeFlow(view, updater, logger)
+
+        updater.update_person_label.assert_called_once_with("alice", "Status", "Active")
 
 
 # ---------------------------------------------------------------------------
@@ -199,16 +213,25 @@ class TestAccountSolvencyGuardFlowRisk:
         flow = AccountSolvencyGuardFlow(asset_label_value="CHECKING")
         assert flow.asset_label_value == "CHECKING"
 
-    def test_execute_flow_raises_not_implemented(self):
-        """AccountSolvencyGuardFlow.executeFlow raises NotImplementedError.
+    def test_execute_flow_logs_error_for_negative_asset_balance(self):
+        """AccountSolvencyGuardFlow.executeFlow logs error for negative ASSET balance.
 
-        The stub must raise NotImplementedError until real logic is added.
+        An AccountState with Type == 'ASSET' and a negative balance must trigger
+        logger.error; an ASSET with non-negative balance must not.
         """
         from unittest.mock import MagicMock
+        from fitinera.models import AccountState
 
         flow = AccountSolvencyGuardFlow()
-        with pytest.raises(NotImplementedError):
-            flow.executeFlow(MagicMock(), MagicMock(), MagicMock())
+        account = AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"})
+        view = MagicMock()
+        view.get_accounts.return_value = [account]
+        updater = MagicMock()
+        logger = MagicMock()
+
+        flow.executeFlow(view, updater, logger)
+
+        logger.error.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -235,16 +258,20 @@ class TestCurrentTurnExpenseStrategy:
         strategy = CurrentTurnExpenseStrategy(expense_multiplier=6.0)
         assert strategy.expense_multiplier == 6.0
 
-    def test_compute_minimum_raises_not_implemented(self):
-        """CurrentTurnExpenseStrategy.compute_minimum raises NotImplementedError.
+    def test_compute_minimum_returns_zero_for_empty_transactions(self):
+        """CurrentTurnExpenseStrategy.compute_minimum returns 0.0 when no transactions.
 
-        The stub must raise NotImplementedError until real logic is added.
+        With no current-turn transactions, the sum is 0.0 * expense_multiplier = 0.0.
         """
         from unittest.mock import MagicMock
 
         strategy = CurrentTurnExpenseStrategy()
-        with pytest.raises(NotImplementedError):
-            strategy.compute_minimum(MagicMock(), "checking")
+        view = MagicMock()
+        view.get_current_turn_transactions.return_value = []
+
+        result = strategy.compute_minimum(view, "checking")
+
+        assert result == 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -281,16 +308,20 @@ class TestRollingAverageExpenseStrategy:
         )
         assert strategy.expense_multiplier == 6.0
 
-    def test_compute_minimum_raises_not_implemented(self):
-        """RollingAverageExpenseStrategy.compute_minimum raises NotImplementedError.
+    def test_compute_minimum_returns_zero_for_empty_history(self):
+        """RollingAverageExpenseStrategy.compute_minimum returns 0.0 when deque is empty.
 
-        The stub must raise NotImplementedError until real logic is added.
+        With no prior turns recorded in the deque, the strategy returns 0.0.
         """
         from unittest.mock import MagicMock
 
         strategy = RollingAverageExpenseStrategy(lookback_months=6)
-        with pytest.raises(NotImplementedError):
-            strategy.compute_minimum(MagicMock(), "checking")
+        view = MagicMock()
+        view.get_current_turn_transactions.return_value = []
+
+        result = strategy.compute_minimum(view, "checking")
+
+        assert result == 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -317,16 +348,28 @@ class TestAccountInterestFlow:
         flow = AccountInterestFlow("savings", 0.05)
         assert flow.annual_rate == 0.05
 
-    def test_execute_flow_raises_not_implemented(self):
-        """AccountInterestFlow.executeFlow raises NotImplementedError.
+    def test_execute_flow_emits_income_for_configured_account(self):
+        """AccountInterestFlow.executeFlow emits an Income transaction for the account.
 
-        The stub must raise NotImplementedError until real logic is added.
+        When the account exists in view.get_accounts(), emit_transaction must be called
+        once with an Income targeting account_id.
         """
         from unittest.mock import MagicMock
+        from fitinera.models import AccountState, Income
 
         flow = AccountInterestFlow("savings", 0.05)
-        with pytest.raises(NotImplementedError):
-            flow.executeFlow(MagicMock(), MagicMock(), MagicMock())
+        account = AccountState(id="savings", balance=1000.0, labels={})
+        view = MagicMock()
+        view.get_accounts.return_value = [account]
+        updater = MagicMock()
+        logger = MagicMock()
+
+        flow.executeFlow(view, updater, logger)
+
+        updater.emit_transaction.assert_called_once()
+        emitted = updater.emit_transaction.call_args[0][0]
+        assert isinstance(emitted, Income)
+        assert emitted.to_account == "savings"
 
 
 # ---------------------------------------------------------------------------
@@ -364,17 +407,28 @@ class TestRebalanceExtraSavingsFlow:
         flow = RebalanceExtraSavingsFlow("checking", "savings", strategy)
         assert flow.strategy is strategy
 
-    def test_execute_flow_raises_not_implemented(self):
-        """RebalanceExtraSavingsFlow.executeFlow raises NotImplementedError.
+    def test_execute_flow_logs_warning_when_compute_minimum_returns_zero(self):
+        """RebalanceExtraSavingsFlow.executeFlow logs warning and skips when minimum is 0.0.
 
-        The stub must raise NotImplementedError until real logic is added.
+        Per FR-018, if strategy.compute_minimum returns 0.0, logger.warning must be
+        called and emit_transaction must not be called.
         """
         from unittest.mock import MagicMock
+        from fitinera.models import AccountState
 
-        strategy = CurrentTurnExpenseStrategy()
+        strategy = MagicMock()
+        strategy.compute_minimum.return_value = 0.0
         flow = RebalanceExtraSavingsFlow("checking", "savings", strategy)
-        with pytest.raises(NotImplementedError):
-            flow.executeFlow(MagicMock(), MagicMock(), MagicMock())
+        account = AccountState(id="checking", balance=5000.0, labels={})
+        view = MagicMock()
+        view.get_accounts.return_value = [account]
+        updater = MagicMock()
+        logger = MagicMock()
+
+        flow.executeFlow(view, updater, logger)
+
+        logger.warning.assert_called_once()
+        updater.emit_transaction.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
