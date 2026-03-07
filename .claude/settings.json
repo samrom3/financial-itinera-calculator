@@ -1,6 +1,6 @@
 {
   "env": {
-    "CLAUDE_CODE_TASK_LIST_ID": ""
+    "CLAUDE_CODE_TASK_LIST_ID": "feat-v1-implement"
   },
   "permissions": {
     "allow": [
