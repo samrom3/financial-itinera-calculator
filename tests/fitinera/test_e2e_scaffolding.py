@@ -13,7 +13,9 @@ from fitinera.flows import (
     JobIncomeFlow,
     MortgagePaymentFlow,
     LivingExpenseFlow,
-    RetirementCheckFlow,
+    PersonRetirementLabelFlow,
+    MetricCondition,
+    ComparisonOperator,
 )
 
 
@@ -66,8 +68,11 @@ def test_e2e_scaffolding_runs_without_import_or_type_errors():
                 from_account="Joint Checking", to_account="Mortgage", amount=1500
             ),
             LivingExpenseFlow(from_account="Joint Checking", amount=2500),
-            RetirementCheckFlow(
-                person_ids=["Sam", "Alex"], metric_name="Net_Worth", threshold=1000000
+            PersonRetirementLabelFlow(
+                person_ids=["Sam", "Alex"],
+                condition=MetricCondition(
+                    "Net_Worth", ComparisonOperator.GE, 1_000_000
+                ),
             ),
         ],
     )

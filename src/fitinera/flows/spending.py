@@ -9,9 +9,12 @@ from ..engine.interfaces import (
 class LivingExpenseFlow(Flow):
     """Records a fixed recurring living expense drawn from a specified account each turn."""
 
-    def __init__(self, from_account: str, amount: float):
+    def __init__(
+        self, from_account: str, amount: float, annual_inflation_rate: float = 0.0
+    ):
         self.from_account = from_account
         self.amount = amount
+        self.annual_inflation_rate = annual_inflation_rate
 
     def executeFlow(
         self,

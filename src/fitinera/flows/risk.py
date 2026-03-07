@@ -1,0 +1,33 @@
+from .interfaces import Flow
+from ..engine.interfaces import (
+    SimulationStateView,
+    SimulationStateUpdater,
+    SimulationLogger,
+)
+
+
+class AccountSolvencyGuardFlow(Flow):
+    """Monitors accounts and halts simulation when a solvency violation is detected.
+
+    Args:
+        asset_label_facet: Label facet used to identify account type.
+            Defaults to 'Type'.
+        asset_label_value: Label value that marks an account as an asset to guard.
+            Defaults to 'ASSET'.
+    """
+
+    def __init__(
+        self,
+        asset_label_facet: str = "Type",
+        asset_label_value: str = "ASSET",
+    ):
+        self.asset_label_facet = asset_label_facet
+        self.asset_label_value = asset_label_value
+
+    def executeFlow(
+        self,
+        view: SimulationStateView,
+        updater: SimulationStateUpdater,
+        logger: SimulationLogger,
+    ) -> None:
+        raise NotImplementedError("Pending implementation")
