@@ -31,10 +31,9 @@ Each agent dispatched by `/hyperworker` follows this exact sequence per task:
    alternatives), write the ADR and update `docs/adrs/README.md`.
 1. **Backpressure gate** (always the last action before committing):
    ```
-   uv run pre-commit run
-   uv run pytest tests/fitinera/ -v
+   uv run pre-commit run  # Includes linting, formatting, and tests.
    ```
-   If either fails, fix and re-run. **Do not implement anything after validation passes.**
+   If it fails, fix and re-run. **Do not implement anything after validation passes.**
 1. **Commit** all changes: `[Story-ID] - [Story Title]`.
 1. **Mark task complete** and append progress report to `plans/<branch>-progress.txt`. Reusable patterns are written to
    `CLAUDE.md`; this file remains after branch merge.
@@ -194,8 +193,8 @@ Hyperworker enforces the [Ralph algorithm](https://ghuntley.com/ralph/) as its c
 
 - **One item per loop iteration.** Each agent works on exactly one task. It does not pick up a second task after
   finishing the first.
-- **Backpressure via build/test is the FINAL step.** `uv run pre-commit run` and `uv run pytest` are always the last
-  actions in an agent's loop. No implementation work follows validation.
+- **Backpressure via build/test is the FINAL step.** `uv run pre-commit run` (which includes pytest as a local hook) is
+  always the last action in an agent's loop. No implementation work follows validation.
 - **If validation fails, loop back and fix — never proceed.** The agent fixes the code and re-runs validation. It does
   not commit broken code or move on.
 - **Context window conservation.** The primary agent (Team Lead) is a scheduler — it reads the DAG and dispatches work,

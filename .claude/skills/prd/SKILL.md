@@ -23,10 +23,10 @@ Before accepting any requirement at face value, actively search for and surface:
 
 1. **Explicit conflicts within the input** — contradictory requirements, goals that work against each other, acceptance
    criteria that are mutually exclusive.
-1. **Implicit conflicts against the existing codebase** — requirements that contradict existing ADRs, break established
+2. **Implicit conflicts against the existing codebase** — requirements that contradict existing ADRs, break established
    patterns in `CLAUDE.md`, conflict with the current domain model in `src/fitinera/`, or violate conventions in
    `CONTRIBUTING.md`. Read `CLAUDE.md`, scan `docs/adrs/`, and search `src/fitinera/` before accepting any requirement.
-1. **Ambiguities that hide conflicts** — vague requirements that seem compatible but would force contradictory
+3. **Ambiguities that hide conflicts** — vague requirements that seem compatible but would force contradictory
    implementation choices once an agent tries to write code.
 
 When conflicts are detected, **push back** — clearly state the conflict, why it matters, and propose concrete
@@ -43,19 +43,19 @@ ______________________________________________________________________
 ### Phase 0: Environment Setup
 
 1. Read `$ARGUMENTS` (the text typed after `/prd`). If empty, ask the user for input.
-1. **Detect input type:**
+2. **Detect input type:**
    - If `$ARGUMENTS` is a path to an existing `.md` file → **seedling mode** (use the file as a baseline draft).
    - Otherwise → **text description mode** (generate from scratch).
-1. Derive `<slug>` as a short, lowercase-kebab-case label:
+3. Derive `<slug>` as a short, lowercase-kebab-case label:
    - Seedling mode: derive from the seedling document's title.
    - Text mode: derive from the feature description (e.g., "Account Rollover" → `account-rollover`).
-1. Generate `<branch>` as `feat-<slug>` (e.g., `feat-account-rollover`).
-1. Update `.claude/settings.json`: set `env.CLAUDE_CODE_TASK_LIST_ID` to `<branch>`.
-1. Create the `plans/` directory if it does not exist:
+4. Generate `<branch>` as `feat-<slug>` (e.g., `feat-account-rollover`).
+5. Update `.claude/settings.json`: set `env.CLAUDE_CODE_TASK_LIST_ID` to `<branch>`.
+6. Create the `plans/` directory if it does not exist:
    ```
    mkdir -p plans
    ```
-1. Create a symlink so task files are accessible under `plans/<branch>`:
+7. Create a symlink so task files are accessible under `plans/<branch>`:
    ```
    ln -sf ~/.claude/tasks/<branch> plans/<branch>
    ```
@@ -65,11 +65,11 @@ ______________________________________________________________________
 
 1. If `plans/<branch>-prd.md` already exists, move it to `plans/archive/<branch>-prd.md` before continuing.
 
-1. **Before generating anything:** Read `CLAUDE.md`, scan `docs/adrs/`, and search `src/fitinera/` for existing code
+2. **Before generating anything:** Read `CLAUDE.md`, scan `docs/adrs/`, and search `src/fitinera/` for existing code
    related to the feature. Identify any conflicts between what is being requested and what already exists. This research
    is mandatory in both modes.
 
-1. **Branch on input mode:**
+3. **Branch on input mode:**
 
    **Seedling mode:**
 
@@ -85,32 +85,32 @@ ______________________________________________________________________
      least one question must probe potential conflicts with existing functionality uncovered in step 2.
    - Generate a complete PRD from scratch.
 
-1. The generated PRD must follow the annotated example in `references/example-prd.md` and include **Design
+4. The generated PRD must follow the annotated example in `references/example-prd.md` and include **Design
    Considerations** and **Open Questions**.
 
-1. Developer stories should follow the scaffold-first / implement-second pattern for any new or changed API surface
+5. Developer stories should follow the scaffold-first / implement-second pattern for any new or changed API surface
    (see `/prd-tasks` for the authoritative definition of this pattern).
 
-1. Save to `plans/<branch>-prd.md`.
+6. Save to `plans/<branch>-prd.md`.
 
 ### Phase 2: Design refinement (questions + expand open questions)
 
 1. Review the PRD's **Design Considerations** and ask a targeted series of design questions.
-1. **Explicitly cross-check** each proposed design choice against existing ADRs and `CLAUDE.md` patterns. If a design
+2. **Explicitly cross-check** each proposed design choice against existing ADRs and `CLAUDE.md` patterns. If a design
    choice contradicts an existing decision, surface this as a conflict requiring resolution (potentially via a new ADR
    that supersedes the old one).
-1. Append newly discovered questions to the **bottom of the Open Questions section** (keep existing; add an "Added in
+3. Append newly discovered questions to the **bottom of the Open Questions section** (keep existing; add an "Added in
    Phase 2" subsection).
-1. Update `plans/<branch>-prd.md` with the refined design considerations and updated open questions.
+4. Update `plans/<branch>-prd.md` with the refined design considerations and updated open questions.
 
 ### Phase 3: Final refinement (answer all open questions + final pass)
 
 1. Ask the user **all remaining Open Questions**.
-1. Refine the PRD one final time based on the answers.
-1. **Final conflict sweep:** Before saving, verify that no requirement in the PRD contradicts another, and that no
+2. Refine the PRD one final time based on the answers.
+3. **Final conflict sweep:** Before saving, verify that no requirement in the PRD contradicts another, and that no
    requirement conflicts with the existing codebase as understood from the Phase 1 research. If any conflict is found,
    raise it with the user and resolve before saving.
-1. Save the final version to `plans/<branch>-prd.md`.
+4. Save the final version to `plans/<branch>-prd.md`.
 
 > **Important:** Do NOT start implementing. Just create the PRD.
 

@@ -20,9 +20,9 @@ Before doing anything else, run these checks in order. **Stop and surface each i
 #### Step 1 — Validate the symlink
 
 1. Read `.claude/settings.json` and extract the value of `env.CLAUDE_CODE_TASK_LIST_ID` → this is `<branch>`.
-1. Check that `plans/<branch>` exists **and** is a symlink pointing to `~/.claude/tasks/<branch>`.
-1. Determine the currently checked-out git branch (`git branch --show-current`).
-1. Compare the git branch name to `<branch>`:
+2. Check that `plans/<branch>` exists **and** is a symlink pointing to `~/.claude/tasks/<branch>`.
+3. Determine the currently checked-out git branch (`git branch --show-current`).
+4. Compare the git branch name to `<branch>`:
    - **If they match** — proceed to Step 2.
    - **If they do NOT match** — tell the user:
      > The current git branch (`<actual-git-branch>`) does not match the task list branch (`<branch>`). Would you like
@@ -32,19 +32,19 @@ Before doing anything else, run these checks in order. **Stop and surface each i
 #### Step 2 — Validate branch name vs PRD context
 
 1. Confirm that `<branch>` in `.claude/settings.json` matches the branch slug used in the PRD file's story IDs.
-1. **If they do not match**, warn the user:
+2. **If they do not match**, warn the user:
    > ⚠️ The `CLAUDE_CODE_TASK_LIST_ID` in `.claude/settings.json` (`<branch>`) does not appear to match the PRD's branch
    > context. You may need to update settings or re-run the `/prd` skill.
 
 #### Step 3 — Stale session check
 
 1. Check the modification time of `.claude/settings.json` (e.g., via `stat` or `ls -l`).
-1. If the file was modified **within the last 10 minutes**, it is likely that the `/prd` skill updated it during this
+2. If the file was modified **within the last 10 minutes**, it is likely that the `/prd` skill updated it during this
    session. Warn the user:
    > ⚠️ `.claude/settings.json` was recently modified (within the last 10 minutes). If the `/prd` skill was run during
    > this session, you may need to **restart your Claude Code session** so the tasks agent picks up the new
    > `CLAUDE_CODE_TASK_LIST_ID` value.
-1. Wait for the user to confirm whether to continue or restart. If they say restart, **stop here**.
+3. Wait for the user to confirm whether to continue or restart. If they say restart, **stop here**.
 
 Once all three steps pass, proceed to Phase 1.
 
@@ -119,7 +119,7 @@ For **any task involving new or changed APIs**, split the work into at least two
    completeness, and computational flow _before_ writing logic. This story is complete when the scaffolded API imports
    cleanly and tests exist (tests will fail on `NotImplementedError`).
 
-1. **Implementation story (depends on scaffold):** Fill in the stubs with real logic until all tests from the scaffold
+2. **Implementation story (depends on scaffold):** Fill in the stubs with real logic until all tests from the scaffold
    story pass. Then refactor for high code quality.
 
 It is acceptable — and expected — to iterate between scaffold and implementation stories if the API design needs
@@ -134,14 +134,14 @@ Stories should be created in dependency order. Earlier stories must not depend o
 **Correct order for fitinera:**
 
 1. Domain models (`src/fitinera/models/`) — frozen dataclasses, value objects
-1. Flows and computations (`src/fitinera/flows/`) — business logic subclasses
-1. API surface (`src/fitinera/`) — public interface scaffolding, then implementation
-1. Integration or cross-cutting concerns
+2. Flows and computations (`src/fitinera/flows/`) — business logic subclasses
+3. API surface (`src/fitinera/`) — public interface scaffolding, then implementation
+4. Integration or cross-cutting concerns
 
 **Wrong order:**
 
 1. Flow implementation (depends on a model that does not exist yet)
-1. Model definition
+2. Model definition
 
 ______________________________________________________________________
 
@@ -158,10 +158,10 @@ ______________________________________________________________________
 ## Conversion Rules
 
 1. **Each developer story becomes one `TaskCreate` call**
-1. **IDs**: Sequential `FEAT-<slug>-01`, `FEAT-<slug>-02`, etc. (zero-padded, two-digit) — used in the Subject
-1. **Create tasks in dependency order** (domain models → flows/computations → API surface → integration)
-1. **Subject**: `FEAT-<slug>-##: [Story title]`
-1. **Description**: Full story description + all acceptance criteria + Required Final Criteria
+2. **IDs**: Sequential `FEAT-<slug>-01`, `FEAT-<slug>-02`, etc. (zero-padded, two-digit) — used in the Subject
+3. **Create tasks in dependency order** (domain models → flows/computations → API surface → integration)
+4. **Subject**: `FEAT-<slug>-##: [Story title]`
+5. **Description**: Full story description + all acceptance criteria + Required Final Criteria
 
 ______________________________________________________________________
 
@@ -170,11 +170,11 @@ ______________________________________________________________________
 After extracting stories, cross-check against the **Functional Requirements** section (if present):
 
 1. Read every numbered FR (e.g., `FR-1`, `FR-2`, …) in the PRD.
-1. For each FR, verify it is traceable to at least one story's acceptance criteria.
-1. If an FR is **not covered** by any story:
+2. For each FR, verify it is traceable to at least one story's acceptance criteria.
+3. If an FR is **not covered** by any story:
    - If it fits naturally as acceptance criteria on an existing story, add it there.
    - Otherwise, create a new story specifically for that FR.
-1. After all tasks are created, list the FR → story mapping so traceability is visible.
+4. After all tasks are created, list the FR → story mapping so traceability is visible.
 
 **Every functional requirement must be implemented. If a story doesn't cover it, no agent will.**
 
@@ -191,9 +191,9 @@ If a PRD has big features, split them:
 **Split into separate `TaskCreate` calls:**
 
 1. `FEAT-account-rollover-01`: Scaffold `RolloverParams` dataclass and `RolloverFlow` API stubs
-1. `FEAT-account-rollover-02`: Implement `RolloverFlow.run()` logic
-1. `FEAT-account-rollover-03`: Add `RolloverParamsBuilder` with fluent interface
-1. `FEAT-account-rollover-04`: Integration test: full period-close → rollover pipeline
+2. `FEAT-account-rollover-02`: Implement `RolloverFlow.run()` logic
+3. `FEAT-account-rollover-03`: Add `RolloverParamsBuilder` with fluent interface
+4. `FEAT-account-rollover-04`: Integration test: full period-close → rollover pipeline
 
 Each is one focused change that can be completed and verified independently.
 
@@ -247,7 +247,7 @@ explicitly set the dependencies between tasks.**
 ### Step 1: Analyze and Build the Dependency Tree
 
 1. Gather the full set of just-created tasks (their IDs and summaries).
-1. For each task, determine which other tasks it "blocks" (must finish before another can start) and which it
+2. For each task, determine which other tasks it "blocks" (must finish before another can start) and which it
    "is_blocked_by" (must wait for another to finish).
    - Use the intent, technical dependencies, and the story ordering above (domain models → flows → API surface →
      integration).
@@ -267,7 +267,7 @@ explicitly set the dependencies between tasks.**
      `FEAT-account-rollover-01` to `blocks=["FEAT-account-rollover-02"]` and `FEAT-account-rollover-02` to
      `is_blocked_by=["FEAT-account-rollover-01"]`.
    - Only set dependencies after **all** tasks have been created.
-1. Record the final dependency mapping (task ID → blocked/blocks relationships) immediately after the FR → story
+2. Record the final dependency mapping (task ID → blocked/blocks relationships) immediately after the FR → story
    traceability map.
 
 ### Guidance

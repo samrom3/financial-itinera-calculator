@@ -36,6 +36,7 @@ surface and write tests before implementing real logic.
 - [ ] `RolloverFlow` subclass exists in `src/fitinera/flows/` with `run()` stub raising `NotImplementedError`
 - [ ] `RolloverParamsBuilder` exists and allows chained construction
 - [ ] Tests exist in `tests/fitinera/` covering the expected API shape (tests will fail on `NotImplementedError`)
+- [ ] Stub tests created for all new public API surfaces
 - [ ] Pre-commit passes (`uv run pre-commit run`)
 - [ ] Tests written in DAMP style with Google-style docstrings
 

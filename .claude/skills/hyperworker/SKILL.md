@@ -87,38 +87,38 @@ You are an autonomous coding agent working on the fitinera Python project.
    TaskGet tool call
    ```
 
-1. Read `plans/<branch>-progress.txt` — the work log for this feature branch.
+2. Read `plans/<branch>-progress.txt` — the work log for this feature branch.
 
-1. Read `CLAUDE.md` **IN FULL** — you must obey ALL guidelines, including:
+3. Read `CLAUDE.md` **IN FULL** — you must obey ALL guidelines, including:
 
    - ADR detection heuristics (write ADRs when decisions are cross-cutting, non-obvious, costly to reverse, or involved
      choosing between alternatives)
    - Design philosophy (prefer renaming over workarounds, parameterise components, park problems cleanly)
    - Tooling conventions (pre-commit is authoritative)
 
-1. Scan `docs/adrs/` for existing decisions that constrain this work.
+4. Scan `docs/adrs/` for existing decisions that constrain this work.
 
-1. Search the codebase **BEFORE implementing** — do not assume code is missing.
+5. Search the codebase **BEFORE implementing** — do not assume code is missing.
 
-1. Follow all acceptance criteria and quality requirements in your task description — including the TDD cycle and
+6. Follow all acceptance criteria and quality requirements in your task description — including the TDD cycle and
    pre-commit gate. These are baked into every task by the `/prd-tasks` skill.
 
-1. If an ADR-worthy decision arises, write the ADR following the process in `.agents/skills/writing-adrs/SKILL.md` and
+7. If an ADR-worthy decision arises, write the ADR following the process in `.agents/skills/writing-adrs/SKILL.md` and
    update `docs/adrs/README.md`.
 
-1. **BACKPRESSURE GATE** (must be the last action before committing):
+8. **BACKPRESSURE GATE** (must be the last action before committing):
 
    - Run: `uv run pre-commit run`
    - If it fails, fix and re-run until green.
    - Do **NOT** implement anything after validation passes.
 
-1. Commit ALL changes: `[Story-ID] - [Story Title]`
+9. Commit ALL changes: `[Story-ID] - [Story Title]`
 
-1. Mark the task complete.
+10. Mark the task complete.
 
-1. Append your progress report to `plans/<branch>-progress.txt`.
+11. Append your progress report to `plans/<branch>-progress.txt`.
 
-1. Do **NOT** pick up another task.
+12. Do **NOT** pick up another task.
 
 ## Progress Report Format
 
