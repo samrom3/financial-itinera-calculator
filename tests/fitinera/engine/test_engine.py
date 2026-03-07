@@ -11,14 +11,6 @@ def test_simulation_engine_initialization_takes_configuration():
     assert engine.configuration is config
 
 
-def test_engine_run_raises_not_implemented():
-    config = EngineConfiguration(Date(2026, 1), TurnDuration(10, 0))
-    engine = SimulationEngine(config)
-    scenario = SimulationScenario()
-    with pytest.raises(NotImplementedError):
-        engine.run(scenario)
-
-
 class TestSimulationResultShape:
     """Tests verifying SimulationResult dataclass shape and field types.
 
@@ -56,24 +48,36 @@ class TestSimulationResultShape:
         assert len(result.turns) == 0
 
 
-@pytest.mark.skip(reason="Not yet implemented")
 def test_engine_halts_on_logger_error():
-    pass
+    """Engine returns success=False when a flow emits a logger error."""
+    from fitinera.models import Age, Person
+
+    class _ErrorFlow:
+        def executeFlow(self, view, updater, logger):
+            logger.error("fatal error")
+
+    config = EngineConfiguration(
+        start_date=Date(2026, 1),
+        max_turns=TurnDuration(1, 0),
+        flows=[_ErrorFlow()],
+    )
+    engine = SimulationEngine(config)
+    scenario = SimulationScenario(
+        initial_persons=[Person(id="p1", age=Age(30), expectancy=Age(90))]
+    )
+
+    result = engine.run(scenario)
+
+    assert result.success is False
+    assert result.error_message is not None
 
 
 class TestEngineIntegration:
     """Integration-level tests for SimulationEngine.run().
 
     These tests define the expected engine behaviour for end-to-end scenarios.
-    They are expected to fail with NotImplementedError until story-10 wires the
-    engine internals, and are therefore marked xfail.
     """
 
-    @pytest.mark.xfail(
-        raises=NotImplementedError,
-        strict=True,
-        reason="Pending story-10 engine implementation",
-    )
     def test_minimal_single_turn_scenario_returns_success(self):
         """A scenario with one person and one account and no flows produces at least one turn.
 
@@ -96,16 +100,11 @@ class TestEngineIntegration:
         assert len(result.turns) >= 1
         assert result.success is True
 
-    @pytest.mark.xfail(
-        raises=NotImplementedError,
-        strict=True,
-        reason="Pending story-10 engine implementation",
-    )
     def test_solvency_guard_flow_triggers_failure_on_negative_balance(self):
-        """AccountSolvencyGuardFlow causes result.success to be False when checking account is negative.
+        """AccountSolvencyGuardFlow causes result.success to be False when an ASSET account is negative.
 
         When AccountSolvencyGuardFlow is included in the pipeline and the initial
-        balance of the guarded account is negative, the engine must halt and return
+        balance of an ASSET-labeled account is negative, the engine must halt and return
         a SimulationResult where result.success is False.
         """
         config = EngineConfiguration(
@@ -115,7 +114,9 @@ class TestEngineIntegration:
         )
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
-            initial_accounts=[Account(id="checking", initial_balance=-500.0)],
+            initial_accounts=[
+                Account(id="checking", initial_balance=-500.0, labels={"Type": "ASSET"})
+            ],
         )
 
         result = engine.run(scenario)

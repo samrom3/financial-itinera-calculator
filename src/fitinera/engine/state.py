@@ -2,70 +2,189 @@
 
 These classes are private implementation details of the engine and are not
 exported from the fitinera public API. They implement the Protocol interfaces
-defined in interfaces.py and will be fully wired up in story-10.
+defined in interfaces.py and are wired up by SimulationEngine.run().
 """
 
-from typing import Any, List, Optional
+import dataclasses
+import logging
+from typing import Any, Dict, List, Optional
 
 from ..models import AccountState, Date, ElapsedDuration, Person, Transaction
+from ..models.transaction import Expense, Income, Transfer
 from .interfaces import SimulationLogger, SimulationStateUpdater, SimulationStateView
+
+_logger = logging.getLogger("fitinera.engine")
 
 
 class _SimulationStateViewImpl(SimulationStateView):
     """Internal implementation of SimulationStateView.
 
-    All methods raise NotImplementedError until the engine is wired in story-10.
+    Holds references to the live engine state and exposes read-only access
+    to flows during a simulation turn.
     """
 
+    def __init__(
+        self,
+        account_states: List[AccountState],
+        person_states: Dict[str, "_LivePersonState"],
+        metric_generators: Dict[str, Any],
+        start_date: Date,
+        current_date_ref: "list[Date]",
+        turns_completed_ref: "list[int]",
+        tx_buffer: "list[Transaction]",
+    ) -> None:
+        self._accounts = account_states
+        self._persons = person_states
+        self._metrics = metric_generators
+        self._start_date = start_date
+        self._current_date_ref = current_date_ref
+        self._turns_completed_ref = turns_completed_ref
+        self._tx_buffer = tx_buffer
+
     def get_accounts(self) -> List[AccountState]:
-        raise NotImplementedError("Pending implementation")
+        """Return live AccountState objects for all accounts."""
+        return list(self._accounts)
 
     def get_person(self, person_id: str) -> Optional[Person]:
-        raise NotImplementedError("Pending implementation")
+        """Return a frozen Person snapshot built from live state, or None."""
+        state = self._persons.get(person_id)
+        if state is None:
+            return None
+        return dataclasses.replace(
+            state.person, age=state.age, labels=dict(state.labels)
+        )
 
     def get_metric(self, name: str) -> Any:
-        raise NotImplementedError("Pending implementation")
+        """Lazily evaluate the named MetricGenerator and return its value."""
+        generator = self._metrics.get(name)
+        if generator is None:
+            return None
+        return generator.evaluate(self)
 
     def get_start_date(self) -> Date:
-        raise NotImplementedError("Pending implementation")
+        """Return the simulation start date from EngineConfiguration."""
+        return self._start_date
 
     def get_current_date(self) -> Date:
-        raise NotImplementedError("Pending implementation")
+        """Return the current (post-increment) date for this turn."""
+        return self._current_date_ref[0]
 
     def get_elapsed_duration(self) -> ElapsedDuration:
-        raise NotImplementedError("Pending implementation")
+        """Return elapsed months since simulation start (turns completed so far)."""
+        return ElapsedDuration(months=self._turns_completed_ref[0])
 
     def get_current_turn_transactions(self) -> List[Transaction]:
-        raise NotImplementedError("Pending implementation")
+        """Return transactions emitted during the current turn."""
+        return list(self._tx_buffer)
+
+
+class _LivePersonState:
+    """Mutable live state for a single person tracked by the engine."""
+
+    def __init__(self, person: Person) -> None:
+        self.person = person
+        self.age = dataclasses.replace(person.age)
+        self.labels: Dict[str, str] = dict(person.labels)
+
+    def increment_age(self) -> None:
+        """Advance age by one month; rolls months to years at 12."""
+        new_months = self.age.months + 1
+        if new_months >= 12:
+            self.age = dataclasses.replace(self.age, years=self.age.years + 1, months=0)
+        else:
+            self.age = dataclasses.replace(self.age, months=new_months)
+
+    def is_living(self) -> bool:
+        """Return True if current age is strictly less than life expectancy."""
+        p = dataclasses.replace(self.person, age=self.age, labels=self.labels)
+        return p.living()
 
 
 class _SimulationStateUpdaterImpl(SimulationStateUpdater):
     """Internal implementation of SimulationStateUpdater.
 
-    All methods raise NotImplementedError until the engine is wired in story-10.
+    Immediately applies balance mutations to live AccountState objects
+    and appends each transaction to the current-turn buffer.
     """
 
+    def __init__(
+        self,
+        account_states: List[AccountState],
+        person_states: Dict[str, _LivePersonState],
+        tx_buffer: "list[Transaction]",
+    ) -> None:
+        self._accounts_by_id: Dict[str, AccountState] = {
+            a.id: a for a in account_states
+        }
+        self._persons = person_states
+        self._tx_buffer = tx_buffer
+
     def emit_transaction(self, transaction: Transaction) -> None:
-        raise NotImplementedError("Pending implementation")
+        """Apply balance delta immediately and record transaction in buffer.
+
+        Supports Income (adds to to_account), Expense (subtracts from from_account),
+        and Transfer (subtracts from from_account, adds to to_account).
+        """
+        if isinstance(transaction, Income):
+            acct = self._accounts_by_id.get(transaction.to_account)
+            if acct is not None:
+                acct.balance += transaction.amount
+        elif isinstance(transaction, Expense):
+            acct = self._accounts_by_id.get(transaction.from_account)
+            if acct is not None:
+                acct.balance -= transaction.amount
+        elif isinstance(transaction, Transfer):
+            src = self._accounts_by_id.get(transaction.from_account)
+            dst = self._accounts_by_id.get(transaction.to_account)
+            if src is not None:
+                src.balance -= transaction.amount
+            if dst is not None:
+                dst.balance += transaction.amount
+        self._tx_buffer.append(transaction)
 
     def update_person_label(self, person_id: str, facet: str, value: str) -> None:
-        raise NotImplementedError("Pending implementation")
+        """Mutate the mutable labels dict for the named person."""
+        state = self._persons.get(person_id)
+        if state is not None:
+            state.labels[facet] = value
 
 
 class _SimulationLoggerImpl(SimulationLogger):
     """Internal implementation of SimulationLogger.
 
-    All methods raise NotImplementedError until the engine is wired in story-10.
+    Delegates to the 'fitinera.engine' Python logger. An error() call sets
+    an internal flag so the engine can detect halt conditions.
     """
 
+    def __init__(self) -> None:
+        self._error_flag: bool = False
+        self._error_message: Optional[str] = None
+
+    @property
+    def has_error(self) -> bool:
+        """True if error() has been called at least once."""
+        return self._error_flag
+
+    @property
+    def error_message(self) -> Optional[str]:
+        """The message from the first error() call, or None."""
+        return self._error_message
+
     def debug(self, msg: str) -> None:
-        raise NotImplementedError("Pending implementation")
+        """Log a debug-level message to fitinera.engine."""
+        _logger.debug(msg)
 
     def info(self, msg: str) -> None:
-        raise NotImplementedError("Pending implementation")
+        """Log an info-level message to fitinera.engine."""
+        _logger.info(msg)
 
     def warning(self, msg: str) -> None:
-        raise NotImplementedError("Pending implementation")
+        """Log a warning-level message to fitinera.engine."""
+        _logger.warning(msg)
 
     def error(self, msg: str) -> None:
-        raise NotImplementedError("Pending implementation")
+        """Log an error-level message and set the internal error flag."""
+        _logger.error(msg)
+        if not self._error_flag:
+            self._error_flag = True
+            self._error_message = msg

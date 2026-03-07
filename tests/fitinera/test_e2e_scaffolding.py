@@ -1,4 +1,3 @@
-import pytest
 from fitinera.models import (
     SimulationScenario,
     Person,
@@ -78,5 +77,5 @@ def test_e2e_scaffolding_runs_without_import_or_type_errors():
     )
 
     engine = SimulationEngine(configuration=pipeline)
-    with pytest.raises(NotImplementedError):
-        engine.run(scenario)
+    result = engine.run(scenario)
+    assert result is not None
