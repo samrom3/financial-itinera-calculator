@@ -37,7 +37,14 @@ class PersonRetirementLabelFlow(Flow):
         updater: SimulationStateUpdater,
         logger: SimulationLogger,
     ) -> None:
-        raise NotImplementedError("Pending implementation")
+        """Update retirement labels for all monitored persons when condition is satisfied."""
+        if self.condition.evaluate(view):
+            for pid in self.person_ids:
+                updater.update_person_label(pid, self.status_facet, self.retired_value)
+                logger.info(
+                    f"PersonRetirementLabelFlow: applied '{self.retired_value}' "
+                    f"to person '{pid}' on facet '{self.status_facet}'"
+                )
 
 
 class ConditionalLabelFlow(Flow):
@@ -68,4 +75,6 @@ class ConditionalLabelFlow(Flow):
         updater: SimulationStateUpdater,
         logger: SimulationLogger,
     ) -> None:
-        raise NotImplementedError("Pending implementation")
+        """Apply label to person when condition is satisfied."""
+        if self.condition.evaluate(view):
+            updater.update_person_label(self.person_id, self.facet, self.value)
