@@ -4,6 +4,7 @@ from ..engine.interfaces import (
     SimulationStateUpdater,
     SimulationLogger,
 )
+from ..models.transaction import Transfer
 
 
 class MortgagePaymentFlow(Flow):
@@ -20,4 +21,11 @@ class MortgagePaymentFlow(Flow):
         updater: SimulationStateUpdater,
         logger: SimulationLogger,
     ) -> None:
-        raise NotImplementedError("Pending implementation")
+        """Emit a fixed transfer from the source account to the mortgage account."""
+        updater.emit_transaction(
+            Transfer(
+                amount=self.amount,
+                from_account=self.from_account,
+                to_account=self.to_account,
+            )
+        )
