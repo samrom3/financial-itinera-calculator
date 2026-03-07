@@ -165,6 +165,11 @@ result = engine.run(scenario)
 > **Design decisions**: see [`docs/adrs/`](./docs/adrs/) for the Architecture Decision Records that explain the key
 > tradeoffs behind this design.
 
+> **Building custom Flows and MetricGenerators**: see
+> [`docs/flow-development-guide.md`](./docs/flow-development-guide.md) for the canonical guide covering the
+> `executeFlow` contract, transaction types, condition composition, pipeline ordering, and a fully annotated worked
+> example.
+
 ### Primary User-Facing Elements
 
 | Element                  | Role                                                                                        |
