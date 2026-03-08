@@ -21,5 +21,5 @@ class Flow(Protocol):
 class MetricGenerator(Protocol):
     """A computational logic to passively observe metrics."""
 
-    def evaluate(self, view: SimulationStateView) -> Any:
+    def evaluate(self, view: SimulationStateView, logger: SimulationLogger) -> Any:
         raise NotImplementedError("Pending implementation")

@@ -238,7 +238,7 @@ class TestNetWorthGenerator:
         """
         generator = NetWorthGenerator()
         view = _make_view([])
-        assert generator.evaluate(view) == 0.0
+        assert generator.evaluate(view, MagicMock()) == 0.0
 
     def test_evaluate_sums_asset_balances(self):
         """NetWorthGenerator.evaluate sums balances of ASSET-typed accounts.
@@ -251,7 +251,7 @@ class TestNetWorthGenerator:
             AccountState(id="savings", balance=500.0, labels={"Type": "ASSET"}),
         ]
         view = _make_view(accounts)
-        assert generator.evaluate(view) == 1_500.0
+        assert generator.evaluate(view, MagicMock()) == 1_500.0
 
     def test_evaluate_subtracts_liability_balances(self):
         """NetWorthGenerator.evaluate subtracts LIABILITY-typed account balances.
@@ -265,7 +265,7 @@ class TestNetWorthGenerator:
             ),
         ]
         view = _make_view(accounts)
-        assert generator.evaluate(view) == -200_000.0
+        assert generator.evaluate(view, MagicMock()) == -200_000.0
 
     def test_evaluate_combines_assets_and_liabilities(self):
         """NetWorthGenerator.evaluate correctly combines ASSET and LIABILITY balances.
@@ -280,7 +280,7 @@ class TestNetWorthGenerator:
             ),
         ]
         view = _make_view(accounts)
-        assert generator.evaluate(view) == 300_000.0
+        assert generator.evaluate(view, MagicMock()) == 300_000.0
 
     def test_evaluate_ignores_accounts_without_type_label(self):
         """NetWorthGenerator.evaluate ignores accounts with no Type label.
@@ -294,7 +294,7 @@ class TestNetWorthGenerator:
             AccountState(id="escrow", balance=50.0, labels={}),
         ]
         view = _make_view(accounts)
-        assert generator.evaluate(view) == 1_000.0
+        assert generator.evaluate(view, MagicMock()) == 1_000.0
 
     def test_evaluate_ignores_accounts_with_unknown_type_label(self):
         """NetWorthGenerator.evaluate ignores accounts with unrecognised Type values.
@@ -307,4 +307,4 @@ class TestNetWorthGenerator:
             AccountState(id="pension", balance=5_000.0, labels={"Type": "PENSION"}),
         ]
         view = _make_view(accounts)
-        assert generator.evaluate(view) == 1_000.0
+        assert generator.evaluate(view, MagicMock()) == 1_000.0

@@ -19,7 +19,7 @@ from fitinera.flows import (
 
 
 class NetWorthGenerator(MetricGenerator):
-    def evaluate(self, view):
+    def evaluate(self, view, logger):
         assets = sum(
             a.balance for a in view.get_accounts() if a.get_label("Type") == "ASSET"
         )

@@ -1,6 +1,6 @@
 import pytest
 from fitinera.engine import SimulationEngine, EngineConfiguration
-from fitinera.flows import AccountSolvencyGuardFlow
+from fitinera.flows import AccountSolvencyGuardFlow, LivingExpenseFlow
 from fitinera.models import Account, SimulationScenario, Date, TurnDuration
 from fitinera import SimulationResult
 
@@ -70,6 +70,7 @@ def test_engine_halts_on_logger_error():
 
     assert result.success is False
     assert result.error_message is not None
+    assert "fatal error" in result.error_message
 
 
 class TestEngineIntegration:
@@ -122,3 +123,91 @@ class TestEngineIntegration:
         result = engine.run(scenario)
 
         assert result.success is False
+
+
+def test_engine_halts_when_living_expense_drains_account_negative():
+    """Engine halts with success=False when LivingExpenseFlow drains account below zero."""
+    config = EngineConfiguration(
+        start_date=Date(2026, 1),
+        max_turns=TurnDuration(1, 0),
+        flows=[
+            LivingExpenseFlow(from_account="checking", amount=200.0),
+            AccountSolvencyGuardFlow(),
+        ],
+    )
+    engine = SimulationEngine(config)
+    scenario = SimulationScenario(
+        initial_accounts=[
+            Account(id="checking", initial_balance=100.0, labels={"Type": "ASSET"})
+        ],
+    )
+
+    result = engine.run(scenario)
+
+    assert result.success is False
+
+
+def test_engine_halts_with_solvency_error_message_containing_account_id():
+    """Solvency failure error message identifies the insolvent account by id."""
+    config = EngineConfiguration(
+        start_date=Date(2026, 1),
+        max_turns=TurnDuration(1, 0),
+        flows=[
+            LivingExpenseFlow(from_account="checking", amount=200.0),
+            AccountSolvencyGuardFlow(),
+        ],
+    )
+    engine = SimulationEngine(config)
+    scenario = SimulationScenario(
+        initial_accounts=[
+            Account(id="checking", initial_balance=100.0, labels={"Type": "ASSET"})
+        ],
+    )
+
+    result = engine.run(scenario)
+
+    assert result.error_message is not None
+    assert "checking" in result.error_message
+
+
+def test_simulation_result_log_messages_contains_turn_messages():
+    """SimulationResult.log_messages captures messages emitted during turns."""
+
+    class _InfoFlow:
+        def executeFlow(self, view, updater, logger):
+            logger.info("turn ran")
+
+    config = EngineConfiguration(
+        start_date=Date(2026, 1),
+        max_turns=TurnDuration(0, 1),
+        flows=[_InfoFlow()],
+    )
+    engine = SimulationEngine(config)
+    scenario = SimulationScenario()
+
+    result = engine.run(scenario)
+
+    assert any("turn ran" in m for m in result.log_messages)
+
+
+def test_simulation_result_log_messages_includes_error_turn_messages():
+    """log_messages includes messages from the error turn even when simulation halts."""
+
+    class _ErrorFlow:
+        def executeFlow(self, view, updater, logger):
+            logger.warning("pre-error warning")
+            logger.error("fatal halt")
+
+    config = EngineConfiguration(
+        start_date=Date(2026, 1),
+        max_turns=TurnDuration(1, 0),
+        flows=[_ErrorFlow()],
+    )
+    engine = SimulationEngine(config)
+    scenario = SimulationScenario()
+
+    result = engine.run(scenario)
+
+    assert result.success is False
+    assert any("pre-error warning" in m for m in result.log_messages)
+    assert any("fatal halt" in m for m in result.log_messages)
