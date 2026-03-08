@@ -23,14 +23,15 @@ class LivingExpenseFlow(Flow):
         updater: SimulationStateUpdater,
         logger: SimulationLogger,
     ) -> None:
-        """Emit a living expense, applying inflation if annual_inflation_rate > 0.
+        """Emit a living expense, applying inflation or deflation if annual_inflation_rate != 0.
 
         When annual_inflation_rate is 0.0, emits a fixed expense equal to self.amount.
-        When annual_inflation_rate > 0, computes the inflated amount as:
+        When annual_inflation_rate != 0, computes the adjusted amount as:
             inflated_amount = amount * (1 + annual_inflation_rate / 12) ** turn_index
-        where turn_index = view.get_elapsed_duration().months (FR-019).
+        where turn_index = view.get_elapsed_duration().months (FR-019). Negative rates
+        model deflation (decreasing expenses over time).
         """
-        if self.annual_inflation_rate > 0.0:
+        if self.annual_inflation_rate != 0.0:
             turn_index = view.get_elapsed_duration().months
             inflated_amount = (
                 self.amount * (1 + self.annual_inflation_rate / 12) ** turn_index
