@@ -4,6 +4,7 @@ from ..engine.interfaces import (
     SimulationStateUpdater,
     SimulationLogger,
 )
+from ..models.transaction import Income
 
 
 class JobIncomeFlow(Flow):
@@ -20,4 +21,18 @@ class JobIncomeFlow(Flow):
         updater: SimulationStateUpdater,
         logger: SimulationLogger,
     ) -> None:
-        raise NotImplementedError("Pending implementation")
+        """Emit income if person is living and has Status == 'Working'; log otherwise."""
+        person = view.get_person(self.person_id)
+        if (
+            person is not None
+            and person.living()
+            and person.get_label("Status") == "Working"
+        ):
+            updater.emit_transaction(
+                Income(amount=self.amount, to_account=self.to_account)
+            )
+        else:
+            logger.info(
+                f"JobIncomeFlow: skipping income for person '{self.person_id}' "
+                "(not living or not working)"
+            )

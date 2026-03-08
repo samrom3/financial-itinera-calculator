@@ -1,17 +1,30 @@
-from typing import Protocol, Any, Optional, List
-from ..models import Account, Person, Transaction
+from typing import Any, List, Optional, Protocol
+
+from ..models import AccountState, Date, Person, Transaction, TurnDuration
 
 
 class SimulationStateView(Protocol):
     """Read-only interface granting read access to current and historical state."""
 
-    def get_accounts(self) -> List[Account]:
+    def get_accounts(self) -> List[AccountState]:
         raise NotImplementedError("Pending implementation")
 
     def get_person(self, person_id: str) -> Optional[Person]:
         raise NotImplementedError("Pending implementation")
 
     def get_metric(self, name: str) -> Any:
+        raise NotImplementedError("Pending implementation")
+
+    def get_start_date(self) -> Date:
+        raise NotImplementedError("Pending implementation")
+
+    def get_current_date(self) -> Date:
+        raise NotImplementedError("Pending implementation")
+
+    def get_elapsed_duration(self) -> TurnDuration:
+        raise NotImplementedError("Pending implementation")
+
+    def get_current_turn_transactions(self) -> List[Transaction]:
         raise NotImplementedError("Pending implementation")
 
 
