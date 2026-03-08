@@ -24,26 +24,39 @@ class Flow(Protocol):
 ```
 
 There is no base class to inherit from. Any object that exposes `executeFlow(view, updater, logger)` satisfies the
-`Flow` protocol.
+`Flow` protocol. If you prefer compile-time enforcement, you can explicitly inherit from `Flow` — this gives IDE
+autocomplete and mypy will verify your implementation at the class definition site rather than only at call sites.
 
 ______________________________________________________________________
 
-## Flow vs. MetricGenerator
+## What is a MetricGenerator?
 
-| Concern                              | Use `Flow`             | Use `MetricGenerator`    |
-| ------------------------------------ | ---------------------- | ------------------------ |
-| Emitting transactions (Income, etc.) | Yes                    | No                       |
-| Updating person labels               | Yes                    | No                       |
-| Computing a derived quantity         | No                     | Yes                      |
-| Halting the simulation on error      | Yes (via logger.error) | No                       |
-| Evaluated every turn automatically   | Yes                    | Lazily (on `get_metric`) |
+A `MetricGenerator` is a **read-only** computational component that derives a value from the current simulation state.
+It does not emit transactions, mutate balances, or update person labels — those are the exclusive domain of `Flow`.
 
-**Rule of thumb:** if a computation only _reads_ state and produces a number or category (e.g. net worth, debt-to-income
-ratio), implement a `MetricGenerator`. If it needs to _change_ state (balances, labels), implement a `Flow`.
+```python
+class MetricGenerator(Protocol):
+    def evaluate(self, view: SimulationStateView, logger: SimulationLogger) -> Any: ...
+```
+
+**Evaluation semantics:** MetricGenerators are not evaluated once per turn in the way Flows are. Instead:
+
+- Any Flow can call `view.get_metric("name")` to trigger evaluation at that exact intra-turn point (lazy evaluation).
+- All registered MetricGenerators are also evaluated at the **end of each turn** to populate `Turn.metrics` in the
+  snapshot.
+
+This means a MetricGenerator may be evaluated multiple times within a single turn if several Flows call `get_metric`.
+
+**Logger access:** `evaluate(view, logger)` receives the same per-turn `SimulationLogger` instance as Flows. Use
+`logger.warning()` to report anomalies (unrecognised account types, missing data) without resorting to Python's
+`logging` module directly.
+
+**Registration and access:** register in `EngineConfiguration.metrics`; call via `view.get_metric("name")` from any
+Flow.
 
 ```python
 class NetWorthGenerator(MetricGenerator):
-    def evaluate(self, view: SimulationStateView) -> float:
+    def evaluate(self, view: SimulationStateView, logger: SimulationLogger) -> float:
         assets = sum(
             a.balance for a in view.get_accounts() if a.get_label("Type") == "ASSET"
         )
@@ -79,12 +92,12 @@ Read-only access to the current and past simulation state.
 | `view.get_metric(name)`                | `Any`                | Lazily evaluates the named `MetricGenerator`; returns `None` if not registered |
 | `view.get_start_date()`                | `Date`               | The `Date` the simulation began                                                |
 | `view.get_current_date()`              | `Date`               | The `Date` of the turn being executed right now                                |
-| `view.get_elapsed_duration()`          | `ElapsedDuration`    | Months elapsed since start; `.years` and `.years_frac` are derived             |
+| `view.get_elapsed_duration()`          | `TurnDuration`       | Months elapsed since start; `.years` and `.years_frac` are derived             |
 | `view.get_current_turn_transactions()` | `List[Transaction]`  | Transactions emitted so far within the current turn                            |
 
-**Intra-turn visibility (ADR-0005):** transactions emitted earlier in the pipeline are immediately visible to later
-flows in the same turn. `view.get_accounts()` always reflects the current, live balance — not the snapshot from the
-previous turn.
+**Intra-turn visibility ([ADR-0005](adrs/0005-intra-turn-causality-and-execution-order.md)):** transactions emitted
+earlier in the pipeline are immediately visible to later flows in the same turn. `view.get_accounts()` always reflects
+the current, live balance — not the snapshot from the previous turn.
 
 ### `updater` — `SimulationStateUpdater`
 
@@ -97,15 +110,30 @@ Controlled write access for the current turn only.
 
 ### `logger` — `SimulationLogger`
 
-| Method                | Effect                                                                                                                                                |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `logger.debug(msg)`   | Low-level trace message (visible at DEBUG log level)                                                                                                  |
-| `logger.info(msg)`    | Informational message (e.g. flow skipped)                                                                                                             |
-| `logger.warning(msg)` | Non-fatal anomaly                                                                                                                                     |
-| `logger.error(msg)`   | **Halts the simulation immediately.** The current turn is NOT snapshotted. `SimulationResult.success` is `False` and `error_message` is set to `msg`. |
+| Method                | Effect                                                                                                                                                                                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `logger.debug(msg)`   | Low-level trace message (visible at DEBUG log level)                                                                                                                                                                                                                                                   |
+| `logger.info(msg)`    | Informational message (e.g. flow skipped)                                                                                                                                                                                                                                                              |
+| `logger.warning(msg)` | Non-fatal anomaly                                                                                                                                                                                                                                                                                      |
+| `logger.error(msg)`   | **Halts after the current flow completes; subsequent flows in the same turn are not executed.** The current turn is NOT snapshotted. All log messages from this turn are still captured in `SimulationResult.log_messages`. `SimulationResult.success` is `False` and `error_message` is set to `msg`. |
 
 Use `logger.error` only for genuine unrecoverable conditions (e.g. negative balance on a liquid asset, missing required
 person). Use `logger.warning` for expected edge cases that should be visible but are not fatal.
+
+### `SimulationResult.log_messages`
+
+After the simulation completes, `result.log_messages` contains all messages emitted during the run as a `List[str]`,
+each prefixed with its level:
+
+```
+[DEBUG] ...
+[INFO] ...
+[WARNING] ...
+[ERROR] ...
+```
+
+Messages are accumulated in chronological turn order. When the simulation halts early due to an error, messages from the
+failing turn are still included. This allows post-run inspection without configuring Python's `logging` module.
 
 ______________________________________________________________________
 
