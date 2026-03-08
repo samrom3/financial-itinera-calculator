@@ -103,7 +103,7 @@ scenario = SimulationScenario(
 
 # 2. Define Metric Generators (Observers)
 class NetWorthGenerator(MetricGenerator):
-    def evaluate(self, view):
+    def evaluate(self, view, logger):
         assets = sum(
             a.balance for a in view.get_accounts() if a.get_label("Type") == "ASSET"
         )
@@ -138,7 +138,7 @@ class JobIncomeFlow(Flow):
 # Note: Simulation ends when all people pass their expectancy or max_turns is reached, whichever is first.
 pipeline = EngineConfiguration(
     start_date=Date(year=2026, month=2),  # Engine tracks calendar date across turns
-    max_turns=TurnDuration(years=60, months=8),
+    max_turns=TurnDuration.of(years=60, months=8),
     metrics={"Net_Worth": NetWorthGenerator()},
     flows=[
         JobIncomeFlow(),
@@ -224,3 +224,47 @@ The architecture is strictly divided into two halves: the **Data Model** (the st
 ## License
 
 All code contained in this repositoriy is licensed under GPL-v3.
+
+### Conditions
+
+Conditions are predicates evaluated against a `SimulationStateView`. They decouple triggering logic from flow bodies,
+making both independently testable.
+
+| Condition                                        | Description                                                        |
+| ------------------------------------------------ | ------------------------------------------------------------------ |
+| `AccountBalanceIs(account_id, operator, target)` | True when the named account's balance satisfies the comparison     |
+| `PersonAgeIs(person_id, operator, target_age)`   | True when the named person's age satisfies the comparison          |
+| `PersonLabelIs(person_id, facet, value)`         | True when the named person carries the specified label value       |
+| `MetricCondition(metric_name, operator, target)` | True when the named metric satisfies the comparison                |
+| `ConditionAnd(cond1, cond2)`                     | True when both conditions are true (short-circuits on first false) |
+| `ConditionOr(cond1, cond2)`                      | True when either condition is true (short-circuits on first true)  |
+
+Available `ComparisonOperator` values: `EQ`, `LT`, `LE`, `GT`, `GE`, `NE`.
+
+All built-in conditions return `False` (never raise) when the referenced entity is not found.
+
+**Usage example** — retire when net worth exceeds $1 M and person reaches age 65:
+
+```python
+from fitinera import (
+    ComparisonOperator,
+    PersonAgeIs,
+    MetricCondition,
+    ConditionAnd,
+    Age,
+    PersonRetirementLabelFlow,
+)
+
+GE = ComparisonOperator.GE
+
+flows = [
+    # ...income and expense flows...
+    PersonRetirementLabelFlow(
+        person_ids=["Sam"],
+        condition=ConditionAnd(
+            left=PersonAgeIs("Sam", GE, Age(years=65)),
+            right=MetricCondition("Net_Worth", GE, 1_000_000.0),
+        ),
+    ),
+]
+```

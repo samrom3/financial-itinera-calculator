@@ -57,7 +57,7 @@ def test_e2e_scaffolding_runs_without_import_or_type_errors():
 
     pipeline = EngineConfiguration(
         start_date=Date(year=2026, month=2),
-        max_turns=TurnDuration(years=60, months=8),
+        max_turns=TurnDuration.of(years=60, months=8),
         metrics={"Net_Worth": NetWorthGenerator()},
         flows=[
             JobIncomeFlow(person_id="Sam", amount=3000, to_account="Joint Checking"),

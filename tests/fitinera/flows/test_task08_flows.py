@@ -27,7 +27,7 @@ from fitinera.flows.investments import (
 )
 from fitinera.flows.spending import LivingExpenseFlow
 from fitinera.flows.debt import MortgagePaymentFlow
-from fitinera.models import AccountState, Expense, Transfer, Income, ElapsedDuration
+from fitinera.models import AccountState, Expense, Transfer, Income, TurnDuration
 
 
 # ---------------------------------------------------------------------------
@@ -729,7 +729,7 @@ class TestLivingExpenseFlowWithInflation:
             from_account="checking", amount=1000.0, annual_inflation_rate=0.12
         )
         view = MagicMock()
-        view.get_elapsed_duration.return_value = ElapsedDuration(months=1)
+        view.get_elapsed_duration.return_value = TurnDuration(months=1)
         updater = MagicMock()
         logger = MagicMock()
 
@@ -751,7 +751,7 @@ class TestLivingExpenseFlowWithInflation:
             from_account="checking", amount=2000.0, annual_inflation_rate=0.06
         )
         view = MagicMock()
-        view.get_elapsed_duration.return_value = ElapsedDuration(months=12)
+        view.get_elapsed_duration.return_value = TurnDuration(months=12)
         updater = MagicMock()
         logger = MagicMock()
 
@@ -770,7 +770,7 @@ class TestLivingExpenseFlowWithInflation:
             from_account="checking", amount=1500.0, annual_inflation_rate=0.03
         )
         view = MagicMock()
-        view.get_elapsed_duration.return_value = ElapsedDuration(months=0)
+        view.get_elapsed_duration.return_value = TurnDuration(months=0)
         updater = MagicMock()
         logger = MagicMock()
 

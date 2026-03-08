@@ -475,7 +475,7 @@ from fitinera import EngineConfiguration, Date, TurnDuration
 
 config = EngineConfiguration(
     start_date=Date(year=2026, month=1),
-    max_turns=TurnDuration(years=40),
+    max_turns=TurnDuration.of(years=40),
     metrics={},
     flows=[
         JobIncomeFlow(person_id="Sam", amount=8333, to_account="Checking"),

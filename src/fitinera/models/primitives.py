@@ -19,10 +19,34 @@ class Date:
 
 @dataclass(frozen=True)
 class TurnDuration:
-    """Represents a duration in years and months."""
+    """Duration stored as total months. Use .of() or .from_dates() to construct."""
 
-    years: int
-    months: int = 0
+    months: int
+
+    @classmethod
+    def of(cls, *, years: int = 0, months: int = 0) -> "TurnDuration":
+        """Construct from years and/or months components."""
+        return cls(months=years * 12 + months)
+
+    @classmethod
+    def from_dates(cls, *, start: "Date", end: "Date") -> "TurnDuration":
+        """Construct from the month difference between two dates."""
+        return cls(months=(end.year - start.year) * 12 + (end.month - start.month))
+
+    @property
+    def years(self) -> int:
+        """Whole years (floor division of months by 12)."""
+        return self.months // 12
+
+    @property
+    def years_frac(self) -> float:
+        """Fractional years (months / 12.0)."""
+        return self.months / 12.0
+
+    @property
+    def years_months(self) -> "tuple[int, int]":
+        """Tuple of (whole_years, remaining_months)."""
+        return (self.months // 12, self.months % 12)
 
 
 @dataclass(frozen=True)
@@ -42,20 +66,3 @@ class Metric:
 
     name: str
     value: float | str
-
-
-@dataclass(frozen=True)
-class ElapsedDuration:
-    """Elapsed time since simulation start, expressed in months."""
-
-    months: int
-
-    @property
-    def years(self) -> int:
-        """Whole years elapsed (floor division of months by 12)."""
-        return self.months // 12
-
-    @property
-    def years_frac(self) -> float:
-        """Fractional years elapsed (months / 12)."""
-        return self.months / 12

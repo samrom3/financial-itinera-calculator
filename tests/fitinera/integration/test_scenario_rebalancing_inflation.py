@@ -9,7 +9,7 @@ The simulation runs for 39 years (the full working period). Assertions cover:
   - checking account is never negative across all turns
   - brokerage balance grows monotonically during working years (age 22 to 61)
 
-Note: The simulation is bounded to the working period (max_turns = TurnDuration(39))
+Note: The simulation is bounded to the working period (max_turns = TurnDuration.of(years=39))
 because no income flows are active after retirement, and the pipeline has no drawdown
 flow from brokerage to checking. Running through retirement would cause checking to
 go negative on the first post-retirement turn (expenses continue while income stops).
@@ -56,7 +56,7 @@ _LIFE_EXPECTANCY = Age(100)
 
 # 39 working years = 468 monthly turns
 _WORKING_YEARS = _RETIRE_AGE.years - _START_AGE.years
-_MAX_TURNS = TurnDuration(_WORKING_YEARS)
+_MAX_TURNS = TurnDuration.of(years=_WORKING_YEARS)
 
 
 def _build_scenario() -> SimulationScenario:
@@ -166,7 +166,7 @@ class TestScenario3RebalancingInflation:
         """Engine runs for exactly 468 turns (39 years * 12 months).
 
         The working period spans from age 22 to 61, generating one turn per
-        calendar month. max_turns=TurnDuration(39) = 468 monthly turns.
+        calendar month. max_turns=TurnDuration.of(years=39) = 468 monthly turns.
         """
         config = _build_config()
         scenario = _build_scenario()

@@ -32,7 +32,7 @@ from fitinera.models import (
 def _make_config(
     *,
     start_date: Date = Date(2026, 1),
-    max_turns: TurnDuration = TurnDuration(1),
+    max_turns: TurnDuration = TurnDuration.of(years=1),
     flows=None,
     metrics=None,
 ) -> EngineConfiguration:
@@ -79,7 +79,7 @@ class TestEngineRunBasic:
 
     def test_run_returns_simulation_result_with_success_true(self):
         """A single-turn scenario with one person returns success=True."""
-        config = _make_config(max_turns=TurnDuration(1))
+        config = _make_config(max_turns=TurnDuration.of(years=1))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
             initial_persons=[_make_person()],
@@ -92,8 +92,8 @@ class TestEngineRunBasic:
         assert result.error_message is None
 
     def test_run_produces_at_least_one_turn(self):
-        """Engine returns at least one turn for max_turns=TurnDuration(1)."""
-        config = _make_config(max_turns=TurnDuration(1))
+        """Engine returns at least one turn for max_turns=TurnDuration.of(years=1)."""
+        config = _make_config(max_turns=TurnDuration.of(years=1))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
             initial_persons=[_make_person()],
@@ -106,7 +106,7 @@ class TestEngineRunBasic:
 
     def test_run_with_empty_scenario_returns_success(self):
         """An empty scenario (no persons, no accounts) runs without error."""
-        config = _make_config(max_turns=TurnDuration(1))
+        config = _make_config(max_turns=TurnDuration.of(years=1))
         engine = SimulationEngine(config)
         scenario = SimulationScenario()
 
@@ -115,8 +115,8 @@ class TestEngineRunBasic:
         assert result.success is True
 
     def test_run_produces_exactly_max_turns_turns_by_month_count(self):
-        """Engine produces a turn per month for TurnDuration(0, months=3)."""
-        config = _make_config(max_turns=TurnDuration(0, months=3))
+        """Engine produces a turn per month for TurnDuration.of(months=3)."""
+        config = _make_config(max_turns=TurnDuration.of(months=3))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_persons=[_make_person()])
 
@@ -126,8 +126,8 @@ class TestEngineRunBasic:
         assert len(result.turns) == 3
 
     def test_run_produces_correct_turn_count_for_years(self):
-        """Engine produces one turn per calendar month for TurnDuration(1) = 12 turns."""
-        config = _make_config(max_turns=TurnDuration(1))
+        """Engine produces one turn per calendar month for TurnDuration.of(years=1) = 12 turns."""
+        config = _make_config(max_turns=TurnDuration.of(years=1))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_persons=[_make_person()])
 
@@ -150,7 +150,7 @@ class TestEngineRunTurnSnapshot:
 
     def test_turn_snapshot_contains_accounts(self):
         """Each Turn snapshot includes frozen Account objects."""
-        config = _make_config(max_turns=TurnDuration(0, months=1))
+        config = _make_config(max_turns=TurnDuration.of(months=1))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_accounts=[_make_account()])
 
@@ -163,7 +163,7 @@ class TestEngineRunTurnSnapshot:
 
     def test_turn_snapshot_contains_persons(self):
         """Each Turn snapshot includes frozen Person objects."""
-        config = _make_config(max_turns=TurnDuration(0, months=1))
+        config = _make_config(max_turns=TurnDuration.of(months=1))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_persons=[_make_person("p1")])
 
@@ -176,7 +176,7 @@ class TestEngineRunTurnSnapshot:
 
     def test_turn_snapshot_account_balance_reflects_construction_balance(self):
         """Turn snapshot account balance matches the construction balance when no flows run."""
-        config = _make_config(max_turns=TurnDuration(0, months=1))
+        config = _make_config(max_turns=TurnDuration.of(months=1))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_accounts=[_make_account(balance=5000.0)])
 
@@ -188,7 +188,7 @@ class TestEngineRunTurnSnapshot:
     def test_turn_date_advances_by_one_month_per_turn(self):
         """Each Turn.date is one calendar month ahead of the previous."""
         config = _make_config(
-            start_date=Date(2026, 1), max_turns=TurnDuration(0, months=3)
+            start_date=Date(2026, 1), max_turns=TurnDuration.of(months=3)
         )
         engine = SimulationEngine(config)
         scenario = SimulationScenario()
@@ -202,7 +202,7 @@ class TestEngineRunTurnSnapshot:
     def test_turn_date_rolls_year_on_december_to_january(self):
         """Date increments from December to January of the next year correctly."""
         config = _make_config(
-            start_date=Date(2026, 12), max_turns=TurnDuration(0, months=2)
+            start_date=Date(2026, 12), max_turns=TurnDuration.of(months=2)
         )
         engine = SimulationEngine(config)
         scenario = SimulationScenario()
@@ -214,7 +214,7 @@ class TestEngineRunTurnSnapshot:
 
     def test_person_age_increments_by_one_month_per_turn(self):
         """Person.age advances by one month each turn in the snapshot."""
-        config = _make_config(max_turns=TurnDuration(0, months=3))
+        config = _make_config(max_turns=TurnDuration.of(months=3))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
             initial_persons=[_make_person(age_years=30)]  # Age(30) = years=30, months=0
@@ -229,7 +229,7 @@ class TestEngineRunTurnSnapshot:
     def test_person_age_rolls_months_to_years(self):
         """Person age rolls months=12 → next year, months=0."""
         # Create a person starting at age(30, months=11) so next month → age(31, 0)
-        config = _make_config(max_turns=TurnDuration(0, months=1))
+        config = _make_config(max_turns=TurnDuration.of(months=1))
         engine = SimulationEngine(config)
         person = Person(id="p1", age=Age(30, 11), expectancy=Age(90))
         scenario = SimulationScenario(initial_persons=[person])
@@ -260,7 +260,7 @@ class TestEngineRunTransactions:
                 updater.emit_transaction(Income(amount=500.0, to_account="checking"))
 
         config = _make_config(
-            max_turns=TurnDuration(0, months=1), flows=[_IncomeFlow()]
+            max_turns=TurnDuration.of(months=1), flows=[_IncomeFlow()]
         )
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_accounts=[_make_account(balance=1000.0)])
@@ -277,7 +277,7 @@ class TestEngineRunTransactions:
                 updater.emit_transaction(Expense(amount=200.0, from_account="checking"))
 
         config = _make_config(
-            max_turns=TurnDuration(0, months=1), flows=[_ExpenseFlow()]
+            max_turns=TurnDuration.of(months=1), flows=[_ExpenseFlow()]
         )
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_accounts=[_make_account(balance=1000.0)])
@@ -298,7 +298,7 @@ class TestEngineRunTransactions:
                 )
 
         config = _make_config(
-            max_turns=TurnDuration(0, months=1), flows=[_TransferFlow()]
+            max_turns=TurnDuration.of(months=1), flows=[_TransferFlow()]
         )
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
@@ -323,7 +323,7 @@ class TestEngineRunTransactions:
                 updater.emit_transaction(Income(amount=100.0, to_account="checking"))
 
         config = _make_config(
-            max_turns=TurnDuration(0, months=2), flows=[_IncomeFlow()]
+            max_turns=TurnDuration.of(months=2), flows=[_IncomeFlow()]
         )
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_accounts=[_make_account(balance=0.0)])
@@ -352,7 +352,7 @@ class TestEngineRunTransactions:
                         seen_balances.append(a.balance)
 
         config = _make_config(
-            max_turns=TurnDuration(0, months=1),
+            max_turns=TurnDuration.of(months=1),
             flows=[_IncomeFlow(), _ObserverFlow()],
         )
         engine = SimulationEngine(config)
@@ -381,7 +381,7 @@ class TestEngineRunHaltConditions:
             def executeFlow(self, view, updater, logger):
                 logger.error("Insolvency detected")
 
-        config = _make_config(max_turns=TurnDuration(1), flows=[_ErrorFlow()])
+        config = _make_config(max_turns=TurnDuration.of(years=1), flows=[_ErrorFlow()])
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_persons=[_make_person()])
 
@@ -400,7 +400,7 @@ class TestEngineRunHaltConditions:
 
         config = _make_config(
             start_date=Date(2026, 1),
-            max_turns=TurnDuration(1),
+            max_turns=TurnDuration.of(years=1),
             flows=[_ErrorFlow()],
         )
         engine = SimulationEngine(config)
@@ -415,7 +415,7 @@ class TestEngineRunHaltConditions:
         """Engine halts with success=True when all persons are no longer living."""
         # Person at age=89yr 11mo, expectancy=90yr: after 1 turn age=90yr 0mo → not living
         person = Person(id="p1", age=Age(89, 11), expectancy=Age(90, 0))
-        config = _make_config(max_turns=TurnDuration(years=5))
+        config = _make_config(max_turns=TurnDuration.of(years=5))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_persons=[person])
 
@@ -428,7 +428,7 @@ class TestEngineRunHaltConditions:
     def test_max_turns_reached_halts_with_success_true(self):
         """Engine halts with success=True when max_turns is exhausted."""
         # Person with long life expectancy — should not halt early
-        config = _make_config(max_turns=TurnDuration(0, months=5))
+        config = _make_config(max_turns=TurnDuration.of(months=5))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
             initial_persons=[_make_person(expectancy_years=200)]
@@ -442,7 +442,7 @@ class TestEngineRunHaltConditions:
     def test_solvency_guard_triggers_failure_on_negative_balance(self):
         """AccountSolvencyGuardFlow causes result.success=False for negative-balance account."""
         config = _make_config(
-            max_turns=TurnDuration(1),
+            max_turns=TurnDuration.of(years=1),
             flows=[AccountSolvencyGuardFlow()],
         )
         engine = SimulationEngine(config)
@@ -471,7 +471,7 @@ class TestEngineRunViewImpl:
             def executeFlow(self, view, updater, logger):
                 seen.extend(view.get_accounts())
 
-        config = _make_config(max_turns=TurnDuration(0, months=1), flows=[_ProbeFlow()])
+        config = _make_config(max_turns=TurnDuration.of(months=1), flows=[_ProbeFlow()])
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
             initial_accounts=[_make_account("checking"), _make_account("savings")]
@@ -495,7 +495,7 @@ class TestEngineRunViewImpl:
                 if p is not None:
                     seen.append(p)
 
-        config = _make_config(max_turns=TurnDuration(0, months=1), flows=[_ProbeFlow()])
+        config = _make_config(max_turns=TurnDuration.of(months=1), flows=[_ProbeFlow()])
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_persons=[_make_person("p1")])
 
@@ -512,7 +512,7 @@ class TestEngineRunViewImpl:
             def executeFlow(self, view, updater, logger):
                 seen.append(view.get_person("unknown"))
 
-        config = _make_config(max_turns=TurnDuration(0, months=1), flows=[_ProbeFlow()])
+        config = _make_config(max_turns=TurnDuration.of(months=1), flows=[_ProbeFlow()])
         engine = SimulationEngine(config)
         scenario = SimulationScenario()
 
@@ -530,7 +530,7 @@ class TestEngineRunViewImpl:
 
         config = _make_config(
             start_date=Date(2030, 6),
-            max_turns=TurnDuration(0, months=1),
+            max_turns=TurnDuration.of(months=1),
             flows=[_ProbeFlow()],
         )
         engine = SimulationEngine(config)
@@ -550,7 +550,7 @@ class TestEngineRunViewImpl:
 
         config = _make_config(
             start_date=Date(2026, 1),
-            max_turns=TurnDuration(0, months=2),
+            max_turns=TurnDuration.of(months=2),
             flows=[_ProbeFlow()],
         )
         engine = SimulationEngine(config)
@@ -569,7 +569,7 @@ class TestEngineRunViewImpl:
             def executeFlow(self, view, updater, logger):
                 seen.append(view.get_elapsed_duration().months)
 
-        config = _make_config(max_turns=TurnDuration(0, months=3), flows=[_ProbeFlow()])
+        config = _make_config(max_turns=TurnDuration.of(months=3), flows=[_ProbeFlow()])
         engine = SimulationEngine(config)
         scenario = SimulationScenario()
 
@@ -590,7 +590,7 @@ class TestEngineRunViewImpl:
                 seen.append(list(view.get_current_turn_transactions()))
 
         config = _make_config(
-            max_turns=TurnDuration(0, months=1),
+            max_turns=TurnDuration.of(months=1),
             flows=[_EmitFlow(), _ProbeFlow()],
         )
         engine = SimulationEngine(config)
@@ -614,7 +614,7 @@ class TestEngineRunViewImpl:
                 seen.append(view.get_metric("total"))
 
         config = _make_config(
-            max_turns=TurnDuration(0, months=1),
+            max_turns=TurnDuration.of(months=1),
             flows=[_ProbeFlow()],
             metrics={"total": _TotalBalanceMetric()},
         )
@@ -652,7 +652,7 @@ class TestEngineRunUpdaterImpl:
 
         probe = _ProbeFlow()
         config = _make_config(
-            max_turns=TurnDuration(0, months=1),
+            max_turns=TurnDuration.of(months=1),
             flows=[_LabelFlow(), probe],
         )
         engine = SimulationEngine(config)
@@ -683,7 +683,7 @@ class TestEngineRunUpdaterImpl:
 
         setter = _SetLabelTurn1()
         config = _make_config(
-            max_turns=TurnDuration(0, months=2),
+            max_turns=TurnDuration.of(months=2),
             flows=[setter, _ProbeFlow()],
         )
         engine = SimulationEngine(config)
@@ -712,7 +712,7 @@ class TestEngineRunLoggerImpl:
             def executeFlow(self, view, updater, logger):
                 logger.debug("debug message")
 
-        config = _make_config(max_turns=TurnDuration(0, months=1), flows=[_DebugFlow()])
+        config = _make_config(max_turns=TurnDuration.of(months=1), flows=[_DebugFlow()])
         engine = SimulationEngine(config)
         scenario = SimulationScenario()
 
@@ -727,7 +727,7 @@ class TestEngineRunLoggerImpl:
             def executeFlow(self, view, updater, logger):
                 logger.info("info message")
 
-        config = _make_config(max_turns=TurnDuration(0, months=1), flows=[_InfoFlow()])
+        config = _make_config(max_turns=TurnDuration.of(months=1), flows=[_InfoFlow()])
         engine = SimulationEngine(config)
         scenario = SimulationScenario()
 
@@ -742,7 +742,7 @@ class TestEngineRunLoggerImpl:
             def executeFlow(self, view, updater, logger):
                 logger.warning("warning message")
 
-        config = _make_config(max_turns=TurnDuration(0, months=1), flows=[_WarnFlow()])
+        config = _make_config(max_turns=TurnDuration.of(months=1), flows=[_WarnFlow()])
         engine = SimulationEngine(config)
         scenario = SimulationScenario()
 
@@ -757,7 +757,7 @@ class TestEngineRunLoggerImpl:
             def executeFlow(self, view, updater, logger):
                 logger.error("critical failure")
 
-        config = _make_config(max_turns=TurnDuration(0, months=1), flows=[_ErrorFlow()])
+        config = _make_config(max_turns=TurnDuration.of(months=1), flows=[_ErrorFlow()])
         engine = SimulationEngine(config)
         scenario = SimulationScenario()
 
@@ -772,7 +772,7 @@ class TestEngineRunLoggerImpl:
             def executeFlow(self, view, updater, logger):
                 logger.error("account insolvent at turn 1")
 
-        config = _make_config(max_turns=TurnDuration(0, months=1), flows=[_ErrorFlow()])
+        config = _make_config(max_turns=TurnDuration.of(months=1), flows=[_ErrorFlow()])
         engine = SimulationEngine(config)
         scenario = SimulationScenario()
 
@@ -790,7 +790,7 @@ class TestEngineRunLoggerImpl:
                 logger.warning("wrn")
 
         config = _make_config(
-            max_turns=TurnDuration(0, months=1), flows=[_LogAllLevels()]
+            max_turns=TurnDuration.of(months=1), flows=[_LogAllLevels()]
         )
         engine = SimulationEngine(config)
         scenario = SimulationScenario()
