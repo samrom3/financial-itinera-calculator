@@ -722,7 +722,7 @@ class TestLivingExpenseFlowWithInflation:
     def test_emits_inflated_expense_on_first_turn(self):
         """LivingExpenseFlow emits inflated Expense using turn_index from elapsed_duration.
 
-        inflated_amount = amount * (1 + annual_inflation_rate / 12) ** turn_index
+        inflated_amount = amount * (1 + annual_inflation_rate) ** (turn_index / 12.0)
         where turn_index = view.get_elapsed_duration().months
         """
         flow = LivingExpenseFlow(
@@ -735,7 +735,7 @@ class TestLivingExpenseFlowWithInflation:
 
         flow.executeFlow(view, updater, logger)
 
-        expected_amount = 1000.0 * (1 + 0.12 / 12) ** 1
+        expected_amount = 1000.0 * (1 + 0.12) ** (1 / 12.0)
         updater.emit_transaction.assert_called_once()
         emitted = updater.emit_transaction.call_args[0][0]
         assert isinstance(emitted, Expense)
@@ -745,7 +745,7 @@ class TestLivingExpenseFlowWithInflation:
     def test_emits_inflated_expense_at_turn_12(self):
         """LivingExpenseFlow correctly inflates over 12 months.
 
-        At turn_index=12, the monthly compound formula applies 12 periods of inflation.
+        At turn_index=12, one full year of effective annual inflation is applied.
         """
         flow = LivingExpenseFlow(
             from_account="checking", amount=2000.0, annual_inflation_rate=0.06
@@ -757,7 +757,7 @@ class TestLivingExpenseFlowWithInflation:
 
         flow.executeFlow(view, updater, logger)
 
-        expected_amount = 2000.0 * (1 + 0.06 / 12) ** 12
+        expected_amount = 2000.0 * (1 + 0.06) ** (12 / 12.0)
         emitted = updater.emit_transaction.call_args[0][0]
         assert abs(emitted.amount - expected_amount) < 1e-9
 

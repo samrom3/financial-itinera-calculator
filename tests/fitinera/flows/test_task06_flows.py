@@ -22,7 +22,6 @@ from fitinera.flows.investments import (
     AccountInterestFlow,
     RebalanceExtraSavingsFlow,
 )
-from fitinera.flows.spending import LivingExpenseFlow
 from fitinera.flows.conditions import MetricCondition, ComparisonOperator
 
 
@@ -462,33 +461,6 @@ class TestMinSavingsStrategyProtocol:
 # ---------------------------------------------------------------------------
 # LivingExpenseFlow — annual_inflation_rate parameter
 # ---------------------------------------------------------------------------
-
-
-class TestLivingExpenseFlowInflation:
-    """Tests for LivingExpenseFlow with annual_inflation_rate parameter."""
-
-    def test_constructor_default_annual_inflation_rate(self):
-        """LivingExpenseFlow defaults annual_inflation_rate to 0.0.
-
-        When constructed with only from_account and amount, the inflation rate
-        must default to 0.0.
-        """
-        flow = LivingExpenseFlow("checking", 2000.0)
-        assert flow.annual_inflation_rate == 0.0
-
-    def test_constructor_custom_annual_inflation_rate(self):
-        """LivingExpenseFlow accepts a custom annual_inflation_rate.
-
-        Providing a custom rate must be reflected on the instance.
-        """
-        flow = LivingExpenseFlow("checking", 2000.0, annual_inflation_rate=0.03)
-        assert flow.annual_inflation_rate == 0.03
-
-    def test_existing_fields_still_present(self):
-        """LivingExpenseFlow still stores from_account and amount.
-
-        Adding annual_inflation_rate must not break existing fields.
-        """
-        flow = LivingExpenseFlow("checking", 2000.0)
-        assert flow.from_account == "checking"
-        assert flow.amount == 2000.0
+# Constructor-inspection tests removed after fields were made private.
+# Behaviour is covered by TestLivingExpenseFlowZeroInflation and
+# TestLivingExpenseFlowWithInflation in test_task08_flows.py.

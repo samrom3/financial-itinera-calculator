@@ -19,11 +19,6 @@ def test_mortgage_payment_flow_initialization_stores_accounts():
     assert flow.from_account == "Checking"
 
 
-def test_living_expense_flow_initialization_stores_amount():
-    flow = LivingExpenseFlow("Checking", 1000)
-    assert flow.amount == 1000
-
-
 def test_retirement_check_flow_execute_raises_not_implemented():
     pass
 
@@ -253,15 +248,16 @@ class TestNetWorthGenerator:
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 1_500.0
 
-    def test_evaluate_subtracts_liability_balances(self):
-        """NetWorthGenerator.evaluate subtracts LIABILITY-typed account balances.
+    def test_evaluate_sums_liability_balances(self):
+        """NetWorthGenerator.evaluate sums LIABILITY-typed account balances directly.
 
-        A single LIABILITY account with balance 200_000.0 → net worth -200_000.0.
+        LIABILITY accounts carry negative balances by convention (e.g. a $200k mortgage
+        is stored as -200_000.0). Summing directly gives the correct net worth of -200_000.0.
         """
         generator = NetWorthGenerator()
         accounts = [
             AccountState(
-                id="mortgage", balance=200_000.0, labels={"Type": "LIABILITY"}
+                id="mortgage", balance=-200_000.0, labels={"Type": "LIABILITY"}
             ),
         ]
         view = _make_view(accounts)
@@ -270,23 +266,22 @@ class TestNetWorthGenerator:
     def test_evaluate_combines_assets_and_liabilities(self):
         """NetWorthGenerator.evaluate correctly combines ASSET and LIABILITY balances.
 
-        Assets 500_000.0, liabilities 200_000.0 → net worth 300_000.0.
+        House ASSET 500_000.0 plus mortgage LIABILITY -200_000.0 → net worth 300_000.0.
         """
         generator = NetWorthGenerator()
         accounts = [
             AccountState(id="house", balance=500_000.0, labels={"Type": "ASSET"}),
             AccountState(
-                id="mortgage", balance=200_000.0, labels={"Type": "LIABILITY"}
+                id="mortgage", balance=-200_000.0, labels={"Type": "LIABILITY"}
             ),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 300_000.0
 
-    def test_evaluate_ignores_accounts_without_type_label(self):
-        """NetWorthGenerator.evaluate ignores accounts with no Type label.
+    def test_evaluate_includes_accounts_without_type_label(self):
+        """NetWorthGenerator.evaluate includes accounts with no Type label.
 
-        An account with no 'Type' label is neither ASSET nor LIABILITY and
-        must not affect the result.
+        All account balances are summed unconditionally regardless of labels.
         """
         generator = NetWorthGenerator()
         accounts = [
@@ -294,12 +289,12 @@ class TestNetWorthGenerator:
             AccountState(id="escrow", balance=50.0, labels={}),
         ]
         view = _make_view(accounts)
-        assert generator.evaluate(view, MagicMock()) == 1_000.0
+        assert generator.evaluate(view, MagicMock()) == 1_050.0
 
-    def test_evaluate_ignores_accounts_with_unknown_type_label(self):
-        """NetWorthGenerator.evaluate ignores accounts with unrecognised Type values.
+    def test_evaluate_includes_accounts_with_unknown_type_label(self):
+        """NetWorthGenerator.evaluate includes accounts with unrecognised Type values.
 
-        Only 'ASSET' and 'LIABILITY' are summed; other Type values are skipped.
+        All account balances are summed unconditionally regardless of Type value.
         """
         generator = NetWorthGenerator()
         accounts = [
@@ -307,4 +302,4 @@ class TestNetWorthGenerator:
             AccountState(id="pension", balance=5_000.0, labels={"Type": "PENSION"}),
         ]
         view = _make_view(accounts)
-        assert generator.evaluate(view, MagicMock()) == 1_000.0
+        assert generator.evaluate(view, MagicMock()) == 6_000.0
