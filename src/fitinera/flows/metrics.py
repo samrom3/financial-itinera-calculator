@@ -25,4 +25,9 @@ class NetWorthGenerator(MetricGenerator):
                 net_worth += account.balance
             elif account_type == "LIABILITY":
                 net_worth -= account.balance
+            elif account_type is not None:
+                logger.warning(
+                    f"NetWorthGenerator: account '{account.id}' has unrecognised "
+                    f"Type label '{account_type}'; excluded from net worth calculation."
+                )
         return net_worth
