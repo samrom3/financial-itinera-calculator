@@ -90,7 +90,7 @@ class TestScenarioSimpleSaving:
         """
         return EngineConfiguration(
             start_date=Date(year=2024, month=1),
-            max_turns=TurnDuration(years=78),
+            max_turns=TurnDuration.of(years=78),
             flows=[
                 AccountSolvencyGuardFlow(),
                 JobIncomeFlow(

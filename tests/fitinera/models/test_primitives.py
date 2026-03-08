@@ -1,7 +1,7 @@
-"""Tests for primitive value types: Age, Date, Label, Metric, TurnDuration, ElapsedDuration."""
+"""Tests for primitive value types: Age, Date, Label, Metric, TurnDuration."""
 
 import pytest
-from fitinera.models import Age, Label, Metric, TurnDuration, ElapsedDuration
+from fitinera.models import Age, Label, Metric, TurnDuration
 
 
 class TestAge:
@@ -36,39 +36,45 @@ class TestMetric:
 class TestTurnDuration:
     """Tests for TurnDuration dataclass."""
 
-    def test_turn_duration_holds_years_and_months(self):
-        """TurnDuration stores years and optional months fields."""
-        td = TurnDuration(years=2, months=6)
-        assert td.years == 2
-        assert td.months == 6
-
-
-class TestElapsedDuration:
-    """Tests for ElapsedDuration dataclass."""
-
-    def test_elapsed_duration_months_stored_correctly(self):
-        """ElapsedDuration stores the given months value."""
-        ed = ElapsedDuration(months=15)
-        assert ed.months == 15
+    def test_of_yields_correct_total_months(self):
+        """TurnDuration.of(years=2, months=6) stores 30 total months."""
+        td = TurnDuration.of(years=2, months=6)
+        assert td.months == 30
 
     def test_years_property_returns_floor_division_by_12(self):
-        """ElapsedDuration.years is floor(months / 12)."""
-        assert ElapsedDuration(months=0).years == 0
-        assert ElapsedDuration(months=11).years == 0
-        assert ElapsedDuration(months=12).years == 1
-        assert ElapsedDuration(months=13).years == 1
-        assert ElapsedDuration(months=24).years == 2
-        assert ElapsedDuration(months=25).years == 2
+        """TurnDuration.years is floor(months / 12)."""
+        assert TurnDuration(months=0).years == 0
+        assert TurnDuration(months=11).years == 0
+        assert TurnDuration(months=12).years == 1
+        assert TurnDuration(months=13).years == 1
+        assert TurnDuration(months=24).years == 2
+        assert TurnDuration(months=25).years == 2
 
     def test_years_frac_property_returns_months_divided_by_12(self):
-        """ElapsedDuration.years_frac is months / 12 as a float."""
-        assert ElapsedDuration(months=0).years_frac == 0.0
-        assert ElapsedDuration(months=6).years_frac == pytest.approx(0.5)
-        assert ElapsedDuration(months=12).years_frac == pytest.approx(1.0)
-        assert ElapsedDuration(months=18).years_frac == pytest.approx(1.5)
+        """TurnDuration.years_frac is months / 12 as a float."""
+        assert TurnDuration(months=0).years_frac == 0.0
+        assert TurnDuration(months=6).years_frac == pytest.approx(0.5)
+        assert TurnDuration(months=12).years_frac == pytest.approx(1.0)
+        assert TurnDuration(months=18).years_frac == pytest.approx(1.5)
 
-    def test_elapsed_duration_is_frozen(self):
-        """ElapsedDuration is a frozen dataclass."""
-        ed = ElapsedDuration(months=5)
+    def test_years_months_property_returns_tuple(self):
+        """TurnDuration.years_months returns (whole_years, remaining_months)."""
+        assert TurnDuration(months=30).years_months == (2, 6)
+        assert TurnDuration(months=12).years_months == (1, 0)
+        assert TurnDuration(months=0).years_months == (0, 0)
+
+    def test_turn_duration_is_frozen(self):
+        """TurnDuration is a frozen dataclass."""
+        td = TurnDuration(months=5)
         with pytest.raises(Exception):
-            ed.months = 10  # type: ignore[misc]
+            td.months = 10  # type: ignore[misc]
+
+    def test_of_years_only(self):
+        """TurnDuration.of(years=3) stores 36 total months."""
+        td = TurnDuration.of(years=3)
+        assert td.months == 36
+
+    def test_of_months_only(self):
+        """TurnDuration.of(months=7) stores 7 total months."""
+        td = TurnDuration.of(months=7)
+        assert td.months == 7

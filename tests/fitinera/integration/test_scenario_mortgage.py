@@ -54,7 +54,7 @@ _CHECKING_INITIAL = 10_000.0
 # explicitly demonstrating that a negative LIABILITY balance does not trigger
 # AccountSolvencyGuardFlow (FR-014).
 _SIMULATION_TURNS = 187
-_MAX_TURNS = TurnDuration(0, months=_SIMULATION_TURNS)
+_MAX_TURNS = TurnDuration.of(months=_SIMULATION_TURNS)
 
 _PERSON_START_AGE = Age(30)
 _PERSON_LIFE_EXPECTANCY = Age(85)

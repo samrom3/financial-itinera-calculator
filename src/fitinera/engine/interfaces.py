@@ -1,6 +1,6 @@
 from typing import Any, List, Optional, Protocol
 
-from ..models import AccountState, Date, ElapsedDuration, Person, Transaction
+from ..models import AccountState, Date, Person, Transaction, TurnDuration
 
 
 class SimulationStateView(Protocol):
@@ -21,7 +21,7 @@ class SimulationStateView(Protocol):
     def get_current_date(self) -> Date:
         raise NotImplementedError("Pending implementation")
 
-    def get_elapsed_duration(self) -> ElapsedDuration:
+    def get_elapsed_duration(self) -> TurnDuration:
         raise NotImplementedError("Pending implementation")
 
     def get_current_turn_transactions(self) -> List[Transaction]:

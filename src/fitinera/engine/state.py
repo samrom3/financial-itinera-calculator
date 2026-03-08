@@ -9,7 +9,7 @@ import dataclasses
 import logging
 from typing import Any, Dict, List, Optional
 
-from ..models import AccountState, Date, ElapsedDuration, Person, Transaction
+from ..models import AccountState, Date, Person, Transaction, TurnDuration
 from ..models.transaction import Expense, Income, Transfer
 from .interfaces import SimulationLogger, SimulationStateUpdater, SimulationStateView
 
@@ -71,9 +71,9 @@ class _SimulationStateViewImpl(SimulationStateView):
         """Return the current (post-increment) date for this turn."""
         return self._current_date_ref[0]
 
-    def get_elapsed_duration(self) -> ElapsedDuration:
+    def get_elapsed_duration(self) -> TurnDuration:
         """Return elapsed months since simulation start (turns completed so far)."""
-        return ElapsedDuration(months=self._turns_completed_ref[0])
+        return TurnDuration(months=self._turns_completed_ref[0])
 
     def get_current_turn_transactions(self) -> List[Transaction]:
         """Return transactions emitted during the current turn."""

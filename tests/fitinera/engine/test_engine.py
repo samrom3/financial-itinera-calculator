@@ -6,7 +6,7 @@ from fitinera import SimulationResult
 
 
 def test_simulation_engine_initialization_takes_configuration():
-    config = EngineConfiguration(Date(2026, 1), TurnDuration(10, 0))
+    config = EngineConfiguration(Date(2026, 1), TurnDuration.of(years=10))
     engine = SimulationEngine(config)
     assert engine.configuration is config
 
@@ -58,7 +58,7 @@ def test_engine_halts_on_logger_error():
 
     config = EngineConfiguration(
         start_date=Date(2026, 1),
-        max_turns=TurnDuration(1, 0),
+        max_turns=TurnDuration.of(years=1),
         flows=[_ErrorFlow()],
     )
     engine = SimulationEngine(config)
@@ -88,7 +88,7 @@ class TestEngineIntegration:
         from fitinera.models import Age, Person
 
         config = EngineConfiguration(
-            start_date=Date(2026, 1), max_turns=TurnDuration(1, 0)
+            start_date=Date(2026, 1), max_turns=TurnDuration.of(years=1)
         )
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
@@ -110,7 +110,7 @@ class TestEngineIntegration:
         """
         config = EngineConfiguration(
             start_date=Date(2026, 1),
-            max_turns=TurnDuration(1, 0),
+            max_turns=TurnDuration.of(years=1),
             flows=[AccountSolvencyGuardFlow()],
         )
         engine = SimulationEngine(config)
@@ -129,7 +129,7 @@ def test_engine_halts_when_living_expense_drains_account_negative():
     """Engine halts with success=False when LivingExpenseFlow drains account below zero."""
     config = EngineConfiguration(
         start_date=Date(2026, 1),
-        max_turns=TurnDuration(1, 0),
+        max_turns=TurnDuration.of(years=1),
         flows=[
             LivingExpenseFlow(from_account="checking", amount=200.0),
             AccountSolvencyGuardFlow(),
@@ -151,7 +151,7 @@ def test_engine_halts_with_solvency_error_message_containing_account_id():
     """Solvency failure error message identifies the insolvent account by id."""
     config = EngineConfiguration(
         start_date=Date(2026, 1),
-        max_turns=TurnDuration(1, 0),
+        max_turns=TurnDuration.of(years=1),
         flows=[
             LivingExpenseFlow(from_account="checking", amount=200.0),
             AccountSolvencyGuardFlow(),
@@ -179,7 +179,7 @@ def test_simulation_result_log_messages_contains_turn_messages():
 
     config = EngineConfiguration(
         start_date=Date(2026, 1),
-        max_turns=TurnDuration(0, 1),
+        max_turns=TurnDuration.of(months=1),
         flows=[_InfoFlow()],
     )
     engine = SimulationEngine(config)
@@ -200,7 +200,7 @@ def test_simulation_result_log_messages_includes_error_turn_messages():
 
     config = EngineConfiguration(
         start_date=Date(2026, 1),
-        max_turns=TurnDuration(1, 0),
+        max_turns=TurnDuration.of(years=1),
         flows=[_ErrorFlow()],
     )
     engine = SimulationEngine(config)

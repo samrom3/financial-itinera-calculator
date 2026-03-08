@@ -93,7 +93,7 @@ class SimulationEngine:
             tx_buffer=tx_buffer,
         )
 
-        max_months = cfg.max_turns.years * 12 + cfg.max_turns.months
+        max_months = cfg.max_turns.months
         history: List[Turn] = []
         all_log_messages: List[str] = []
 
