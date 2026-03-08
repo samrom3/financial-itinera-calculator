@@ -93,7 +93,7 @@ class TestEngineIntegration:
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
             initial_persons=[Person(id="p1", age=Age(30), expectancy=Age(90))],
-            initial_accounts=[Account(id="checking", initial_balance=1000.0)],
+            initial_accounts=[Account(id="checking", balance=1000.0)],
         )
 
         result = engine.run(scenario)
@@ -116,7 +116,7 @@ class TestEngineIntegration:
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
             initial_accounts=[
-                Account(id="checking", initial_balance=-500.0, labels={"Type": "ASSET"})
+                Account(id="checking", balance=-500.0, labels={"Type": "ASSET"})
             ],
         )
 
@@ -138,7 +138,7 @@ def test_engine_halts_when_living_expense_drains_account_negative():
     engine = SimulationEngine(config)
     scenario = SimulationScenario(
         initial_accounts=[
-            Account(id="checking", initial_balance=100.0, labels={"Type": "ASSET"})
+            Account(id="checking", balance=100.0, labels={"Type": "ASSET"})
         ],
     )
 
@@ -160,7 +160,7 @@ def test_engine_halts_with_solvency_error_message_containing_account_id():
     engine = SimulationEngine(config)
     scenario = SimulationScenario(
         initial_accounts=[
-            Account(id="checking", initial_balance=100.0, labels={"Type": "ASSET"})
+            Account(id="checking", balance=100.0, labels={"Type": "ASSET"})
         ],
     )
 

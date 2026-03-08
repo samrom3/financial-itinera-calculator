@@ -59,9 +59,7 @@ class SimulationEngine:
 
         # --- Initialise live account state ---
         account_states: List[AccountState] = [
-            AccountState(
-                id=acct.id, balance=acct.initial_balance, labels=dict(acct.labels)
-            )
+            AccountState(id=acct.id, balance=acct.balance, labels=dict(acct.labels))
             for acct in scenario.initial_accounts
         ]
 
@@ -130,7 +128,7 @@ class SimulationEngine:
 
             # Step 6: Snapshot the turn — accounts and persons reflect post-flow state.
             snapshot_accounts = [
-                Account(id=s.id, initial_balance=s.balance, labels=dict(s.labels))
+                Account(id=s.id, balance=s.balance, labels=dict(s.labels))
                 for s in account_states
             ]
             snapshot_persons = [

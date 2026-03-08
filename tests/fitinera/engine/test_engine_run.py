@@ -62,7 +62,7 @@ def _make_person(
 def _make_account(
     aid: str = "checking", balance: float = 1000.0, labels=None
 ) -> Account:
-    return Account(id=aid, initial_balance=balance, labels=labels or {})
+    return Account(id=aid, balance=balance, labels=labels or {})
 
 
 # ---------------------------------------------------------------------------
@@ -174,8 +174,8 @@ class TestEngineRunTurnSnapshot:
         assert len(turn.persons) == 1
         assert turn.persons[0].id == "p1"
 
-    def test_turn_snapshot_account_balance_reflects_initial_balance(self):
-        """Turn snapshot account balance matches the initial balance when no flows run."""
+    def test_turn_snapshot_account_balance_reflects_construction_balance(self):
+        """Turn snapshot account balance matches the construction balance when no flows run."""
         config = _make_config(max_turns=TurnDuration(0, months=1))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_accounts=[_make_account(balance=5000.0)])

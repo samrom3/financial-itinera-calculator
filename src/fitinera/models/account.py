@@ -12,13 +12,8 @@ class Account:
     """
 
     id: str
-    initial_balance: float
+    balance: float
     labels: Dict[str, str] = field(default_factory=dict)
-
-    @property
-    def balance(self) -> float:
-        """Returns the account's balance (equals initial_balance for snapshot types)."""
-        return self.initial_balance
 
     def get_label(self, facet: str) -> Optional[str]:
         """Returns the label value for the given facet, or None if absent."""

@@ -129,7 +129,7 @@ class TestScenarioSavingWithInterest:
             initial_accounts=[
                 Account(
                     id="checking",
-                    initial_balance=0.0,
+                    balance=0.0,
                     labels={"Type": "ASSET"},
                 )
             ],
@@ -208,7 +208,7 @@ class TestScenarioSavingWithInterest:
         final_turn = result.turns[-1]
         checking = next(a for a in final_turn.accounts if a.id == "checking")
 
-        assert checking.initial_balance > 0.0
+        assert checking.balance > 0.0
 
     def test_scenario_2_final_balance_within_5_percent_of_analytical(self):
         """Final balance is within 5% of the analytically expected value.
@@ -233,7 +233,7 @@ class TestScenarioSavingWithInterest:
 
         final_turn = result.turns[-1]
         checking = next(a for a in final_turn.accounts if a.id == "checking")
-        actual = checking.initial_balance
+        actual = checking.balance
 
         expected = _expected_final_balance()
         tolerance = abs(expected) * 0.05
