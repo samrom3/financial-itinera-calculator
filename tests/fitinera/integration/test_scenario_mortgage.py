@@ -77,12 +77,12 @@ def _build_scenario() -> SimulationScenario:
         initial_accounts=[
             Account(
                 id="checking",
-                initial_balance=_CHECKING_INITIAL,
+                balance=_CHECKING_INITIAL,
                 labels={"Type": "ASSET"},
             ),
             Account(
                 id="mortgage",
-                initial_balance=_MORTGAGE_INITIAL,
+                balance=_MORTGAGE_INITIAL,
                 labels={"Type": "LIABILITY"},
             ),
         ],

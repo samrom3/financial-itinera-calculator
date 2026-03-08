@@ -28,8 +28,8 @@ and is used exclusively for `SimulationScenario` configuration and `Turn` snapsh
 `SimulationStateView.get_accounts()` return type is changed from `List[Account]` to `List[AccountState]` — flows always
 see the live state, never a stale snapshot.
 
-At turn-end, the engine produces a fresh frozen `Account(id=state.id, initial_balance=state.balance)` for the `Turn`
-snapshot, keeping the historical record immutable.
+At turn-end, the engine produces a fresh frozen `Account(id=state.id, balance=state.balance)` for the `Turn` snapshot,
+keeping the historical record immutable.
 
 `SimulationStateView` is extended with four new methods: `get_start_date() -> Date`, `get_current_date() -> Date`,
 `get_elapsed_duration() -> ElapsedDuration`, and `get_current_turn_transactions() -> List[Transaction]`. These allow

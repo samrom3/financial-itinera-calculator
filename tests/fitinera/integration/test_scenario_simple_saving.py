@@ -73,7 +73,7 @@ class TestScenarioSimpleSaving:
             initial_accounts=[
                 Account(
                     id="checking",
-                    initial_balance=0.0,
+                    balance=0.0,
                     labels={"Type": "ASSET"},
                 )
             ],
@@ -148,7 +148,7 @@ class TestScenarioSimpleSaving:
         final_turn = result.turns[-1]
         checking = next(a for a in final_turn.accounts if a.id == "checking")
 
-        assert abs(checking.initial_balance - 0.0) < 0.01
+        assert abs(checking.balance - 0.0) < 0.01
 
     def test_scenario_1_person_status_is_retired_after_age_61(self):
         """Person label Status transitions to 'Retired' once age 61 is reached.

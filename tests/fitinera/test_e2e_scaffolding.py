@@ -48,12 +48,10 @@ def test_e2e_scaffolding_runs_without_import_or_type_errors():
         initial_accounts=[
             Account(
                 id="Joint Checking",
-                initial_balance=10000,
+                balance=10000,
                 labels={"Type": "ASSET", "Liquidity": "LIQUID"},
             ),
-            Account(
-                id="Mortgage", initial_balance=300000, labels={"Type": "LIABILITY"}
-            ),
+            Account(id="Mortgage", balance=300000, labels={"Type": "LIABILITY"}),
         ],
     )
 

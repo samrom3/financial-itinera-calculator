@@ -76,12 +76,12 @@ def _build_scenario() -> SimulationScenario:
         initial_accounts=[
             Account(
                 id="checking",
-                initial_balance=0.0,
+                balance=0.0,
                 labels={"Type": "ASSET"},
             ),
             Account(
                 id="brokerage",
-                initial_balance=0.0,
+                balance=0.0,
                 labels={"Type": "ASSET"},
             ),
         ],

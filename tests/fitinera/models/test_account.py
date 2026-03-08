@@ -6,22 +6,22 @@ from fitinera.models import Account, AccountState
 class TestAccountBalance:
     """Tests for Account.balance property."""
 
-    def test_balance_returns_initial_balance(self):
-        """Account.balance returns initial_balance when no mutations occur.
+    def test_balance_returns_value_at_construction(self):
+        """Account.balance returns the value passed at construction.
 
-        Account is a frozen snapshot type; its balance is always its initial value.
+        Account is a frozen snapshot type; its balance is always its construction value.
         """
-        acc = Account(id="checking", initial_balance=500.0)
+        acc = Account(id="checking", balance=500.0)
         assert acc.balance == 500.0
 
-    def test_balance_returns_zero_when_initial_balance_is_zero(self):
+    def test_balance_returns_zero_when_balance_is_zero(self):
         """Account.balance returns 0.0 for a zero-balance account."""
-        acc = Account(id="savings", initial_balance=0.0)
+        acc = Account(id="savings", balance=0.0)
         assert acc.balance == 0.0
 
-    def test_balance_returns_negative_when_initial_balance_is_negative(self):
+    def test_balance_returns_negative_when_balance_is_negative(self):
         """Account.balance correctly represents a liability (negative balance)."""
-        acc = Account(id="mortgage", initial_balance=-300_000.0)
+        acc = Account(id="mortgage", balance=-300_000.0)
         assert acc.balance == -300_000.0
 
 
@@ -30,17 +30,17 @@ class TestAccountGetLabel:
 
     def test_get_label_returns_value_for_existing_facet(self):
         """Account.get_label returns the label value for a known facet."""
-        acc = Account(id="checking", initial_balance=0.0, labels={"Type": "ASSET"})
+        acc = Account(id="checking", balance=0.0, labels={"Type": "ASSET"})
         assert acc.get_label("Type") == "ASSET"
 
     def test_get_label_returns_none_for_missing_facet(self):
         """Account.get_label returns None when the facet is not present."""
-        acc = Account(id="checking", initial_balance=0.0, labels={"Type": "ASSET"})
+        acc = Account(id="checking", balance=0.0, labels={"Type": "ASSET"})
         assert acc.get_label("Category") is None
 
     def test_get_label_returns_none_when_labels_empty(self):
         """Account.get_label returns None when the labels dict is empty."""
-        acc = Account(id="checking", initial_balance=100.0)
+        acc = Account(id="checking", balance=100.0)
         assert acc.get_label("Type") is None
 
 
