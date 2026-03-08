@@ -447,10 +447,11 @@ class AnnualBonusFlow(Flow):
             return
 
         # Gate 4: person must still be working
-        if person.get_label("Status") != "Working":
+        status = person.get_label("Status")
+        if status != "Working":
             logger.info(
                 f"AnnualBonusFlow: person '{self.person_id}' is not working "
-                f"(Status={person.get_label('Status')}); skipping bonus."
+                f"(Status={status}); skipping bonus."
             )
             return
 

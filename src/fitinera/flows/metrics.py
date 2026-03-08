@@ -3,31 +3,21 @@ from ..engine.interfaces import SimulationLogger, SimulationStateView
 
 
 class NetWorthGenerator(MetricGenerator):
-    """Calculates global net worth as total ASSET balances minus total LIABILITY balances."""
+    """Calculates net worth by summing the balances of all accounts unconditionally.
 
-    def evaluate(self, view: SimulationStateView, logger: SimulationLogger) -> float:
-        """Sums ASSET balances and subtracts LIABILITY balances across all accounts.
+    Convention: ASSET accounts carry positive balances; LIABILITY accounts carry negative
+    balances (e.g. a $300,000 mortgage is stored as -300,000.0). Net worth is the sum of
+    every account balance regardless of labels.
+    """
 
-        Accounts without a 'Type' label, or with an unrecognised Type value,
-        are ignored and do not affect the result.
+    def evaluate(self, view: SimulationStateView, _logger: SimulationLogger) -> float:
+        """Return the sum of all account balances in the current state.
 
         Args:
             view: Read-only interface to the current simulation state.
-            logger: Logger for reporting anomalies (e.g. unrecognised account types).
+            logger: Logger (unused by this generator; retained for interface compliance).
 
         Returns:
-            Net worth as a float (assets minus liabilities).
+            Net worth as a float — the sum of every account's balance.
         """
-        net_worth = 0.0
-        for account in view.get_accounts():
-            account_type = account.get_label("Type")
-            if account_type == "ASSET":
-                net_worth += account.balance
-            elif account_type == "LIABILITY":
-                net_worth -= account.balance
-            elif account_type is not None:
-                logger.warning(
-                    f"NetWorthGenerator: account '{account.id}' has unrecognised "
-                    f"Type label '{account_type}'; excluded from net worth calculation."
-                )
-        return net_worth
+        return sum(account.balance for account in view.get_accounts())
