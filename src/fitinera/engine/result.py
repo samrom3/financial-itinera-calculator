@@ -16,8 +16,12 @@ class SimulationResult:
             a fatal error (e.g. insolvency) caused an early halt.
         error_message: Human-readable description of the failure when
             ``success`` is False; None otherwise.
+        log_messages: All log messages emitted during the run, prefixed with
+            their level (e.g. ``[INFO] ...``, ``[ERROR] ...``). Useful for
+            post-run inspection without configuring Python logging.
     """
 
     turns: List[Turn] = field(default_factory=list)
     success: bool = True
     error_message: Optional[str] = None
+    log_messages: List[str] = field(default_factory=list)

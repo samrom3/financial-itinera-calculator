@@ -606,7 +606,7 @@ class TestEngineRunViewImpl:
         seen = []
 
         class _TotalBalanceMetric:
-            def evaluate(self, view):
+            def evaluate(self, view, logger):
                 return sum(a.balance for a in view.get_accounts())
 
         class _ProbeFlow:

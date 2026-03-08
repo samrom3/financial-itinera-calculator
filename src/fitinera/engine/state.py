@@ -32,6 +32,7 @@ class _SimulationStateViewImpl(SimulationStateView):
         current_date_ref: "list[Date]",
         turns_completed_ref: "list[int]",
         tx_buffer: "list[Transaction]",
+        logger_ref: "list[SimulationLogger]",
     ) -> None:
         self._accounts = account_states
         self._persons = person_states
@@ -40,6 +41,7 @@ class _SimulationStateViewImpl(SimulationStateView):
         self._current_date_ref = current_date_ref
         self._turns_completed_ref = turns_completed_ref
         self._tx_buffer = tx_buffer
+        self._logger_ref = logger_ref
 
     def get_accounts(self) -> List[AccountState]:
         """Return live AccountState objects for all accounts."""
@@ -59,7 +61,7 @@ class _SimulationStateViewImpl(SimulationStateView):
         generator = self._metrics.get(name)
         if generator is None:
             return None
-        return generator.evaluate(self)
+        return generator.evaluate(self, self._logger_ref[0])
 
     def get_start_date(self) -> Date:
         """Return the simulation start date from EngineConfiguration."""
@@ -152,39 +154,52 @@ class _SimulationStateUpdaterImpl(SimulationStateUpdater):
 class _SimulationLoggerImpl(SimulationLogger):
     """Internal implementation of SimulationLogger.
 
-    Delegates to the 'fitinera.engine' Python logger. An error() call sets
-    an internal flag so the engine can detect halt conditions.
+    Accumulates all messages in a list for post-run inspection via
+    SimulationResult.log_messages. Also delegates to the 'fitinera.engine'
+    Python logger for operator visibility. An error() call sets an internal
+    flag so the engine can detect halt conditions.
     """
 
     def __init__(self) -> None:
-        self._error_flag: bool = False
-        self._error_message: Optional[str] = None
+        self._messages: List[str] = []
+        self._has_error: bool = False
 
     @property
     def has_error(self) -> bool:
         """True if error() has been called at least once."""
-        return self._error_flag
+        return self._has_error
 
     @property
     def error_message(self) -> Optional[str]:
         """The message from the first error() call, or None."""
-        return self._error_message
+        for m in self._messages:
+            if m.startswith("[ERROR] "):
+                return m[len("[ERROR] ") :]
+        return None
+
+    @property
+    def messages(self) -> List[str]:
+        """All accumulated log messages from this logger instance."""
+        return list(self._messages)
 
     def debug(self, msg: str) -> None:
         """Log a debug-level message to fitinera.engine."""
+        self._messages.append(f"[DEBUG] {msg}")
         _logger.debug(msg)
 
     def info(self, msg: str) -> None:
         """Log an info-level message to fitinera.engine."""
+        self._messages.append(f"[INFO] {msg}")
         _logger.info(msg)
 
     def warning(self, msg: str) -> None:
         """Log a warning-level message to fitinera.engine."""
+        self._messages.append(f"[WARNING] {msg}")
         _logger.warning(msg)
 
     def error(self, msg: str) -> None:
         """Log an error-level message and set the internal error flag."""
+        self._messages.append(f"[ERROR] {msg}")
         _logger.error(msg)
-        if not self._error_flag:
-            self._error_flag = True
-            self._error_message = msg
+        if not self._has_error:
+            self._has_error = True

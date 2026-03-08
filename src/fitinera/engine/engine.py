@@ -30,11 +30,6 @@ def _increment_date(date: Date) -> Date:
     return Date(year=date.year, month=date.month + 1)
 
 
-def _max_turns_in_months(max_turns) -> int:
-    """Convert a TurnDuration to total number of monthly turns."""
-    return max_turns.years * 12 + max_turns.months
-
-
 class SimulationEngine:
     """The main controller for running a financial simulation pipeline."""
 
@@ -80,6 +75,9 @@ class SimulationEngine:
         turns_completed_ref: List[int] = [0]
         tx_buffer: List[Transaction] = []
 
+        # --- Logger ref: placeholder replaced at start of each turn ---
+        logger_ref: List[_SimulationLoggerImpl] = [_SimulationLoggerImpl()]
+
         # --- Build the view/updater; logger is recreated per turn ---
         view = _SimulationStateViewImpl(
             account_states=account_states,
@@ -89,6 +87,7 @@ class SimulationEngine:
             current_date_ref=current_date_ref,
             turns_completed_ref=turns_completed_ref,
             tx_buffer=tx_buffer,
+            logger_ref=logger_ref,
         )
         updater = _SimulationStateUpdaterImpl(
             account_states=account_states,
@@ -96,11 +95,13 @@ class SimulationEngine:
             tx_buffer=tx_buffer,
         )
 
-        max_months = _max_turns_in_months(cfg.max_turns)
+        max_months = cfg.max_turns.years * 12 + cfg.max_turns.months
         history: List[Turn] = []
+        all_log_messages: List[str] = []
 
         while turns_completed_ref[0] < max_months:
             logger = _SimulationLoggerImpl()
+            logger_ref[0] = logger
 
             # Step 1: Increment date by one calendar month.
             current_date_ref[0] = _increment_date(current_date_ref[0])
@@ -109,21 +110,21 @@ class SimulationEngine:
             for state in person_states.values():
                 state.increment_age()
 
-            # Step 3: Run all flows.
+            # Steps 3+4: Run flows; halt immediately after the offending flow if an error is logged.
             for flow in cfg.flows:
                 flow.executeFlow(view, updater, logger)
-
-            # Step 4: Check for logger error — halt without snapshot.
-            if logger.has_error:
-                return SimulationResult(
-                    turns=history,
-                    success=False,
-                    error_message=logger.error_message,
-                )
+                if logger.has_error:
+                    all_log_messages.extend(logger.messages)
+                    return SimulationResult(
+                        turns=history,
+                        success=False,
+                        error_message=logger.error_message,
+                        log_messages=all_log_messages,
+                    )
 
             # Step 5: Evaluate all MetricGenerators.
             metrics: List[Metric] = [
-                Metric(name=name, value=gen.evaluate(view))
+                Metric(name=name, value=gen.evaluate(view, logger))
                 for name, gen in cfg.metrics.items()
             ]
 
@@ -151,6 +152,9 @@ class SimulationEngine:
             )
             history.append(turn)
 
+            # Accumulate log messages from this turn.
+            all_log_messages.extend(logger.messages)
+
             # Step 7: Clear transaction buffer.
             tx_buffer.clear()
 
@@ -159,7 +163,11 @@ class SimulationEngine:
 
             # Step 8a: Check all-persons-deceased halt condition.
             if person_states and all(not s.is_living() for s in person_states.values()):
-                return SimulationResult(turns=history, success=True)
+                return SimulationResult(
+                    turns=history, success=True, log_messages=all_log_messages
+                )
 
         # Step 8b: max_turns exhausted.
-        return SimulationResult(turns=history, success=True)
+        return SimulationResult(
+            turns=history, success=True, log_messages=all_log_messages
+        )
