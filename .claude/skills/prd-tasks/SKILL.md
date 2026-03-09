@@ -19,30 +19,30 @@ Before doing anything else, run these checks in order. **Stop and surface each i
 
 #### Step 1 — Validate the symlink
 
-1. Read `.claude/settings.json` and extract the value of `env.CLAUDE_CODE_TASK_LIST_ID` → this is `<branch>`.
+1. Read `.claude/settings.local.json` and extract the value of `env.CLAUDE_CODE_TASK_LIST_ID` → this is `<branch>`.
 2. Check that `plans/<branch>` exists **and** is a symlink pointing to `~/.claude/tasks/<branch>`.
 3. Determine the currently checked-out git branch (`git branch --show-current`).
 4. Compare the git branch name to `<branch>`:
    - **If they match** — proceed to Step 2.
-   - **If they do NOT match** — tell the user:
+   - **If they do NOT match** — use `AskUserQuestion` to ask the user:
      > The current git branch (`<actual-git-branch>`) does not match the task list branch (`<branch>`). Would you like
      > to continue anyway, or pause so you can check out a different branch?
    - Wait for their response. If they say pause, **stop here** — do not continue.
 
 #### Step 2 — Validate branch name vs PRD context
 
-1. Confirm that `<branch>` in `.claude/settings.json` matches the branch slug used in the PRD file's story IDs.
-2. **If they do not match**, warn the user:
-   > ⚠️ The `CLAUDE_CODE_TASK_LIST_ID` in `.claude/settings.json` (`<branch>`) does not appear to match the PRD's branch
+1. Confirm that `<branch>` in `.claude/settings.local.json` matches the branch slug used in the PRD file's story IDs.
+2. **If they do not match**, use `AskUserQuestion` to warn the user:
+   > ⚠️ The `CLAUDE_CODE_TASK_LIST_ID` in `.claude/settings.local.json` (`<branch>`) does not appear to match the PRD's branch
    > context. You may need to update settings or re-run the `/prd` skill.
 
 #### Step 3 — Stale session check
 
-1. Check the modification time of `.claude/settings.json` (e.g., via `stat` or `ls -l`).
+1. Check the modification time of `.claude/settings.local.json` (e.g., via `stat` or `ls -l`).
 2. If the file was modified **within the last 10 minutes**, it is likely that the `/prd` skill updated it during this
-   session. Warn the user:
-   > ⚠️ `.claude/settings.json` was recently modified (within the last 10 minutes). If the `/prd` skill was run during
-   > this session, you may need to **restart your Claude Code session** so the tasks agent picks up the new
+   session. Use `AskUserQuestion` to warn the user:
+   > ⚠️ `.claude/settings.local.json` was recently modified (within the last 10 minutes). If the `/prd` skill was run
+   > during this session, you may need to **restart your Claude Code session** so the tasks agent picks up the new
    > `CLAUDE_CODE_TASK_LIST_ID` value.
 3. Wait for the user to confirm whether to continue or restart. If they say restart, **stop here**.
 

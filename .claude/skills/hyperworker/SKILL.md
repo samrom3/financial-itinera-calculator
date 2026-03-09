@@ -12,12 +12,12 @@ ______________________________________________________________________
 
 ## Phase 0
 
-Retrieve the `<branch>` name from `.claude/settings.json` at `env.CLAUDE_CODE_TASK_LIST_ID`.
+Retrieve the `<branch>` name from `.claude/settings.local.json` at `env.CLAUDE_CODE_TASK_LIST_ID`.
 
 Retrieve all Task data using the `TaskList` system tool. Build the dependency DAG from the `blocked_by` fields using a
 level-width heuristic.
 
-Ask the user for approval before proceeding. Present:
+Use `AskUserQuestion` to ask the user for approval before proceeding. Present:
 
 - The basic ASCII DAG tree showing the topology with condensed ASCII and task IDs.
 - The `<branch>` name which will be used as the Agent Team name.
