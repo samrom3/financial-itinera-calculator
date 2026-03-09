@@ -53,14 +53,16 @@ ______________________________________________________________________
 4. Generate `<branch>` as `feat-<slug>` (e.g., `feat-account-rollover`).
 5. **Sync main from origin:**
    1. Run `git fetch origin main` to pull latest remote state.
-   2. Run `git log HEAD..origin/main --oneline` — if any commits are listed, main is behind; use `AskUserQuestion` to
+   2. Run `git log main..origin/main --oneline` — if any commits are listed, main is behind; use `AskUserQuestion` to
       surface this to the user and **stop** until they confirm how to proceed (typically `git merge origin/main` or
       `git rebase origin/main`).
-   3. Only proceed once `HEAD` is up to date with `origin/main`.
+   3. Only proceed once `main` is up to date with `origin/main`.
 6. **Create and checkout branch from main:**
    ```
-   git checkout -b <branch> main 2>/dev/null || git checkout <branch>
+   git checkout -B <branch> main
    ```
+   (If the branch already exists, `-B` resets it to `main` — this is intentional when re-running `/prd` to avoid
+   inheriting stale state.)
    After running, verify with `git branch --show-current` — the output must equal `<branch>`. If it doesn't, use
    `AskUserQuestion` to surface the error and stop.
 7. Update `.claude/settings.local.json`: set `env.CLAUDE_CODE_TASK_LIST_ID` to `<branch>`.
