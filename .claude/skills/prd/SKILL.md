@@ -29,8 +29,9 @@ Before accepting any requirement at face value, actively search for and surface:
 3. **Ambiguities that hide conflicts** — vague requirements that seem compatible but would force contradictory
    implementation choices once an agent tries to write code.
 
-When conflicts are detected, **push back** — clearly state the conflict, why it matters, and propose concrete
-alternatives. **Do not proceed to the next phase until conflicts are resolved.**
+When conflicts are detected, **push back** — use `AskUserQuestion` to clearly state the conflict, why it matters, and
+propose concrete alternatives, blocking until the user resolves it. **Do not proceed to the next phase until conflicts
+are resolved.**
 
 > **Seedling philosophy:** A seedling PRD is the operator's intent distilled into a draft document — it gives the skill
 > a head start and reduces unnecessary round-trips. But a seedling is not sacred: if it contains conflicts, challenge
@@ -42,7 +43,7 @@ ______________________________________________________________________
 
 ### Phase 0: Environment Setup
 
-1. Read `$ARGUMENTS` (the text typed after `/prd`). If empty, ask the user for input.
+1. Read `$ARGUMENTS` (the text typed after `/prd`). If empty, use `AskUserQuestion` to gather input.
 2. **Detect input type:**
    - If `$ARGUMENTS` is a path to an existing `.md` file → **seedling mode** (use the file as a baseline draft).
    - Otherwise → **text description mode** (generate from scratch).
@@ -50,16 +51,31 @@ ______________________________________________________________________
    - Seedling mode: derive from the seedling document's title.
    - Text mode: derive from the feature description (e.g., "Account Rollover" → `account-rollover`).
 4. Generate `<branch>` as `feat-<slug>` (e.g., `feat-account-rollover`).
-5. Update `.claude/settings.json`: set `env.CLAUDE_CODE_TASK_LIST_ID` to `<branch>`.
-6. Create the `plans/` directory if it does not exist:
+5. **Sync main from origin:**
+   1. Run `git fetch origin main` to pull latest remote state.
+   2. Run `git log HEAD..origin/main --oneline` — if any commits are listed, main is behind; use `AskUserQuestion` to
+      surface this to the user and **stop** until they confirm how to proceed (typically `git merge origin/main` or
+      `git rebase origin/main`).
+   3. Only proceed once `HEAD` is up to date with `origin/main`.
+6. **Create and checkout branch from main:**
+   ```
+   git checkout -b <branch> main 2>/dev/null || git checkout <branch>
+   ```
+   After running, verify with `git branch --show-current` — the output must equal `<branch>`. If it doesn't, use
+   `AskUserQuestion` to surface the error and stop.
+7. Update `.claude/settings.local.json`: set `env.CLAUDE_CODE_TASK_LIST_ID` to `<branch>`.
+8. Create the `plans/` directory if it does not exist:
    ```
    mkdir -p plans
    ```
-7. Create a symlink so task files are accessible under `plans/<branch>`:
+9. Create a symlink so task files are accessible under `plans/<branch>`:
    ```
    ln -sf ~/.claude/tasks/<branch> plans/<branch>
    ```
-   (This makes `plans/<branch>` a symlink to `~/.claude/tasks/<branch>`, creating both directories if needed.)
+   After running, verify the symlink:
+   1. Confirm `plans/<branch>` exists and is a symlink: `test -L plans/<branch>`
+   2. Confirm `readlink plans/<branch>` returns a path ending in `.claude/tasks/<branch>`.
+   3. If either check fails, use `AskUserQuestion` to surface the error and stop — do not proceed to Phase 1.
 
 ### Phase 1: Draft PRD (baseline)
 
@@ -75,14 +91,15 @@ ______________________________________________________________________
 
    - Read the seedling file. Preserve the author's structure, intent, and any existing sections.
    - Review the seedling for internal conflicts and conflicts against the existing codebase (from step 2).
-   - Ask 2–3 targeted clarifying questions focused on conflicts, gaps, and ambiguities (not repeating what the seedling
-     already says).
+   - Use `AskUserQuestion` to ask 2–3 targeted clarifying questions focused on conflicts, gaps, and ambiguities (not
+     repeating what the seedling already says).
    - Expand the seedling into a complete PRD, filling in all missing template sections.
 
    **Text description mode:**
 
-   - Ask 3–5 clarifying questions (focus on: problem/goal, core functionality, scope/boundaries, success criteria). At
-     least one question must probe potential conflicts with existing functionality uncovered in step 2.
+   - Use `AskUserQuestion` to ask 3–5 clarifying questions (focus on: problem/goal, core functionality,
+     scope/boundaries, success criteria). At least one question must probe potential conflicts with existing
+     functionality uncovered in step 2.
    - Generate a complete PRD from scratch.
 
 4. The generated PRD must follow the annotated example in `references/example-prd.md` and include **Design
@@ -95,7 +112,7 @@ ______________________________________________________________________
 
 ### Phase 2: Design refinement (questions + expand open questions)
 
-1. Review the PRD's **Design Considerations** and ask a targeted series of design questions.
+1. Review the PRD's **Design Considerations** and use `AskUserQuestion` to ask a targeted series of design questions.
 2. **Explicitly cross-check** each proposed design choice against existing ADRs and `CLAUDE.md` patterns. If a design
    choice contradicts an existing decision, surface this as a conflict requiring resolution (potentially via a new ADR
    that supersedes the old one).
@@ -105,7 +122,7 @@ ______________________________________________________________________
 
 ### Phase 3: Final refinement (answer all open questions + final pass)
 
-1. Ask the user **all remaining Open Questions**.
+1. Use `AskUserQuestion` to ask the user **all remaining Open Questions**.
 2. Refine the PRD one final time based on the answers.
 3. **Final conflict sweep:** Before saving, verify that no requirement in the PRD contradicts another, and that no
    requirement conflicts with the existing codebase as understood from the Phase 1 research. If any conflict is found,
@@ -118,8 +135,9 @@ ______________________________________________________________________
 
 ## Before Saving
 
-- [ ] Phase 0 completed: `<branch>` chosen (`feat-<slug>`), `CLAUDE_CODE_TASK_LIST_ID` updated in
-  `.claude/settings.json`, `plans/` directory exists, symlink `plans/<branch>` → `~/.claude/tasks/<branch>` created
+- [ ] Phase 0 completed: `<branch>` chosen (`feat-<slug>`), main synced from origin, branch checked out and verified,
+  `CLAUDE_CODE_TASK_LIST_ID` updated in `.claude/settings.local.json`, `plans/` directory exists, symlink
+  `plans/<branch>` → `~/.claude/tasks/<branch>` created and validated
 - [ ] Input mode detected: seedling (file path) or text description
 - [ ] `CLAUDE.md`, `docs/adrs/`, and `src/fitinera/` searched for conflicts before generating
 - [ ] Phase 1 PRD includes all 9 sections (see `references/example-prd.md`), including Design Considerations and Open
