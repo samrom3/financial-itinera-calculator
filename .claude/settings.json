@@ -19,7 +19,8 @@
       "Bash(grep*)",
       "Bash(ls*)",
       "Bash(echo*)",
-      "Bash(touch*)"
+      "Bash(touch*)",
+      "Bash(export CLAUDE_CODE_TASK_LIST_ID=*)"
     ],
     "deny": [
       "Bash(cat *.env*)",

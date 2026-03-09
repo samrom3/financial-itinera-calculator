@@ -50,7 +50,10 @@ ______________________________________________________________________
    - Seedling mode: derive from the seedling document's title.
    - Text mode: derive from the feature description (e.g., "Account Rollover" → `account-rollover`).
 4. Generate `<branch>` as `feat-<slug>` (e.g., `feat-account-rollover`).
-5. Update `.claude/settings.json`: set `env.CLAUDE_CODE_TASK_LIST_ID` to `<branch>`.
+5. Set the task list ID for this session by running:
+   ```
+   export CLAUDE_CODE_TASK_LIST_ID=<branch>
+   ```
 6. Create the `plans/` directory if it does not exist:
    ```
    mkdir -p plans
@@ -118,8 +121,7 @@ ______________________________________________________________________
 
 ## Before Saving
 
-- [ ] Phase 0 completed: `<branch>` chosen (`feat-<slug>`), `CLAUDE_CODE_TASK_LIST_ID` updated in
-  `.claude/settings.json`, `plans/` directory exists, symlink `plans/<branch>` → `~/.claude/tasks/<branch>` created
+- [ ] Phase 0 completed: `<branch>` chosen (`feat-<slug>`), `CLAUDE_CODE_TASK_LIST_ID` exported as env var, `plans/` directory exists, symlink `plans/<branch>` → `~/.claude/tasks/<branch>` created
 - [ ] Input mode detected: seedling (file path) or text description
 - [ ] `CLAUDE.md`, `docs/adrs/`, and `src/fitinera/` searched for conflicts before generating
 - [ ] Phase 1 PRD includes all 9 sections (see `references/example-prd.md`), including Design Considerations and Open
