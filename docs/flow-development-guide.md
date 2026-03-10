@@ -78,7 +78,7 @@ def executeFlow(
     view: SimulationStateView,
     updater: SimulationStateUpdater,
     logger: SimulationLogger,
-) -> None:
+) -> None: ...
 ```
 
 ### `view` — `SimulationStateView`
