@@ -13,7 +13,7 @@ The scenario runs for 78 years (936 monthly turns):
   LivingExpenseFlow, PersonRetirementLabelFlow (triggers at age 61).
 
 Expected outcome:
-- result.success is True.
+- Simulation completes without raising an exception.
 - Final checking balance is strictly positive (interest income on accumulated
   savings exceeds the symmetric drawdown).
 - Final balance is within 5% of the analytically expected value.

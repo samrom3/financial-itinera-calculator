@@ -12,7 +12,7 @@ The scenario runs for 78 years (936 monthly turns):
   PersonRetirementLabelFlow (triggers at age 61).
 
 Expected outcome (FR-024):
-- result.success is True.
+- Simulation completes without raising an exception.
 - Final checking account balance is within $0.01 of $0.00.
 
 Math:

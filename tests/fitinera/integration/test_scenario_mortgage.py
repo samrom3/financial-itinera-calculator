@@ -17,7 +17,7 @@ so that result.turns[-1] shows a still-negative mortgage balance (debt not yet
 fully discharged), confirming:
   - AccountSolvencyGuardFlow does not fire on LIABILITY accounts (FR-014)
   - The checking ASSET account remains solvent throughout
-  - result.success is True despite mortgage being negative
+  - Simulation completes without exception despite mortgage being negative
 """
 
 from fitinera import (

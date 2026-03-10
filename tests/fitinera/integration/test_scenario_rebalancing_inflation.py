@@ -5,7 +5,7 @@ from age 22 to 61, accumulating savings in a brokerage via RebalanceExtraSavings
 with CurrentTurnExpenseStrategy. Living expenses inflate at 2% per year.
 
 The simulation runs for 39 years (the full working period). Assertions cover:
-  - result.success is True
+  - Simulation completes without raising an exception.
   - checking account is never negative across all turns
   - brokerage balance grows monotonically during working years (age 22 to 61)
 

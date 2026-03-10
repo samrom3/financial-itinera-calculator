@@ -451,7 +451,7 @@ flows = [
         person_ids=["Sam"],
         condition=PersonAgeIs("Sam", ComparisonOperator.GE, Age(years=65)),
     ),
-    AccountSolvencyGuardFlow(account_id="Checking"),  # always last
+    AccountSolvencyGuardFlow(),  # always last
 ]
 ```
 
