@@ -26,6 +26,7 @@ Before accepting any requirement at face value, actively search for and surface:
 2. **Implicit conflicts against the existing codebase** — requirements that contradict existing ADRs, break established
    patterns in `CLAUDE.md`, conflict with the current domain model in `src/fitinera/`, or violate conventions in
    `CONTRIBUTING.md`. Read `CLAUDE.md`, scan `docs/adrs/`, and search `src/fitinera/` before accepting any requirement.
+   _(Full ADR scan is intentional here: PRD work is design work and warrants full architectural context.)_
 3. **Ambiguities that hide conflicts** — vague requirements that seem compatible but would force contradictory
    implementation choices once an agent tries to write code.
 
@@ -85,7 +86,8 @@ ______________________________________________________________________
 
 2. **Before generating anything:** Read `CLAUDE.md`, scan `docs/adrs/`, and search `src/fitinera/` for existing code
    related to the feature. Identify any conflicts between what is being requested and what already exists. This research
-   is mandatory in both modes.
+   is mandatory in both modes. _(Full ADR scan is intentional: PRD work is design work — the author is actively making
+   architectural decisions and full ADR context is worth the token cost.)_
 
 3. **Branch on input mode:**
 

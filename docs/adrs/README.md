@@ -17,6 +17,26 @@ serve as **"designs in the small"**: focused, numbered records of a single conse
 
 ______________________________________________________________________
 
+## When to Fetch Individual ADR Files (Agent Guidance)
+
+At session start, read **only this README index** — not the individual ADR files. The index gives you enough topic
+awareness to decide when a deeper read is warranted.
+
+Fetch an individual ADR file on-demand when:
+
+- You are about to make a **cross-cutting design choice** (affects multiple modules or layers) and the index suggests an
+  existing ADR may constrain it.
+- The index reveals an ADR whose topic **directly overlaps** the current task — e.g., you are working on the transaction
+  model and ADR-0003 covers the double-entry model.
+- You are in a **design or PRD session** where full architectural context is worth the token cost (the `/prd` skill's
+  full ADR scan is a deliberate exception, not an oversight).
+- You encounter a "why was this done this way?" moment where an ADR title in the index suggests the answer.
+
+Do **not** fetch ADRs speculatively or as a blanket startup step. If no ADR title in the index is relevant to your task,
+no individual ADR file needs to be opened.
+
+______________________________________________________________________
+
 ## When to Write an ADR
 
 Create an ADR when a decision meets one or more of the following criteria:

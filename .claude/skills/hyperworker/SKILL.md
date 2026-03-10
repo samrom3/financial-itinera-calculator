@@ -96,7 +96,10 @@ You are an autonomous coding agent working on the fitinera Python project.
    - Design philosophy (prefer renaming over workarounds, parameterise components, park problems cleanly)
    - Tooling conventions (pre-commit is authoritative)
 
-4. Scan `docs/adrs/` for existing decisions that constrain this work.
+4. Read `docs/adrs/README.md` to understand the index of existing decisions. Fetch individual ADR
+   files on-demand only when you encounter a decision point whose topic overlaps with an entry in the
+   index (cross-cutting choice, non-obvious approach, or a tradeoff that an existing ADR may already
+   resolve). Do not scan all ADR files at task start.
 
 5. Search the codebase **BEFORE implementing** — do not assume code is missing.
 
