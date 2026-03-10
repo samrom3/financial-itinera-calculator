@@ -9,6 +9,11 @@ from typing import List
 
 
 from fitinera.engine import EngineConfiguration, SimulationEngine
+from fitinera.engine.result import (
+    ReachedAllPersonsExpectancy,
+    ReachedMaxTurns,
+    SolvencyViolationError,
+)
 from fitinera.flows import AccountSolvencyGuardFlow
 from fitinera.models import (
     Account,
@@ -73,12 +78,12 @@ def _make_account(
 class TestEngineRunBasic:
     """Basic engine.run() smoke tests.
 
-    Verify the engine produces a valid SimulationResult for the simplest
+    Verify the engine produces a valid SimulationData for the simplest
     possible scenarios.
     """
 
-    def test_run_returns_simulation_result_with_success_true(self):
-        """A single-turn scenario with one person returns success=True."""
+    def test_run_returns_simulation_result_with_turns(self):
+        """A single-turn scenario with one person returns a SimulationData with turns."""
         config = _make_config(max_turns=TurnDuration.of(years=1))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
@@ -88,8 +93,7 @@ class TestEngineRunBasic:
 
         result = engine.run(scenario)
 
-        assert result.success is True
-        assert result.error_message is None
+        assert isinstance(result.turns, list)
 
     def test_run_produces_at_least_one_turn(self):
         """Engine returns at least one turn for max_turns=TurnDuration.of(years=1)."""
@@ -104,7 +108,7 @@ class TestEngineRunBasic:
 
         assert len(result.turns) >= 1
 
-    def test_run_with_empty_scenario_returns_success(self):
+    def test_run_with_empty_scenario_returns_turns(self):
         """An empty scenario (no persons, no accounts) runs without error."""
         config = _make_config(max_turns=TurnDuration.of(years=1))
         engine = SimulationEngine(config)
@@ -112,7 +116,7 @@ class TestEngineRunBasic:
 
         result = engine.run(scenario)
 
-        assert result.success is True
+        assert isinstance(result.turns, list)
 
     def test_run_produces_exactly_max_turns_turns_by_month_count(self):
         """Engine produces a turn per month for TurnDuration.of(months=3)."""
@@ -371,62 +375,76 @@ class TestEngineRunTransactions:
 class TestEngineRunHaltConditions:
     """Tests verifying halt conditions (FR-023).
 
-    Covers logger-error halt, all-persons-deceased halt, and max_turns halt.
+    Covers exception-based halt, all-persons-deceased halt, and max_turns halt.
     """
 
-    def test_logger_error_halts_engine_with_success_false(self):
-        """Engine halts immediately and returns success=False when a flow logs error."""
+    def test_flow_returning_fitinera_error_halts_engine(self):
+        """Engine halts when a flow returns a FitineraError; result is embedded in SimulationData."""
 
         class _ErrorFlow:
             def executeFlow(self, view, updater, logger):
-                logger.error("Insolvency detected")
+                return SolvencyViolationError("Insolvency detected")
 
         config = _make_config(max_turns=TurnDuration.of(years=1), flows=[_ErrorFlow()])
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_persons=[_make_person()])
 
-        result = engine.run(scenario)
+        data = engine.run(scenario)
 
-        assert result.success is False
-        assert result.error_message is not None
-        assert "Insolvency" in result.error_message
+        assert not data.result.ok()
+        assert isinstance(data.result, SolvencyViolationError)
+        assert "Insolvency detected" in data.result.message()
 
-    def test_logger_error_halts_before_snapshot(self):
-        """Engine does not add a turn snapshot for the turn where an error occurred."""
+    def test_flow_returning_none_does_not_halt_engine(self):
+        """Engine continues when flows return None."""
 
-        class _ErrorFlow:
+        class _NoOpFlow:
             def executeFlow(self, view, updater, logger):
-                logger.error("Fatal error")
+                return None
+
+        config = _make_config(max_turns=TurnDuration.of(months=2), flows=[_NoOpFlow()])
+        engine = SimulationEngine(config)
+        scenario = SimulationScenario(initial_persons=[_make_person()])
+
+        data = engine.run(scenario)
+
+        assert len(data.turns) == 2
+
+    def test_logger_error_does_not_halt_engine(self):
+        """Calling logger.error() is now purely observational and does not halt the engine."""
+
+        class _ErrorLogFlow:
+            def executeFlow(self, view, updater, logger):
+                logger.error("non-fatal observation")
 
         config = _make_config(
-            start_date=Date(2026, 1),
-            max_turns=TurnDuration.of(years=1),
-            flows=[_ErrorFlow()],
+            max_turns=TurnDuration.of(months=2), flows=[_ErrorLogFlow()]
         )
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_persons=[_make_person()])
 
         result = engine.run(scenario)
 
-        # No turns should be snapshotted because the error occurred before snapshot step
-        assert len(result.turns) == 0
+        # Engine continues — all 2 turns are produced
+        assert len(result.turns) == 2
 
-    def test_all_persons_deceased_halts_with_success_true(self):
-        """Engine halts with success=True when all persons are no longer living."""
+    def test_all_persons_deceased_halts_engine(self):
+        """Engine halts with ReachedAllPersonsExpectancy when all persons are no longer living."""
         # Person at age=89yr 11mo, expectancy=90yr: after 1 turn age=90yr 0mo → not living
         person = Person(id="p1", age=Age(89, 11), expectancy=Age(90, 0))
         config = _make_config(max_turns=TurnDuration.of(years=5))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_persons=[person])
 
-        result = engine.run(scenario)
+        data = engine.run(scenario)
 
-        assert result.success is True
         # Should halt before max_turns (5 years = 60 turns) after 1 turn
-        assert len(result.turns) < 60
+        assert len(data.turns) < 60
+        assert data.result.ok()
+        assert isinstance(data.result, ReachedAllPersonsExpectancy)
 
-    def test_max_turns_reached_halts_with_success_true(self):
-        """Engine halts with success=True when max_turns is exhausted."""
+    def test_max_turns_reached_produces_correct_count(self):
+        """Engine halts after max_turns with ReachedMaxTurns and produces the correct number of turns."""
         # Person with long life expectancy — should not halt early
         config = _make_config(max_turns=TurnDuration.of(months=5))
         engine = SimulationEngine(config)
@@ -434,13 +452,14 @@ class TestEngineRunHaltConditions:
             initial_persons=[_make_person(expectancy_years=200)]
         )
 
-        result = engine.run(scenario)
+        data = engine.run(scenario)
 
-        assert result.success is True
-        assert len(result.turns) == 5
+        assert len(data.turns) == 5
+        assert data.result.ok()
+        assert isinstance(data.result, ReachedMaxTurns)
 
-    def test_solvency_guard_triggers_failure_on_negative_balance(self):
-        """AccountSolvencyGuardFlow causes result.success=False for negative-balance account."""
+    def test_solvency_guard_returns_error_on_negative_balance(self):
+        """AccountSolvencyGuardFlow returns SolvencyViolationError for negative-balance ASSET account."""
         config = _make_config(
             max_turns=TurnDuration.of(years=1),
             flows=[AccountSolvencyGuardFlow()],
@@ -450,9 +469,35 @@ class TestEngineRunHaltConditions:
             initial_accounts=[_make_account(balance=-500.0, labels={"Type": "ASSET"})]
         )
 
-        result = engine.run(scenario)
+        data = engine.run(scenario)
 
-        assert result.success is False
+        assert not data.result.ok()
+        assert isinstance(data.result, SolvencyViolationError)
+
+    def test_error_halt_returns_completed_turns_so_far(self):
+        """When a flow returns a FitineraError, SimulationData includes turns completed before the error."""
+
+        class _ErrorOnTurn2:
+            def __init__(self):
+                self._call = 0
+
+            def executeFlow(self, view, updater, logger):
+                self._call += 1
+                if self._call == 2:
+                    return SolvencyViolationError("halted on turn 2")
+                return None
+
+        config = _make_config(
+            max_turns=TurnDuration.of(months=5), flows=[_ErrorOnTurn2()]
+        )
+        engine = SimulationEngine(config)
+        scenario = SimulationScenario(initial_persons=[_make_person()])
+
+        data = engine.run(scenario)
+
+        # Turn 1 completed, error on turn 2 (before snapshot) → 1 turn in history
+        assert len(data.turns) == 1
+        assert not data.result.ok()
 
 
 # ---------------------------------------------------------------------------
@@ -718,7 +763,7 @@ class TestEngineRunLoggerImpl:
 
         result = engine.run(scenario)
 
-        assert result.success is True
+        assert len(result.turns) == 1
 
     def test_logger_info_does_not_halt_engine(self):
         """Calling logger.info() does not cause engine halt or failure."""
@@ -733,7 +778,7 @@ class TestEngineRunLoggerImpl:
 
         result = engine.run(scenario)
 
-        assert result.success is True
+        assert len(result.turns) == 1
 
     def test_logger_warning_does_not_halt_engine(self):
         """Calling logger.warning() does not cause engine halt or failure."""
@@ -748,10 +793,10 @@ class TestEngineRunLoggerImpl:
 
         result = engine.run(scenario)
 
-        assert result.success is True
+        assert len(result.turns) == 1
 
-    def test_logger_error_sets_failure(self):
-        """Calling logger.error() causes engine to return success=False."""
+    def test_logger_error_does_not_halt_engine(self):
+        """Calling logger.error() is now purely observational and does not halt the engine."""
 
         class _ErrorFlow:
             def executeFlow(self, view, updater, logger):
@@ -763,22 +808,7 @@ class TestEngineRunLoggerImpl:
 
         result = engine.run(scenario)
 
-        assert result.success is False
-
-    def test_logger_error_message_stored_in_result(self):
-        """The error message passed to logger.error() appears in result.error_message."""
-
-        class _ErrorFlow:
-            def executeFlow(self, view, updater, logger):
-                logger.error("account insolvent at turn 1")
-
-        config = _make_config(max_turns=TurnDuration.of(months=1), flows=[_ErrorFlow()])
-        engine = SimulationEngine(config)
-        scenario = SimulationScenario()
-
-        result = engine.run(scenario)
-
-        assert result.error_message == "account insolvent at turn 1"
+        assert len(result.turns) == 1
 
     def test_logger_writes_to_fitinera_engine_logger(self, caplog):
         """Logger methods write to the 'fitinera.engine' Python logger."""

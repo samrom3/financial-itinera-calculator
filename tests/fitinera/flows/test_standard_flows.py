@@ -6,7 +6,9 @@ from fitinera.flows import (
     MortgagePaymentFlow,
     LivingExpenseFlow,
     NetWorthGenerator,
+    AccountSolvencyGuardFlow,
 )
+from fitinera.engine.result import SolvencyViolationError
 from fitinera.models import AccountState, Age, Income, Expense, Transfer, Person
 
 
@@ -221,6 +223,91 @@ def _make_view(accounts: List[AccountState]) -> Any:
     view = MagicMock()
     view.get_accounts.return_value = accounts
     return view
+
+
+class TestAccountSolvencyGuardFlow:
+    """Tests for AccountSolvencyGuardFlow.executeFlow() return-value semantics."""
+
+    def test_returns_solvency_violation_error_for_negative_asset_balance(self):
+        """AccountSolvencyGuardFlow returns SolvencyViolationError for a negative ASSET balance.
+
+        An AccountState with Type == 'ASSET' and balance < 0 must cause executeFlow
+        to return a SolvencyViolationError whose message contains the account id and balance.
+        """
+        flow = AccountSolvencyGuardFlow()
+        account = AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"})
+        view = _make_view([account])
+        updater = MagicMock()
+        logger = MagicMock()
+
+        result = flow.executeFlow(view, updater, logger)
+
+        assert isinstance(result, SolvencyViolationError)
+        assert not result.ok()
+        error_msg = result.message()
+        assert "checking" in error_msg
+        assert "-100" in error_msg or "-100.0" in error_msg
+
+    def test_returns_none_for_positive_asset_balance(self):
+        """AccountSolvencyGuardFlow returns None when ASSET balance is positive.
+
+        A non-negative balance on an ASSET account must return None (proceed).
+        """
+        flow = AccountSolvencyGuardFlow()
+        account = AccountState(id="savings", balance=500.0, labels={"Type": "ASSET"})
+        view = _make_view([account])
+        updater = MagicMock()
+        logger = MagicMock()
+
+        assert flow.executeFlow(view, updater, logger) is None
+
+    def test_returns_none_for_zero_asset_balance(self):
+        """AccountSolvencyGuardFlow returns None when ASSET balance is exactly zero.
+
+        Zero balance is not negative; None must be returned.
+        """
+        flow = AccountSolvencyGuardFlow()
+        account = AccountState(id="checking", balance=0.0, labels={"Type": "ASSET"})
+        view = _make_view([account])
+        updater = MagicMock()
+        logger = MagicMock()
+
+        assert flow.executeFlow(view, updater, logger) is None
+
+    def test_returns_none_for_liability_with_negative_balance(self):
+        """AccountSolvencyGuardFlow returns None for LIABILITY accounts with negative balance.
+
+        Only ASSET-labeled accounts are guarded; LIABILITY accounts are excluded.
+        """
+        flow = AccountSolvencyGuardFlow()
+        account = AccountState(
+            id="mortgage", balance=-200_000.0, labels={"Type": "LIABILITY"}
+        )
+        view = _make_view([account])
+        updater = MagicMock()
+        logger = MagicMock()
+
+        assert flow.executeFlow(view, updater, logger) is None
+
+    def test_returns_error_naming_first_violating_asset_account(self):
+        """AccountSolvencyGuardFlow returns SolvencyViolationError naming the first violating account.
+
+        When multiple ASSET accounts are negative, the returned error message must contain
+        the id of the first violating account.
+        """
+        flow = AccountSolvencyGuardFlow()
+        accounts = [
+            AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"}),
+            AccountState(id="savings", balance=-50.0, labels={"Type": "ASSET"}),
+        ]
+        view = _make_view(accounts)
+        updater = MagicMock()
+        logger = MagicMock()
+
+        result = flow.executeFlow(view, updater, logger)
+
+        assert isinstance(result, SolvencyViolationError)
+        assert "checking" in result.message()
 
 
 class TestNetWorthGenerator:

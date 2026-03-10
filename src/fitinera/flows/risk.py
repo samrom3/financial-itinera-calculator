@@ -1,13 +1,20 @@
+from typing import Optional
+
 from .interfaces import Flow
 from ..engine.interfaces import (
     SimulationStateView,
     SimulationStateUpdater,
     SimulationLogger,
 )
+from ..engine.result import FitineraError, SolvencyViolationError
 
 
 class AccountSolvencyGuardFlow(Flow):
     """Monitors accounts and halts simulation when a solvency violation is detected.
+
+    Returns a SolvencyViolationError when an ASSET-labeled account has a
+    negative balance, signaling the engine to halt and embed the error in
+    SimulationData.result.
 
     Args:
         asset_label_facet: Label facet used to identify account type.
@@ -29,11 +36,18 @@ class AccountSolvencyGuardFlow(Flow):
         view: SimulationStateView,
         updater: SimulationStateUpdater,
         logger: SimulationLogger,
-    ) -> None:
-        """Log an error for each ASSET-labeled account with a negative balance."""
+    ) -> Optional[FitineraError]:
+        """Return SolvencyViolationError for the first ASSET-labeled account with a negative balance.
+
+        Returns:
+            SolvencyViolationError: When an ASSET-labeled account balance is negative,
+                with the account ID and balance in the message.
+            None: When all ASSET-labeled accounts have non-negative balances.
+        """
         for account in view.get_accounts():
             if account.get_label(self.asset_label_facet) == self.asset_label_value:
                 if account.balance < 0:
-                    logger.error(
+                    return SolvencyViolationError(
                         f"Account '{account.id}' has negative balance: {account.balance}"
                     )
+        return None

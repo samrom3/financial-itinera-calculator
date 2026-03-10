@@ -20,7 +20,7 @@ class Flow(Protocol):
         view: SimulationStateView,
         updater: SimulationStateUpdater,
         logger: SimulationLogger,
-    ) -> None: ...
+    ) -> Optional[FitineraError]: ...
 ```
 
 There is no base class to inherit from. Any object that exposes `executeFlow(view, updater, logger)` satisfies the
@@ -78,7 +78,7 @@ def executeFlow(
     view: SimulationStateView,
     updater: SimulationStateUpdater,
     logger: SimulationLogger,
-) -> None:
+) -> Optional[FitineraError]: ...
 ```
 
 ### `view` — `SimulationStateView`
@@ -110,30 +110,127 @@ Controlled write access for the current turn only.
 
 ### `logger` — `SimulationLogger`
 
-| Method                | Effect                                                                                                                                                                                                                                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `logger.debug(msg)`   | Low-level trace message (visible at DEBUG log level)                                                                                                                                                                                                                                                   |
-| `logger.info(msg)`    | Informational message (e.g. flow skipped)                                                                                                                                                                                                                                                              |
-| `logger.warning(msg)` | Non-fatal anomaly                                                                                                                                                                                                                                                                                      |
-| `logger.error(msg)`   | **Halts after the current flow completes; subsequent flows in the same turn are not executed.** The current turn is NOT snapshotted. All log messages from this turn are still captured in `SimulationResult.log_messages`. `SimulationResult.success` is `False` and `error_message` is set to `msg`. |
+| Method                | Effect                                                       |
+| --------------------- | ------------------------------------------------------------ |
+| `logger.debug(msg)`   | Low-level trace message (visible at DEBUG log level)         |
+| `logger.info(msg)`    | Informational message (e.g. flow skipped)                    |
+| `logger.warning(msg)` | Non-fatal anomaly                                            |
+| `logger.error(msg)`   | Error-level observational log — does not halt the simulation |
 
-Use `logger.error` only for genuine unrecoverable conditions (e.g. negative balance on a liquid asset, missing required
-person). Use `logger.warning` for expected edge cases that should be visible but are not fatal.
+Use `logger.error` for non-halting error-level observations (e.g. a downstream service needed retries but eventually
+succeeded — worth alerting the user, but the simulation can continue). Use `logger.warning` for expected edge cases that
+should be visible but are not fatal. To halt the simulation for a genuine unrecoverable condition, return a
+`FitineraError` subclass instance instead — see "When to return vs. when to log" below.
 
-### `SimulationResult.log_messages`
+______________________________________________________________________
 
-After the simulation completes, `result.log_messages` contains all messages emitted during the run as a `List[str]`,
-each prefixed with its level:
+## When to return vs. when to log
 
+Fitinera draws a sharp line between **error signaling** (returning a `FitineraError` value) and **error observation**
+(logging at `ERROR` level). Understanding this distinction is essential for writing well-behaved flows.
+
+### Return `FitineraError` for genuine unrecoverable conditions
+
+Return a `FitineraError` subclass instance when the simulation **cannot meaningfully continue** — the invariant is
+broken and proceeding would produce misleading results. Return `None` on the normal (continue) path. Returning a halt is
+**rare**. Every flow that can return a halt must document the return type in its `executeFlow` docstring under a
+`Returns:` section so callers are never surprised.
+
+```python
+def executeFlow(
+    self,
+    view: SimulationStateView,
+    updater: SimulationStateUpdater,
+    logger: SimulationLogger,
+) -> Optional[FitineraError]:
+    """Check account solvency and halt if the balance is negative.
+
+    Args:
+        view: Read-only view of the current simulation state.
+        updater: Write interface (unused by this flow).
+        logger: Logging interface for audit messages.
+
+    Returns:
+        None to continue the simulation, or SolvencyViolationError when the
+        account balance falls below zero.
+    """
+    account = view.get_account(self.account_id)
+    if account.balance < 0:
+        return SolvencyViolationError(
+            f"Account '{self.account_id}' is insolvent: balance={account.balance:.2f}"
+        )
+    return None
 ```
-[DEBUG] ...
-[INFO] ...
-[WARNING] ...
-[ERROR] ...
+
+### Use `logger.error()` for non-halting error-level observations
+
+Use `logger.error()` when something went wrong or unexpected but the simulation can still continue and the result is
+still meaningful. The log entry alerts the user without stopping the run.
+
+```python
+# A web-service retry eventually succeeded — log at ERROR to surface the alert,
+# but do not halt the simulation.
+logger.error(
+    f"ExchangeRateFlow: rate service returned 503; used fallback rate {fallback_rate}"
+)
 ```
 
-Messages are accumulated in chronological turn order. When the simulation halts early due to an error, messages from the
-failing turn are still included. This allows post-run inspection without configuring Python's `logging` module.
+### `FitineraError` subtype guidance
+
+| FitineraError subtype    | When to use                                                                                   |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| `InternalError`          | An invariant that should never occur has been violated (programming error or corrupt state)   |
+| `InvalidArgumentError`   | A construction-time argument is invalid (caught at `__init__` time, not during `executeFlow`) |
+| `NotFoundError`          | A required entity (account, person) does not exist and the flow cannot proceed without it     |
+| `SolvencyViolationError` | An account's balance has fallen below its solvency floor (subtype of `InternalError`)         |
+
+______________________________________________________________________
+
+## Writing a `LogListener`
+
+`LogListener` implementations receive every log message dispatched by the engine. They must be:
+
+- **Fast**: called synchronously on the engine's main thread during every flow execution; never block on I/O, network,
+  or locks inside a listener.
+- **Synchronous**: async implementations are not supported. Off-load to a queue if you need async delivery.
+- **Deterministic**: avoid side effects that depend on external state. Listeners run inside the simulation loop and
+  non-deterministic behaviour will make simulations harder to reproduce.
+- **Non-raising (by preference)**: if a listener raises, the exception propagates immediately out of
+  `_SimulationLoggerImpl` and halts the engine. This is the intended safety behaviour — a broken log sink should not
+  silently swallow messages — but it means listener bugs become simulation crashes. Test listeners thoroughly.
+
+### Minimal `LogListener` example
+
+```python
+from fitinera import LogListener
+
+
+class PrintListener:
+    """Prints every log message to stdout — useful for debugging."""
+
+    def debug(self, msg: str) -> None:
+        print(f"[DEBUG] {msg}")
+
+    def info(self, msg: str) -> None:
+        print(f"[INFO] {msg}")
+
+    def warning(self, msg: str) -> None:
+        print(f"[WARNING] {msg}")
+
+    def error(self, msg: str) -> None:
+        print(f"[ERROR] {msg}")
+```
+
+Register it via `EngineConfiguration`:
+
+```python
+config = EngineConfiguration(
+    ...,
+    log_listeners=[PrintListener()],
+)
+```
+
+To disable all logging (e.g. in tight benchmark loops), pass `log_listeners=[]`.
 
 ______________________________________________________________________
 
@@ -362,7 +459,7 @@ flows = [
         person_ids=["Sam"],
         condition=PersonAgeIs("Sam", ComparisonOperator.GE, Age(years=65)),
     ),
-    AccountSolvencyGuardFlow(account_id="Checking"),  # always last
+    AccountSolvencyGuardFlow(),  # always last
 ]
 ```
 
@@ -379,8 +476,11 @@ December (the 12th month of each calendar year). It demonstrates:
 - A conditional `Income` emission with a descriptive label
 
 ```python
+from typing import Optional
+
 from fitinera import (
     Flow,
+    FitineraError,
     Income,
     SimulationStateView,
     SimulationStateUpdater,
@@ -411,7 +511,7 @@ class AnnualBonusFlow(Flow):
         view: SimulationStateView,
         updater: SimulationStateUpdater,
         logger: SimulationLogger,
-    ) -> None:
+    ) -> Optional[FitineraError]:
         """Emit the annual bonus income when the current turn falls in December.
 
         Guards:
@@ -424,6 +524,9 @@ class AnnualBonusFlow(Flow):
             view: Read-only view of the current simulation state.
             updater: Write interface for emitting the bonus transaction.
             logger: Logging interface for audit messages.
+
+        Returns:
+            None in all cases — this flow never halts the simulation.
         """
         # Gate 1: only act in December
         current_date = view.get_current_date()
@@ -467,6 +570,7 @@ class AnnualBonusFlow(Flow):
             f"AnnualBonusFlow: deposited ${self.amount:,.2f} bonus for "
             f"'{self.person_id}' in {current_date.year}-12."
         )
+        return None
 ```
 
 ### Usage in an `EngineConfiguration`
@@ -498,6 +602,7 @@ Before adding a new Flow to a pipeline:
 
 1. Does it need to mutate state (balances or labels)? If not, use a `MetricGenerator` instead.
 1. Are all guard conditions handled (person not found, wrong label, wrong date)?
-1. Is `logger.error` reserved for genuine halting failures?
+1. Does `executeFlow` return `None` on the normal path and a `FitineraError` only for genuinely unrecoverable
+   conditions, documented under a `Returns:` section in the Flow's docstring?
 1. Does the flow's position in the pipeline respect intra-turn causality (ADR-0005)?
 1. Does the flow accept its parameters via the constructor rather than hard-coding scenario-specific values?

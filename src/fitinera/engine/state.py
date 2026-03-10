@@ -6,14 +6,16 @@ defined in interfaces.py and are wired up by SimulationEngine.run().
 """
 
 import dataclasses
-import logging
 from typing import Any, Dict, List, Optional
 
 from ..models import AccountState, Date, Person, Transaction, TurnDuration
 from ..models.transaction import Expense, Income, Transfer
-from .interfaces import SimulationLogger, SimulationStateUpdater, SimulationStateView
-
-_logger = logging.getLogger("fitinera.engine")
+from .interfaces import (
+    LogListener,
+    SimulationLogger,
+    SimulationStateUpdater,
+    SimulationStateView,
+)
 
 
 class _SimulationStateViewImpl(SimulationStateView):
@@ -32,7 +34,7 @@ class _SimulationStateViewImpl(SimulationStateView):
         current_date_ref: "list[Date]",
         turns_completed_ref: "list[int]",
         tx_buffer: "list[Transaction]",
-        logger_ref: "list[SimulationLogger]",
+        logger: SimulationLogger,
     ) -> None:
         self._accounts = account_states
         self._persons = person_states
@@ -41,7 +43,7 @@ class _SimulationStateViewImpl(SimulationStateView):
         self._current_date_ref = current_date_ref
         self._turns_completed_ref = turns_completed_ref
         self._tx_buffer = tx_buffer
-        self._logger_ref = logger_ref
+        self._logger = logger
 
     def get_accounts(self) -> List[AccountState]:
         """Return live AccountState objects for all accounts."""
@@ -61,7 +63,7 @@ class _SimulationStateViewImpl(SimulationStateView):
         generator = self._metrics.get(name)
         if generator is None:
             return None
-        return generator.evaluate(self, self._logger_ref[0])
+        return generator.evaluate(self, self._logger)
 
     def get_start_date(self) -> Date:
         """Return the simulation start date from EngineConfiguration."""
@@ -154,52 +156,55 @@ class _SimulationStateUpdaterImpl(SimulationStateUpdater):
 class _SimulationLoggerImpl(SimulationLogger):
     """Internal implementation of SimulationLogger.
 
-    Accumulates all messages in a list for post-run inspection via
-    SimulationResult.log_messages. Also delegates to the 'fitinera.engine'
-    Python logger for operator visibility. An error() call sets an internal
-    flag so the engine can detect halt conditions.
+    Dispatches every log call to each registered LogListener in registration
+    order.  If a listener raises, the exception propagates immediately — no
+    swallowing.  An empty listeners list makes every call a no-op.
+
+    Message accumulation and Python-logging delegation are the responsibility
+    of the registered listeners (e.g. ListLogListener, PythonLoggingListener).
     """
 
-    def __init__(self) -> None:
-        self._messages: List[str] = []
-        self._has_error: bool = False
+    def __init__(self, listeners: List[LogListener]) -> None:
+        """Initialise the logger with the given list of listeners.
 
-    @property
-    def has_error(self) -> bool:
-        """True if error() has been called at least once."""
-        return self._has_error
-
-    @property
-    def error_message(self) -> Optional[str]:
-        """The message from the first error() call, or None."""
-        for m in self._messages:
-            if m.startswith("[ERROR] "):
-                return m[len("[ERROR] ") :]
-        return None
-
-    @property
-    def messages(self) -> List[str]:
-        """All accumulated log messages from this logger instance."""
-        return list(self._messages)
+        Args:
+            listeners: LogListener instances to receive dispatched log calls,
+                in registration order.
+        """
+        self._listeners = list(listeners)
 
     def debug(self, msg: str) -> None:
-        """Log a debug-level message to fitinera.engine."""
-        self._messages.append(f"[DEBUG] {msg}")
-        _logger.debug(msg)
+        """Dispatch a debug-level message to all registered listeners.
+
+        Args:
+            msg: The message to dispatch.
+        """
+        for listener in self._listeners:
+            listener.debug(msg)
 
     def info(self, msg: str) -> None:
-        """Log an info-level message to fitinera.engine."""
-        self._messages.append(f"[INFO] {msg}")
-        _logger.info(msg)
+        """Dispatch an info-level message to all registered listeners.
+
+        Args:
+            msg: The message to dispatch.
+        """
+        for listener in self._listeners:
+            listener.info(msg)
 
     def warning(self, msg: str) -> None:
-        """Log a warning-level message to fitinera.engine."""
-        self._messages.append(f"[WARNING] {msg}")
-        _logger.warning(msg)
+        """Dispatch a warning-level message to all registered listeners.
+
+        Args:
+            msg: The message to dispatch.
+        """
+        for listener in self._listeners:
+            listener.warning(msg)
 
     def error(self, msg: str) -> None:
-        """Log an error-level message and set the internal error flag."""
-        self._messages.append(f"[ERROR] {msg}")
-        _logger.error(msg)
-        if not self._has_error:
-            self._has_error = True
+        """Dispatch an error-level message to all registered listeners.
+
+        Args:
+            msg: The message to dispatch.
+        """
+        for listener in self._listeners:
+            listener.error(msg)

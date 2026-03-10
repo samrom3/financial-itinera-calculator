@@ -1,8 +1,12 @@
 import pytest
 from fitinera.engine import SimulationEngine, EngineConfiguration
+from fitinera.engine.result import (
+    ReachedMaxTurns,
+    SolvencyViolationError,
+)
 from fitinera.flows import AccountSolvencyGuardFlow, LivingExpenseFlow
 from fitinera.models import Account, SimulationScenario, Date, TurnDuration
-from fitinera import SimulationResult
+from fitinera import SimulationData
 
 
 def test_simulation_engine_initialization_takes_configuration():
@@ -11,66 +15,65 @@ def test_simulation_engine_initialization_takes_configuration():
     assert engine.configuration is config
 
 
-class TestSimulationResultShape:
-    """Tests verifying SimulationResult dataclass shape and field types.
+class TestSimulationDataShape:
+    """Tests verifying SimulationData dataclass shape and field types.
 
-    These tests confirm that SimulationResult is a frozen dataclass with the
-    expected fields: turns (list), success (bool), and optional error_message.
+    These tests confirm that SimulationData is a frozen dataclass with
+    a result field and a turns field.
     """
 
-    def test_simulation_result_can_be_constructed_with_required_fields(self):
-        """SimulationResult accepts turns list and success bool at construction."""
-        result = SimulationResult(turns=[], success=True)
-        assert result.turns == []
-        assert result.success is True
+    def test_simulation_data_can_be_constructed_with_result_and_turns(self):
+        """SimulationData accepts a result and a turns list at construction."""
+        data = SimulationData(result=ReachedMaxTurns(), turns=[])
+        assert data.turns == []
+        assert data.result.ok()
 
-    def test_simulation_result_error_message_defaults_to_none(self):
-        """SimulationResult.error_message is None when not provided."""
-        result = SimulationResult(turns=[], success=True)
-        assert result.error_message is None
+    def test_simulation_data_turns_defaults_to_empty_list(self):
+        """SimulationData.turns defaults to an empty list when not provided."""
+        data = SimulationData(result=ReachedMaxTurns())
+        assert data.turns == []
 
-    def test_simulation_result_accepts_error_message(self):
-        """SimulationResult stores an explicit error_message when provided."""
-        result = SimulationResult(turns=[], success=False, error_message="Insolvent")
-        assert result.error_message == "Insolvent"
-        assert result.success is False
-
-    def test_simulation_result_is_frozen(self):
-        """SimulationResult is immutable; field assignment raises FrozenInstanceError."""
-        result = SimulationResult(turns=[], success=True)
+    def test_simulation_data_is_frozen(self):
+        """SimulationData is immutable; field assignment raises FrozenInstanceError."""
+        data = SimulationData(result=ReachedMaxTurns(), turns=[])
         with pytest.raises(Exception):
-            result.success = False  # type: ignore[misc]
+            data.turns = []  # type: ignore[misc]
 
-    def test_simulation_result_turns_field_accepts_list(self):
-        """SimulationResult.turns is a list, indexable and iterable."""
-        result = SimulationResult(turns=[], success=True)
-        assert isinstance(result.turns, list)
-        assert len(result.turns) == 0
+    def test_simulation_data_turns_field_accepts_list(self):
+        """SimulationData.turns is a list, indexable and iterable."""
+        data = SimulationData(result=ReachedMaxTurns(), turns=[])
+        assert isinstance(data.turns, list)
+        assert len(data.turns) == 0
+
+    def test_simulation_data_result_field_is_fitinera_result(self):
+        """SimulationData.result holds a FitineraResult instance."""
+        from fitinera.engine.result import FitineraResult
+
+        data = SimulationData(result=ReachedMaxTurns())
+        assert isinstance(data.result, FitineraResult)
 
 
-def test_engine_halts_on_logger_error():
-    """Engine returns success=False when a flow emits a logger error."""
+def test_engine_returns_solvency_violation_in_result_on_negative_balance():
+    """Engine returns SimulationData with SolvencyViolationError when an ASSET account is negative."""
     from fitinera.models import Age, Person
-
-    class _ErrorFlow:
-        def executeFlow(self, view, updater, logger):
-            logger.error("fatal error")
 
     config = EngineConfiguration(
         start_date=Date(2026, 1),
         max_turns=TurnDuration.of(years=1),
-        flows=[_ErrorFlow()],
+        flows=[AccountSolvencyGuardFlow()],
     )
     engine = SimulationEngine(config)
     scenario = SimulationScenario(
-        initial_persons=[Person(id="p1", age=Age(30), expectancy=Age(90))]
+        initial_persons=[Person(id="p1", age=Age(30), expectancy=Age(90))],
+        initial_accounts=[
+            Account(id="checking", balance=-500.0, labels={"Type": "ASSET"})
+        ],
     )
 
-    result = engine.run(scenario)
+    data = engine.run(scenario)
 
-    assert result.success is False
-    assert result.error_message is not None
-    assert "fatal error" in result.error_message
+    assert not data.result.ok()
+    assert isinstance(data.result, SolvencyViolationError)
 
 
 class TestEngineIntegration:
@@ -79,11 +82,11 @@ class TestEngineIntegration:
     These tests define the expected engine behaviour for end-to-end scenarios.
     """
 
-    def test_minimal_single_turn_scenario_returns_success(self):
+    def test_minimal_single_turn_scenario_returns_turns(self):
         """A scenario with one person and one account and no flows produces at least one turn.
 
-        The engine must produce a SimulationResult where result.turns has at least
-        one entry and result.success is True when no flows signal an error.
+        The engine must produce a SimulationData where data.turns has at least
+        one entry when no flows return an error.
         """
         from fitinera.models import Age, Person
 
@@ -96,17 +99,17 @@ class TestEngineIntegration:
             initial_accounts=[Account(id="checking", balance=1000.0)],
         )
 
-        result = engine.run(scenario)
+        data = engine.run(scenario)
 
-        assert len(result.turns) >= 1
-        assert result.success is True
+        assert len(data.turns) >= 1
+        assert data.result.ok()
 
-    def test_solvency_guard_flow_triggers_failure_on_negative_balance(self):
-        """AccountSolvencyGuardFlow causes result.success to be False when an ASSET account is negative.
+    def test_solvency_guard_flow_returns_error_on_negative_balance(self):
+        """AccountSolvencyGuardFlow triggers a SolvencyViolationError in SimulationData.result.
 
         When AccountSolvencyGuardFlow is included in the pipeline and the initial
-        balance of an ASSET-labeled account is negative, the engine must halt and return
-        a SimulationResult where result.success is False.
+        balance of an ASSET-labeled account is negative, SimulationData.result
+        holds a SolvencyViolationError.
         """
         config = EngineConfiguration(
             start_date=Date(2026, 1),
@@ -120,13 +123,14 @@ class TestEngineIntegration:
             ],
         )
 
-        result = engine.run(scenario)
+        data = engine.run(scenario)
 
-        assert result.success is False
+        assert not data.result.ok()
+        assert isinstance(data.result, SolvencyViolationError)
 
 
-def test_engine_halts_when_living_expense_drains_account_negative():
-    """Engine halts with success=False when LivingExpenseFlow drains account below zero."""
+def test_engine_returns_solvency_error_when_living_expense_drains_account_negative():
+    """Engine returns SolvencyViolationError in result when LivingExpenseFlow drains account below zero."""
     config = EngineConfiguration(
         start_date=Date(2026, 1),
         max_turns=TurnDuration.of(years=1),
@@ -142,13 +146,14 @@ def test_engine_halts_when_living_expense_drains_account_negative():
         ],
     )
 
-    result = engine.run(scenario)
+    data = engine.run(scenario)
 
-    assert result.success is False
+    assert not data.result.ok()
+    assert isinstance(data.result, SolvencyViolationError)
 
 
-def test_engine_halts_with_solvency_error_message_containing_account_id():
-    """Solvency failure error message identifies the insolvent account by id."""
+def test_engine_solvency_error_message_contains_account_id():
+    """Solvency violation error message identifies the insolvent account by id."""
     config = EngineConfiguration(
         start_date=Date(2026, 1),
         max_turns=TurnDuration.of(years=1),
@@ -164,50 +169,28 @@ def test_engine_halts_with_solvency_error_message_containing_account_id():
         ],
     )
 
-    result = engine.run(scenario)
+    data = engine.run(scenario)
 
-    assert result.error_message is not None
-    assert "checking" in result.error_message
+    assert not data.result.ok()
+    assert "checking" in data.result.message()
 
 
-def test_simulation_result_log_messages_contains_turn_messages():
-    """SimulationResult.log_messages captures messages emitted during turns."""
+def test_engine_logger_error_does_not_halt_simulation():
+    """Calling logger.error() is now purely observational and does not halt the simulation."""
 
-    class _InfoFlow:
+    class _ErrorLogFlow:
         def executeFlow(self, view, updater, logger):
-            logger.info("turn ran")
+            logger.error("non-fatal observation")
 
     config = EngineConfiguration(
         start_date=Date(2026, 1),
         max_turns=TurnDuration.of(months=1),
-        flows=[_InfoFlow()],
+        flows=[_ErrorLogFlow()],
     )
     engine = SimulationEngine(config)
     scenario = SimulationScenario()
 
-    result = engine.run(scenario)
+    data = engine.run(scenario)
 
-    assert any("turn ran" in m for m in result.log_messages)
-
-
-def test_simulation_result_log_messages_includes_error_turn_messages():
-    """log_messages includes messages from the error turn even when simulation halts."""
-
-    class _ErrorFlow:
-        def executeFlow(self, view, updater, logger):
-            logger.warning("pre-error warning")
-            logger.error("fatal halt")
-
-    config = EngineConfiguration(
-        start_date=Date(2026, 1),
-        max_turns=TurnDuration.of(years=1),
-        flows=[_ErrorFlow()],
-    )
-    engine = SimulationEngine(config)
-    scenario = SimulationScenario()
-
-    result = engine.run(scenario)
-
-    assert result.success is False
-    assert any("pre-error warning" in m for m in result.log_messages)
-    assert any("fatal halt" in m for m in result.log_messages)
+    assert len(data.turns) == 1
+    assert data.result.ok()
