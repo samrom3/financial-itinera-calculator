@@ -26,8 +26,10 @@ CONTRIBUTING.md        # contributor guide
 
 ## Architecture Decision Records (ADRs)
 
-ADRs are "designs in the small" for this project. **At the start of every session**, read through `docs/adrs/` to
-familiarise yourself with the decisions already made — they constrain and guide all implementation work.
+ADRs are "designs in the small" for this project. **At the start of every session**, read `docs/adrs/README.md` to
+familiarise yourself with the index of decisions already made. Fetch individual ADR files on-demand when you encounter a
+decision point relevant to an existing ADR topic — see the "When to Fetch Individual ADR Files" guidance in
+`docs/adrs/README.md` for when this applies.
 
 **During coding**, actively watch for ADR-worthy moments:
 
