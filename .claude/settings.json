@@ -1,6 +1,8 @@
 {
   "permissions": {
     "allow": [
+      "Edit(*)",
+      "Write(*)",
       "Bash(uv run*)",
       "Bash(uv sync*)",
       "Bash(git add*)",
