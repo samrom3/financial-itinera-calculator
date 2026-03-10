@@ -1,4 +1,3 @@
-import pytest
 from typing import Any, List
 from unittest.mock import MagicMock
 
@@ -227,13 +226,13 @@ def _make_view(accounts: List[AccountState]) -> Any:
 
 
 class TestAccountSolvencyGuardFlow:
-    """Tests for AccountSolvencyGuardFlow.executeFlow() using pytest.raises."""
+    """Tests for AccountSolvencyGuardFlow.executeFlow() return-value semantics."""
 
-    def test_raises_solvency_violation_error_for_negative_asset_balance(self):
-        """AccountSolvencyGuardFlow raises SolvencyViolationError for a negative ASSET balance.
+    def test_returns_solvency_violation_error_for_negative_asset_balance(self):
+        """AccountSolvencyGuardFlow returns SolvencyViolationError for a negative ASSET balance.
 
         An AccountState with Type == 'ASSET' and balance < 0 must cause executeFlow
-        to raise SolvencyViolationError containing the account id and balance.
+        to return a SolvencyViolationError whose message contains the account id and balance.
         """
         flow = AccountSolvencyGuardFlow()
         account = AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"})
@@ -241,17 +240,18 @@ class TestAccountSolvencyGuardFlow:
         updater = MagicMock()
         logger = MagicMock()
 
-        with pytest.raises(SolvencyViolationError) as exc_info:
-            flow.executeFlow(view, updater, logger)
+        result = flow.executeFlow(view, updater, logger)
 
-        error_msg = str(exc_info.value)
+        assert isinstance(result, SolvencyViolationError)
+        assert not result.ok()
+        error_msg = result.message()
         assert "checking" in error_msg
         assert "-100" in error_msg or "-100.0" in error_msg
 
-    def test_does_not_raise_for_positive_asset_balance(self):
-        """AccountSolvencyGuardFlow does not raise when ASSET balance is positive.
+    def test_returns_none_for_positive_asset_balance(self):
+        """AccountSolvencyGuardFlow returns None when ASSET balance is positive.
 
-        A non-negative balance on an ASSET account must not trigger an exception.
+        A non-negative balance on an ASSET account must return None (proceed).
         """
         flow = AccountSolvencyGuardFlow()
         account = AccountState(id="savings", balance=500.0, labels={"Type": "ASSET"})
@@ -259,12 +259,12 @@ class TestAccountSolvencyGuardFlow:
         updater = MagicMock()
         logger = MagicMock()
 
-        flow.executeFlow(view, updater, logger)  # must not raise
+        assert flow.executeFlow(view, updater, logger) is None
 
-    def test_does_not_raise_for_zero_asset_balance(self):
-        """AccountSolvencyGuardFlow does not raise when ASSET balance is exactly zero.
+    def test_returns_none_for_zero_asset_balance(self):
+        """AccountSolvencyGuardFlow returns None when ASSET balance is exactly zero.
 
-        Zero balance is not negative; no SolvencyViolationError should be raised.
+        Zero balance is not negative; None must be returned.
         """
         flow = AccountSolvencyGuardFlow()
         account = AccountState(id="checking", balance=0.0, labels={"Type": "ASSET"})
@@ -272,10 +272,10 @@ class TestAccountSolvencyGuardFlow:
         updater = MagicMock()
         logger = MagicMock()
 
-        flow.executeFlow(view, updater, logger)  # must not raise
+        assert flow.executeFlow(view, updater, logger) is None
 
-    def test_does_not_raise_for_liability_with_negative_balance(self):
-        """AccountSolvencyGuardFlow does not raise for LIABILITY accounts with negative balance.
+    def test_returns_none_for_liability_with_negative_balance(self):
+        """AccountSolvencyGuardFlow returns None for LIABILITY accounts with negative balance.
 
         Only ASSET-labeled accounts are guarded; LIABILITY accounts are excluded.
         """
@@ -287,12 +287,12 @@ class TestAccountSolvencyGuardFlow:
         updater = MagicMock()
         logger = MagicMock()
 
-        flow.executeFlow(view, updater, logger)  # must not raise
+        assert flow.executeFlow(view, updater, logger) is None
 
-    def test_raises_for_first_violating_asset_account(self):
-        """AccountSolvencyGuardFlow raises SolvencyViolationError naming the first violating account.
+    def test_returns_error_naming_first_violating_asset_account(self):
+        """AccountSolvencyGuardFlow returns SolvencyViolationError naming the first violating account.
 
-        When multiple ASSET accounts are negative, the exception message must contain
+        When multiple ASSET accounts are negative, the returned error message must contain
         the id of the first violating account.
         """
         flow = AccountSolvencyGuardFlow()
@@ -304,8 +304,10 @@ class TestAccountSolvencyGuardFlow:
         updater = MagicMock()
         logger = MagicMock()
 
-        with pytest.raises(SolvencyViolationError, match="checking"):
-            flow.executeFlow(view, updater, logger)
+        result = flow.executeFlow(view, updater, logger)
+
+        assert isinstance(result, SolvencyViolationError)
+        assert "checking" in result.message()
 
 
 class TestNetWorthGenerator:

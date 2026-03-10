@@ -212,13 +212,12 @@ class TestAccountSolvencyGuardFlowRisk:
         flow = AccountSolvencyGuardFlow(asset_label_value="CHECKING")
         assert flow.asset_label_value == "CHECKING"
 
-    def test_execute_flow_raises_for_negative_asset_balance(self):
-        """AccountSolvencyGuardFlow.executeFlow raises SolvencyViolationError for negative ASSET balance.
+    def test_execute_flow_returns_error_for_negative_asset_balance(self):
+        """AccountSolvencyGuardFlow.executeFlow returns SolvencyViolationError for negative ASSET balance.
 
-        An AccountState with Type == 'ASSET' and a negative balance must trigger
-        SolvencyViolationError; an ASSET with non-negative balance must not.
+        An AccountState with Type == 'ASSET' and a negative balance must cause executeFlow
+        to return a SolvencyViolationError; an ASSET with non-negative balance returns None.
         """
-        import pytest
         from unittest.mock import MagicMock
         from fitinera.models import AccountState
         from fitinera.engine.exceptions import SolvencyViolationError
@@ -230,8 +229,10 @@ class TestAccountSolvencyGuardFlowRisk:
         updater = MagicMock()
         logger = MagicMock()
 
-        with pytest.raises(SolvencyViolationError):
-            flow.executeFlow(view, updater, logger)
+        result = flow.executeFlow(view, updater, logger)
+
+        assert isinstance(result, SolvencyViolationError)
+        assert not result.ok()
 
 
 # ---------------------------------------------------------------------------

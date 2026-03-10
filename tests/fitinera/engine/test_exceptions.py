@@ -1,41 +1,65 @@
-"""Tests for the FitineraError exception hierarchy.
+"""Tests for the FitineraResult hierarchy.
 
-Verifies instantiation, inheritance chain, and message preservation.
-No listener stubs are exercised here — this file covers exceptions only.
+Verifies instantiation, inheritance chain, ok()/message() behaviour, and
+__str__ output.  FitineraError subclasses are NOT Python exceptions — they
+inherit from FitineraResult, not Exception.
 """
 
-import pytest
-
 from fitinera import (
+    FitineraResult,
+    FitineraSuccess,
     FitineraError,
     InternalError,
     InvalidArgumentError,
     NotFoundError,
+    ReachedAllPersonsExpectancy,
+    ReachedMaxTurns,
     SolvencyViolationError,
 )
 
 
+class TestFitineraResult:
+    """Verifies the FitineraResult abstract base."""
+
+    def test_fitinera_error_is_fitinera_result_subclass(self):
+        """FitineraError inherits from FitineraResult."""
+        assert issubclass(FitineraError, FitineraResult)
+
+    def test_fitinera_success_is_fitinera_result_subclass(self):
+        """FitineraSuccess inherits from FitineraResult."""
+        assert issubclass(FitineraSuccess, FitineraResult)
+
+    def test_fitinera_error_is_not_an_exception(self):
+        """FitineraError does NOT inherit from Exception."""
+        assert not issubclass(FitineraError, Exception)
+
+    def test_fitinera_success_is_not_an_exception(self):
+        """FitineraSuccess does NOT inherit from Exception."""
+        assert not issubclass(FitineraSuccess, Exception)
+
+
 class TestFitineraErrorBase:
-    """Verifies that FitineraError is a proper Exception subclass."""
+    """Verifies FitineraError construction, ok(), message(), and __str__."""
 
-    def test_fitinera_error_is_exception_subclass(self):
-        """FitineraError inherits from Exception."""
-        assert issubclass(FitineraError, Exception)
-
-    def test_fitinera_error_can_be_instantiated_with_message(self):
-        """FitineraError stores and exposes its message string."""
+    def test_fitinera_error_ok_returns_false(self):
+        """FitineraError.ok() returns False."""
         err = FitineraError("something went wrong")
-        assert str(err) == "something went wrong"
+        assert err.ok() is False
 
-    def test_fitinera_error_can_be_raised_and_caught(self):
-        """FitineraError can be raised and caught as an Exception."""
-        with pytest.raises(Exception):
-            raise FitineraError("base error")
+    def test_fitinera_error_message_preserves_string(self):
+        """FitineraError.message() returns the string passed at construction."""
+        err = FitineraError("something went wrong")
+        assert err.message() == "something went wrong"
 
-    def test_fitinera_error_can_be_caught_as_itself(self):
-        """FitineraError can be caught by its own type."""
-        with pytest.raises(FitineraError):
-            raise FitineraError("base error")
+    def test_fitinera_error_str_includes_message(self):
+        """str(FitineraError) includes the message."""
+        err = FitineraError("something went wrong")
+        assert "something went wrong" in str(err)
+
+    def test_fitinera_error_instance_is_fitinera_result(self):
+        """A FitineraError instance passes isinstance check for FitineraResult."""
+        err = FitineraError("err")
+        assert isinstance(err, FitineraResult)
 
 
 class TestInternalError:
@@ -45,24 +69,25 @@ class TestInternalError:
         """InternalError is a subclass of FitineraError."""
         assert issubclass(InternalError, FitineraError)
 
-    def test_internal_error_is_exception_subclass(self):
-        """InternalError is a subclass of Exception."""
-        assert issubclass(InternalError, Exception)
+    def test_internal_error_instance_is_fitinera_result(self):
+        """An InternalError instance passes isinstance check for FitineraResult."""
+        err = InternalError("invariant violated")
+        assert isinstance(err, FitineraResult)
+
+    def test_internal_error_ok_returns_false(self):
+        """InternalError.ok() returns False."""
+        err = InternalError("invariant violated")
+        assert err.ok() is False
+
+    def test_internal_error_message_preserves_string(self):
+        """InternalError.message() returns the string passed at construction."""
+        err = InternalError("invariant violated")
+        assert err.message() == "invariant violated"
 
     def test_internal_error_instance_is_fitinera_error(self):
         """An InternalError instance passes isinstance check for FitineraError."""
         err = InternalError("invariant violated")
         assert isinstance(err, FitineraError)
-
-    def test_internal_error_preserves_message(self):
-        """InternalError stores and exposes its message string."""
-        err = InternalError("invariant violated")
-        assert str(err) == "invariant violated"
-
-    def test_internal_error_can_be_raised_and_caught_as_fitinera_error(self):
-        """InternalError raised can be caught as FitineraError."""
-        with pytest.raises(FitineraError):
-            raise InternalError("invariant violated")
 
 
 class TestInvalidArgumentError:
@@ -72,15 +97,15 @@ class TestInvalidArgumentError:
         """InvalidArgumentError is a subclass of FitineraError."""
         assert issubclass(InvalidArgumentError, FitineraError)
 
-    def test_invalid_argument_error_instance_is_fitinera_error(self):
-        """An InvalidArgumentError instance passes isinstance check for FitineraError."""
+    def test_invalid_argument_error_ok_returns_false(self):
+        """InvalidArgumentError.ok() returns False."""
         err = InvalidArgumentError("bad argument")
-        assert isinstance(err, FitineraError)
+        assert err.ok() is False
 
-    def test_invalid_argument_error_preserves_message(self):
-        """InvalidArgumentError stores and exposes its message string."""
+    def test_invalid_argument_error_message_preserves_string(self):
+        """InvalidArgumentError.message() returns the string passed at construction."""
         err = InvalidArgumentError("bad argument: x=-1")
-        assert str(err) == "bad argument: x=-1"
+        assert err.message() == "bad argument: x=-1"
 
     def test_invalid_argument_error_is_not_internal_error(self):
         """InvalidArgumentError is not a subclass of InternalError."""
@@ -94,15 +119,15 @@ class TestNotFoundError:
         """NotFoundError is a subclass of FitineraError."""
         assert issubclass(NotFoundError, FitineraError)
 
-    def test_not_found_error_instance_is_fitinera_error(self):
-        """A NotFoundError instance passes isinstance check for FitineraError."""
+    def test_not_found_error_ok_returns_false(self):
+        """NotFoundError.ok() returns False."""
         err = NotFoundError("account not found")
-        assert isinstance(err, FitineraError)
+        assert err.ok() is False
 
-    def test_not_found_error_preserves_message(self):
-        """NotFoundError stores and exposes its message string."""
+    def test_not_found_error_message_preserves_string(self):
+        """NotFoundError.message() returns the string passed at construction."""
         err = NotFoundError("account 'savings' not found")
-        assert str(err) == "account 'savings' not found"
+        assert err.message() == "account 'savings' not found"
 
     def test_not_found_error_is_not_internal_error(self):
         """NotFoundError is not a subclass of InternalError."""
@@ -120,6 +145,11 @@ class TestSolvencyViolationError:
         """SolvencyViolationError is a subclass of FitineraError (via InternalError)."""
         assert issubclass(SolvencyViolationError, FitineraError)
 
+    def test_solvency_violation_error_ok_returns_false(self):
+        """SolvencyViolationError.ok() returns False."""
+        err = SolvencyViolationError("account 'checking' balance is -500")
+        assert err.ok() is False
+
     def test_solvency_violation_error_instance_is_internal_error(self):
         """A SolvencyViolationError instance passes isinstance check for InternalError."""
         err = SolvencyViolationError("account 'checking' balance is -500")
@@ -130,18 +160,51 @@ class TestSolvencyViolationError:
         err = SolvencyViolationError("account 'checking' balance is -500")
         assert isinstance(err, FitineraError)
 
-    def test_solvency_violation_error_preserves_message(self):
-        """SolvencyViolationError stores and exposes its message string."""
+    def test_solvency_violation_error_message_preserves_string(self):
+        """SolvencyViolationError.message() returns the string passed at construction."""
         msg = "account 'checking' balance is -500.00"
         err = SolvencyViolationError(msg)
-        assert str(err) == msg
+        assert err.message() == msg
 
-    def test_solvency_violation_error_can_be_caught_as_fitinera_error(self):
-        """SolvencyViolationError raised can be caught as FitineraError."""
-        with pytest.raises(FitineraError):
-            raise SolvencyViolationError("insolvency detected")
 
-    def test_solvency_violation_error_can_be_caught_as_internal_error(self):
-        """SolvencyViolationError raised can be caught as InternalError."""
-        with pytest.raises(InternalError):
-            raise SolvencyViolationError("insolvency detected")
+class TestFitineraSuccessVariants:
+    """Verifies FitineraSuccess variants: ReachedAllPersonsExpectancy and ReachedMaxTurns."""
+
+    def test_reached_all_persons_expectancy_ok_returns_true(self):
+        """ReachedAllPersonsExpectancy.ok() returns True."""
+        result = ReachedAllPersonsExpectancy()
+        assert result.ok() is True
+
+    def test_reached_all_persons_expectancy_is_fitinera_success(self):
+        """ReachedAllPersonsExpectancy is a FitineraSuccess subclass."""
+        assert issubclass(ReachedAllPersonsExpectancy, FitineraSuccess)
+
+    def test_reached_all_persons_expectancy_is_fitinera_result(self):
+        """ReachedAllPersonsExpectancy is a FitineraResult subclass."""
+        assert issubclass(ReachedAllPersonsExpectancy, FitineraResult)
+
+    def test_reached_all_persons_expectancy_message_is_non_empty(self):
+        """ReachedAllPersonsExpectancy.message() returns a non-empty string."""
+        result = ReachedAllPersonsExpectancy()
+        assert len(result.message()) > 0
+
+    def test_reached_max_turns_ok_returns_true(self):
+        """ReachedMaxTurns.ok() returns True."""
+        result = ReachedMaxTurns()
+        assert result.ok() is True
+
+    def test_reached_max_turns_is_fitinera_success(self):
+        """ReachedMaxTurns is a FitineraSuccess subclass."""
+        assert issubclass(ReachedMaxTurns, FitineraSuccess)
+
+    def test_reached_max_turns_message_is_non_empty(self):
+        """ReachedMaxTurns.message() returns a non-empty string."""
+        result = ReachedMaxTurns()
+        assert len(result.message()) > 0
+
+    def test_str_includes_class_name_and_message(self):
+        """str() of a FitineraResult includes the class name and message."""
+        result = ReachedMaxTurns()
+        s = str(result)
+        assert "ReachedMaxTurns" in s
+        assert result.message() in s

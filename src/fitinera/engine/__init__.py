@@ -6,8 +6,12 @@ from .interfaces import (
 )
 from .configuration import EngineConfiguration
 from .engine import SimulationEngine
-from .result import SimulationResult
-from .exceptions import (
+from .result import (
+    SimulationData,
+    FitineraResult,
+    FitineraSuccess,
+    ReachedAllPersonsExpectancy,
+    ReachedMaxTurns,
     FitineraError,
     InternalError,
     InvalidArgumentError,
@@ -23,7 +27,11 @@ __all__ = [
     "LogListener",
     "EngineConfiguration",
     "SimulationEngine",
-    "SimulationResult",
+    "SimulationData",
+    "FitineraResult",
+    "FitineraSuccess",
+    "ReachedAllPersonsExpectancy",
+    "ReachedMaxTurns",
     "FitineraError",
     "InternalError",
     "InvalidArgumentError",

@@ -94,5 +94,5 @@ ______________________________________________________________________
 | [0009](./0009-domain-grouped-standard-flow-modules.md)        | Domain-Grouped Standard Flow Modules                                       | Accepted               |
 | [0010](./0010-account-state-split-and-view-contract.md)       | AccountState Split from Account and SimulationStateView Contract Extension | Accepted               |
 | [0011](./0011-unified-logger-for-flow-and-metricgenerator.md) | Unified Logger for Flow and MetricGenerator                                | Accepted               |
-| [0012](./0012-exception-based-flow-error-signaling.md)        | Exception-Based Flow Error Signaling                                       | Accepted               |
+| [0012](./0012-return-value-flow-error-signaling.md)           | Return-Value Flow Error Signaling via FitineraResult Hierarchy             | Accepted               |
 | [0013](./0013-loglistener-dispatch-pattern.md)                | LogListener Dispatch Pattern                                               | Accepted               |

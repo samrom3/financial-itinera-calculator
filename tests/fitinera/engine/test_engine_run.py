@@ -7,10 +7,13 @@ and the full engine dispatch loop per task-10 acceptance criteria.
 import logging
 from typing import List
 
-import pytest
 
 from fitinera.engine import EngineConfiguration, SimulationEngine
-from fitinera.engine.exceptions import SolvencyViolationError
+from fitinera.engine.exceptions import (
+    ReachedAllPersonsExpectancy,
+    ReachedMaxTurns,
+    SolvencyViolationError,
+)
 from fitinera.flows import AccountSolvencyGuardFlow
 from fitinera.models import (
     Account,
@@ -75,12 +78,12 @@ def _make_account(
 class TestEngineRunBasic:
     """Basic engine.run() smoke tests.
 
-    Verify the engine produces a valid SimulationResult for the simplest
+    Verify the engine produces a valid SimulationData for the simplest
     possible scenarios.
     """
 
     def test_run_returns_simulation_result_with_turns(self):
-        """A single-turn scenario with one person returns a SimulationResult with turns."""
+        """A single-turn scenario with one person returns a SimulationData with turns."""
         config = _make_config(max_turns=TurnDuration.of(years=1))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
@@ -375,20 +378,37 @@ class TestEngineRunHaltConditions:
     Covers exception-based halt, all-persons-deceased halt, and max_turns halt.
     """
 
-    def test_flow_exception_propagates_to_caller(self):
-        """Engine propagates exceptions raised by flows directly to the caller."""
-        from fitinera.engine.exceptions import SolvencyViolationError
+    def test_flow_returning_fitinera_error_halts_engine(self):
+        """Engine halts when a flow returns a FitineraError; result is embedded in SimulationData."""
 
         class _ErrorFlow:
             def executeFlow(self, view, updater, logger):
-                raise SolvencyViolationError("Insolvency detected")
+                return SolvencyViolationError("Insolvency detected")
 
         config = _make_config(max_turns=TurnDuration.of(years=1), flows=[_ErrorFlow()])
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_persons=[_make_person()])
 
-        with pytest.raises(SolvencyViolationError, match="Insolvency"):
-            engine.run(scenario)
+        data = engine.run(scenario)
+
+        assert not data.result.ok()
+        assert isinstance(data.result, SolvencyViolationError)
+        assert "Insolvency detected" in data.result.message()
+
+    def test_flow_returning_none_does_not_halt_engine(self):
+        """Engine continues when flows return None."""
+
+        class _NoOpFlow:
+            def executeFlow(self, view, updater, logger):
+                return None
+
+        config = _make_config(max_turns=TurnDuration.of(months=2), flows=[_NoOpFlow()])
+        engine = SimulationEngine(config)
+        scenario = SimulationScenario(initial_persons=[_make_person()])
+
+        data = engine.run(scenario)
+
+        assert len(data.turns) == 2
 
     def test_logger_error_does_not_halt_engine(self):
         """Calling logger.error() is now purely observational and does not halt the engine."""
@@ -409,20 +429,22 @@ class TestEngineRunHaltConditions:
         assert len(result.turns) == 2
 
     def test_all_persons_deceased_halts_engine(self):
-        """Engine halts when all persons are no longer living."""
+        """Engine halts with ReachedAllPersonsExpectancy when all persons are no longer living."""
         # Person at age=89yr 11mo, expectancy=90yr: after 1 turn age=90yr 0mo → not living
         person = Person(id="p1", age=Age(89, 11), expectancy=Age(90, 0))
         config = _make_config(max_turns=TurnDuration.of(years=5))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(initial_persons=[person])
 
-        result = engine.run(scenario)
+        data = engine.run(scenario)
 
         # Should halt before max_turns (5 years = 60 turns) after 1 turn
-        assert len(result.turns) < 60
+        assert len(data.turns) < 60
+        assert data.result.ok()
+        assert isinstance(data.result, ReachedAllPersonsExpectancy)
 
     def test_max_turns_reached_produces_correct_count(self):
-        """Engine halts after max_turns and produces the correct number of turns."""
+        """Engine halts after max_turns with ReachedMaxTurns and produces the correct number of turns."""
         # Person with long life expectancy — should not halt early
         config = _make_config(max_turns=TurnDuration.of(months=5))
         engine = SimulationEngine(config)
@@ -430,12 +452,14 @@ class TestEngineRunHaltConditions:
             initial_persons=[_make_person(expectancy_years=200)]
         )
 
-        result = engine.run(scenario)
+        data = engine.run(scenario)
 
-        assert len(result.turns) == 5
+        assert len(data.turns) == 5
+        assert data.result.ok()
+        assert isinstance(data.result, ReachedMaxTurns)
 
-    def test_solvency_guard_raises_on_negative_balance(self):
-        """AccountSolvencyGuardFlow raises SolvencyViolationError for negative-balance ASSET account."""
+    def test_solvency_guard_returns_error_on_negative_balance(self):
+        """AccountSolvencyGuardFlow returns SolvencyViolationError for negative-balance ASSET account."""
         config = _make_config(
             max_turns=TurnDuration.of(years=1),
             flows=[AccountSolvencyGuardFlow()],
@@ -445,8 +469,35 @@ class TestEngineRunHaltConditions:
             initial_accounts=[_make_account(balance=-500.0, labels={"Type": "ASSET"})]
         )
 
-        with pytest.raises(SolvencyViolationError):
-            engine.run(scenario)
+        data = engine.run(scenario)
+
+        assert not data.result.ok()
+        assert isinstance(data.result, SolvencyViolationError)
+
+    def test_error_halt_returns_completed_turns_so_far(self):
+        """When a flow returns a FitineraError, SimulationData includes turns completed before the error."""
+
+        class _ErrorOnTurn2:
+            def __init__(self):
+                self._call = 0
+
+            def executeFlow(self, view, updater, logger):
+                self._call += 1
+                if self._call == 2:
+                    return SolvencyViolationError("halted on turn 2")
+                return None
+
+        config = _make_config(
+            max_turns=TurnDuration.of(months=5), flows=[_ErrorOnTurn2()]
+        )
+        engine = SimulationEngine(config)
+        scenario = SimulationScenario(initial_persons=[_make_person()])
+
+        data = engine.run(scenario)
+
+        # Turn 1 completed, error on turn 2 (before snapshot) → 1 turn in history
+        assert len(data.turns) == 1
+        assert not data.result.ok()
 
 
 # ---------------------------------------------------------------------------

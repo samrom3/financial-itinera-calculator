@@ -11,7 +11,7 @@ from ..models import (
 from ..models.person import Person
 from ..models.scenario import Turn
 from .configuration import EngineConfiguration
-from .result import SimulationResult
+from .result import ReachedAllPersonsExpectancy, ReachedMaxTurns, SimulationData
 from .state import (
     _LivePersonState,
     _SimulationLoggerImpl,
@@ -36,19 +36,19 @@ class SimulationEngine:
     def __init__(self, configuration: EngineConfiguration):
         self.configuration = configuration
 
-    def run(self, scenario: SimulationScenario) -> SimulationResult:
-        """Execute the simulation and return an immutable SimulationResult.
+    def run(self, scenario: SimulationScenario) -> SimulationData:
+        """Execute the simulation and return an immutable SimulationData.
 
         Initialises live state from the scenario, then executes turns until
-        one of the halt conditions is triggered (FR-023):
-          1. A flow raises a FitineraError exception — propagates to the caller.
-          2. All persons are no longer living.
-          3. max_turns months have been completed.
+        one of the halt conditions is triggered:
+          1. A flow returns a FitineraError — embedded in SimulationData.result.
+          2. All persons are no longer living — ReachedAllPersonsExpectancy.
+          3. max_turns months have been completed — ReachedMaxTurns.
 
         Within each turn the engine:
           1. Increments the current Date by one calendar month.
           2. Increments all persons' Age by one month.
-          3. Runs all Flows in configuration order.
+          3. Runs all Flows in configuration order; returns on first FitineraError.
           4. Evaluates all MetricGenerators.
           5. Snapshots the turn as a frozen Turn.
           6. Clears the transaction buffer.
@@ -72,10 +72,10 @@ class SimulationEngine:
         turns_completed_ref: List[int] = [0]
         tx_buffer: List[Transaction] = []
 
-        # --- Logger ref: placeholder replaced at start of each turn ---
-        logger_ref: List[_SimulationLoggerImpl] = [_SimulationLoggerImpl(listeners=[])]
+        # --- Build single logger for the entire simulation run ---
+        logger = _SimulationLoggerImpl(listeners=cfg.log_listeners)
 
-        # --- Build the view/updater; logger is recreated per turn ---
+        # --- Build the view/updater ---
         view = _SimulationStateViewImpl(
             account_states=account_states,
             person_states=person_states,
@@ -84,7 +84,7 @@ class SimulationEngine:
             current_date_ref=current_date_ref,
             turns_completed_ref=turns_completed_ref,
             tx_buffer=tx_buffer,
-            logger_ref=logger_ref,
+            logger=logger,
         )
         updater = _SimulationStateUpdaterImpl(
             account_states=account_states,
@@ -96,10 +96,6 @@ class SimulationEngine:
         history: List[Turn] = []
 
         while turns_completed_ref[0] < max_months:
-            # Build per-turn logger from configuration-supplied listeners.
-            logger = _SimulationLoggerImpl(listeners=cfg.log_listeners)
-            logger_ref[0] = logger
-
             # Step 1: Increment date by one calendar month.
             current_date_ref[0] = _increment_date(current_date_ref[0])
 
@@ -107,9 +103,11 @@ class SimulationEngine:
             for state in person_states.values():
                 state.increment_age()
 
-            # Step 3: Run flows — exceptions propagate directly to the caller.
+            # Step 3: Run flows — return immediately on FitineraError.
             for flow in cfg.flows:
-                flow.executeFlow(view, updater, logger)
+                error = flow.executeFlow(view, updater, logger)
+                if error is not None:
+                    return SimulationData(result=error, turns=history)
 
             # Step 4: Evaluate all MetricGenerators.
             metrics: List[Metric] = [
@@ -149,7 +147,9 @@ class SimulationEngine:
 
             # Step 7a: Check all-persons-deceased halt condition.
             if person_states and all(not s.is_living() for s in person_states.values()):
-                return SimulationResult(turns=history)
+                return SimulationData(
+                    result=ReachedAllPersonsExpectancy(), turns=history
+                )
 
         # Step 7b: max_turns exhausted.
-        return SimulationResult(turns=history)
+        return SimulationData(result=ReachedMaxTurns(), turns=history)

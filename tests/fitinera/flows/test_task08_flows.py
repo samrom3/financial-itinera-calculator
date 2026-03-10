@@ -200,7 +200,6 @@ class TestAccountSolvencyGuardFlowExecute:
         When an account has get_label('Type') == 'ASSET' and balance < 0,
         SolvencyViolationError must be raised with the account id and balance in the message.
         """
-        import pytest
         from fitinera.engine.exceptions import SolvencyViolationError
 
         flow = AccountSolvencyGuardFlow()
@@ -210,10 +209,10 @@ class TestAccountSolvencyGuardFlowExecute:
         updater = MagicMock()
         logger = MagicMock()
 
-        with pytest.raises(SolvencyViolationError) as exc_info:
-            flow.executeFlow(view, updater, logger)
+        result = flow.executeFlow(view, updater, logger)
 
-        error_msg = str(exc_info.value)
+        assert isinstance(result, SolvencyViolationError)
+        error_msg = result.message()
         assert "checking" in error_msg
         assert "-100" in error_msg or "-100.0" in error_msg
 
@@ -291,7 +290,6 @@ class TestAccountSolvencyGuardFlowExecute:
         When multiple ASSET accounts have negative balances, execution halts at the first
         violation via SolvencyViolationError — no further accounts are inspected.
         """
-        import pytest
         from fitinera.engine.exceptions import SolvencyViolationError
 
         flow = AccountSolvencyGuardFlow()
@@ -304,8 +302,10 @@ class TestAccountSolvencyGuardFlowExecute:
         updater = MagicMock()
         logger = MagicMock()
 
-        with pytest.raises(SolvencyViolationError, match="checking"):
-            flow.executeFlow(view, updater, logger)
+        result = flow.executeFlow(view, updater, logger)
+
+        assert isinstance(result, SolvencyViolationError)
+        assert "checking" in result.message()
 
     def test_custom_asset_label_facet_and_value(self):
         """AccountSolvencyGuardFlow uses custom asset_label_facet and asset_label_value.
@@ -313,7 +313,6 @@ class TestAccountSolvencyGuardFlowExecute:
         An account matching the custom facet/value and having negative balance raises
         SolvencyViolationError; an account matching the default 'Type'/'ASSET' does not.
         """
-        import pytest
         from fitinera.engine.exceptions import SolvencyViolationError
 
         flow = AccountSolvencyGuardFlow(
@@ -325,8 +324,10 @@ class TestAccountSolvencyGuardFlowExecute:
         updater = MagicMock()
         logger = MagicMock()
 
-        with pytest.raises(SolvencyViolationError, match="wallet"):
-            flow.executeFlow(view, updater, logger)
+        result = flow.executeFlow(view, updater, logger)
+
+        assert isinstance(result, SolvencyViolationError)
+        assert "wallet" in result.message()
 
 
 # ---------------------------------------------------------------------------

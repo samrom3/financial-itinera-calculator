@@ -34,7 +34,7 @@ class _SimulationStateViewImpl(SimulationStateView):
         current_date_ref: "list[Date]",
         turns_completed_ref: "list[int]",
         tx_buffer: "list[Transaction]",
-        logger_ref: "list[SimulationLogger]",
+        logger: SimulationLogger,
     ) -> None:
         self._accounts = account_states
         self._persons = person_states
@@ -43,7 +43,7 @@ class _SimulationStateViewImpl(SimulationStateView):
         self._current_date_ref = current_date_ref
         self._turns_completed_ref = turns_completed_ref
         self._tx_buffer = tx_buffer
-        self._logger_ref = logger_ref
+        self._logger = logger
 
     def get_accounts(self) -> List[AccountState]:
         """Return live AccountState objects for all accounts."""
@@ -63,7 +63,7 @@ class _SimulationStateViewImpl(SimulationStateView):
         generator = self._metrics.get(name)
         if generator is None:
             return None
-        return generator.evaluate(self, self._logger_ref[0])
+        return generator.evaluate(self, self._logger)
 
     def get_start_date(self) -> Date:
         """Return the simulation start date from EngineConfiguration."""

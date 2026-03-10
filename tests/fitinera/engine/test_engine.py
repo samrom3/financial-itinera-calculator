@@ -1,9 +1,12 @@
 import pytest
 from fitinera.engine import SimulationEngine, EngineConfiguration
-from fitinera.engine.exceptions import SolvencyViolationError
+from fitinera.engine.exceptions import (
+    ReachedMaxTurns,
+    SolvencyViolationError,
+)
 from fitinera.flows import AccountSolvencyGuardFlow, LivingExpenseFlow
 from fitinera.models import Account, SimulationScenario, Date, TurnDuration
-from fitinera import SimulationResult
+from fitinera import SimulationData
 
 
 def test_simulation_engine_initialization_takes_configuration():
@@ -12,53 +15,46 @@ def test_simulation_engine_initialization_takes_configuration():
     assert engine.configuration is config
 
 
-class TestSimulationResultShape:
-    """Tests verifying SimulationResult dataclass shape and field types.
+class TestSimulationDataShape:
+    """Tests verifying SimulationData dataclass shape and field types.
 
-    These tests confirm that SimulationResult is a frozen dataclass with only
-    the turns field.
+    These tests confirm that SimulationData is a frozen dataclass with
+    a result field and a turns field.
     """
 
-    def test_simulation_result_can_be_constructed_with_turns(self):
-        """SimulationResult accepts a turns list at construction."""
-        result = SimulationResult(turns=[])
-        assert result.turns == []
+    def test_simulation_data_can_be_constructed_with_result_and_turns(self):
+        """SimulationData accepts a result and a turns list at construction."""
+        data = SimulationData(result=ReachedMaxTurns(), turns=[])
+        assert data.turns == []
+        assert data.result.ok()
 
-    def test_simulation_result_turns_defaults_to_empty_list(self):
-        """SimulationResult.turns defaults to an empty list when not provided."""
-        result = SimulationResult()
-        assert result.turns == []
+    def test_simulation_data_turns_defaults_to_empty_list(self):
+        """SimulationData.turns defaults to an empty list when not provided."""
+        data = SimulationData(result=ReachedMaxTurns())
+        assert data.turns == []
 
-    def test_simulation_result_is_frozen(self):
-        """SimulationResult is immutable; field assignment raises FrozenInstanceError."""
-        result = SimulationResult(turns=[])
+    def test_simulation_data_is_frozen(self):
+        """SimulationData is immutable; field assignment raises FrozenInstanceError."""
+        data = SimulationData(result=ReachedMaxTurns(), turns=[])
         with pytest.raises(Exception):
-            result.turns = []  # type: ignore[misc]
+            data.turns = []  # type: ignore[misc]
 
-    def test_simulation_result_turns_field_accepts_list(self):
-        """SimulationResult.turns is a list, indexable and iterable."""
-        result = SimulationResult(turns=[])
-        assert isinstance(result.turns, list)
-        assert len(result.turns) == 0
+    def test_simulation_data_turns_field_accepts_list(self):
+        """SimulationData.turns is a list, indexable and iterable."""
+        data = SimulationData(result=ReachedMaxTurns(), turns=[])
+        assert isinstance(data.turns, list)
+        assert len(data.turns) == 0
 
-    def test_simulation_result_has_no_success_field(self):
-        """SimulationResult no longer has a success field."""
-        result = SimulationResult(turns=[])
-        assert not hasattr(result, "success")
+    def test_simulation_data_result_field_is_fitinera_result(self):
+        """SimulationData.result holds a FitineraResult instance."""
+        from fitinera.engine.exceptions import FitineraResult
 
-    def test_simulation_result_has_no_error_message_field(self):
-        """SimulationResult no longer has an error_message field."""
-        result = SimulationResult(turns=[])
-        assert not hasattr(result, "error_message")
-
-    def test_simulation_result_has_no_log_messages_field(self):
-        """SimulationResult no longer has a log_messages field."""
-        result = SimulationResult(turns=[])
-        assert not hasattr(result, "log_messages")
+        data = SimulationData(result=ReachedMaxTurns())
+        assert isinstance(data.result, FitineraResult)
 
 
-def test_engine_raises_solvency_violation_on_logger_error():
-    """Engine propagates SolvencyViolationError raised by a flow."""
+def test_engine_returns_solvency_violation_in_result_on_negative_balance():
+    """Engine returns SimulationData with SolvencyViolationError when an ASSET account is negative."""
     from fitinera.models import Age, Person
 
     config = EngineConfiguration(
@@ -74,8 +70,10 @@ def test_engine_raises_solvency_violation_on_logger_error():
         ],
     )
 
-    with pytest.raises(SolvencyViolationError):
-        engine.run(scenario)
+    data = engine.run(scenario)
+
+    assert not data.result.ok()
+    assert isinstance(data.result, SolvencyViolationError)
 
 
 class TestEngineIntegration:
@@ -87,8 +85,8 @@ class TestEngineIntegration:
     def test_minimal_single_turn_scenario_returns_turns(self):
         """A scenario with one person and one account and no flows produces at least one turn.
 
-        The engine must produce a SimulationResult where result.turns has at least
-        one entry when no flows raise an exception.
+        The engine must produce a SimulationData where data.turns has at least
+        one entry when no flows return an error.
         """
         from fitinera.models import Age, Person
 
@@ -101,16 +99,17 @@ class TestEngineIntegration:
             initial_accounts=[Account(id="checking", balance=1000.0)],
         )
 
-        result = engine.run(scenario)
+        data = engine.run(scenario)
 
-        assert len(result.turns) >= 1
+        assert len(data.turns) >= 1
+        assert data.result.ok()
 
-    def test_solvency_guard_flow_raises_on_negative_balance(self):
-        """AccountSolvencyGuardFlow raises SolvencyViolationError when an ASSET account is negative.
+    def test_solvency_guard_flow_returns_error_on_negative_balance(self):
+        """AccountSolvencyGuardFlow triggers a SolvencyViolationError in SimulationData.result.
 
         When AccountSolvencyGuardFlow is included in the pipeline and the initial
-        balance of an ASSET-labeled account is negative, the engine raises
-        SolvencyViolationError.
+        balance of an ASSET-labeled account is negative, SimulationData.result
+        holds a SolvencyViolationError.
         """
         config = EngineConfiguration(
             start_date=Date(2026, 1),
@@ -124,12 +123,14 @@ class TestEngineIntegration:
             ],
         )
 
-        with pytest.raises(SolvencyViolationError):
-            engine.run(scenario)
+        data = engine.run(scenario)
+
+        assert not data.result.ok()
+        assert isinstance(data.result, SolvencyViolationError)
 
 
-def test_engine_raises_when_living_expense_drains_account_negative():
-    """Engine raises SolvencyViolationError when LivingExpenseFlow drains account below zero."""
+def test_engine_returns_solvency_error_when_living_expense_drains_account_negative():
+    """Engine returns SolvencyViolationError in result when LivingExpenseFlow drains account below zero."""
     config = EngineConfiguration(
         start_date=Date(2026, 1),
         max_turns=TurnDuration.of(years=1),
@@ -145,8 +146,10 @@ def test_engine_raises_when_living_expense_drains_account_negative():
         ],
     )
 
-    with pytest.raises(SolvencyViolationError):
-        engine.run(scenario)
+    data = engine.run(scenario)
+
+    assert not data.result.ok()
+    assert isinstance(data.result, SolvencyViolationError)
 
 
 def test_engine_solvency_error_message_contains_account_id():
@@ -166,8 +169,10 @@ def test_engine_solvency_error_message_contains_account_id():
         ],
     )
 
-    with pytest.raises(SolvencyViolationError, match="checking"):
-        engine.run(scenario)
+    data = engine.run(scenario)
+
+    assert not data.result.ok()
+    assert "checking" in data.result.message()
 
 
 def test_engine_logger_error_does_not_halt_simulation():
@@ -185,6 +190,7 @@ def test_engine_logger_error_does_not_halt_simulation():
     engine = SimulationEngine(config)
     scenario = SimulationScenario()
 
-    result = engine.run(scenario)
+    data = engine.run(scenario)
 
-    assert len(result.turns) == 1
+    assert len(data.turns) == 1
+    assert data.result.ok()
