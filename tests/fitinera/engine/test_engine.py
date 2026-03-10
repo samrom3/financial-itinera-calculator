@@ -1,6 +1,6 @@
 import pytest
 from fitinera.engine import SimulationEngine, EngineConfiguration
-from fitinera.engine.exceptions import (
+from fitinera.engine.result import (
     ReachedMaxTurns,
     SolvencyViolationError,
 )
@@ -47,7 +47,7 @@ class TestSimulationDataShape:
 
     def test_simulation_data_result_field_is_fitinera_result(self):
         """SimulationData.result holds a FitineraResult instance."""
-        from fitinera.engine.exceptions import FitineraResult
+        from fitinera.engine.result import FitineraResult
 
         data = SimulationData(result=ReachedMaxTurns())
         assert isinstance(data.result, FitineraResult)

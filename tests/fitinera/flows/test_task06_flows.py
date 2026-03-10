@@ -220,7 +220,7 @@ class TestAccountSolvencyGuardFlowRisk:
         """
         from unittest.mock import MagicMock
         from fitinera.models import AccountState
-        from fitinera.engine.exceptions import SolvencyViolationError
+        from fitinera.engine.result import SolvencyViolationError
 
         flow = AccountSolvencyGuardFlow()
         account = AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"})

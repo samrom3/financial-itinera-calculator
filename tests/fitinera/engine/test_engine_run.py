@@ -9,7 +9,7 @@ from typing import List
 
 
 from fitinera.engine import EngineConfiguration, SimulationEngine
-from fitinera.engine.exceptions import (
+from fitinera.engine.result import (
     ReachedAllPersonsExpectancy,
     ReachedMaxTurns,
     SolvencyViolationError,

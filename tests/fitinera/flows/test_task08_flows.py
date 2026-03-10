@@ -200,7 +200,7 @@ class TestAccountSolvencyGuardFlowExecute:
         When an account has get_label('Type') == 'ASSET' and balance < 0,
         SolvencyViolationError must be raised with the account id and balance in the message.
         """
-        from fitinera.engine.exceptions import SolvencyViolationError
+        from fitinera.engine.result import SolvencyViolationError
 
         flow = AccountSolvencyGuardFlow()
         account = AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"})
@@ -290,7 +290,7 @@ class TestAccountSolvencyGuardFlowExecute:
         When multiple ASSET accounts have negative balances, execution halts at the first
         violation via SolvencyViolationError — no further accounts are inspected.
         """
-        from fitinera.engine.exceptions import SolvencyViolationError
+        from fitinera.engine.result import SolvencyViolationError
 
         flow = AccountSolvencyGuardFlow()
         accounts = [
@@ -313,7 +313,7 @@ class TestAccountSolvencyGuardFlowExecute:
         An account matching the custom facet/value and having negative balance raises
         SolvencyViolationError; an account matching the default 'Type'/'ASSET' does not.
         """
-        from fitinera.engine.exceptions import SolvencyViolationError
+        from fitinera.engine.result import SolvencyViolationError
 
         flow = AccountSolvencyGuardFlow(
             asset_label_facet="Category", asset_label_value="CASH"

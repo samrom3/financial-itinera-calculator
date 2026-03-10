@@ -128,8 +128,8 @@ returned type in its docstring under a `Returns:` section, so callers are never 
 ### Module location
 
 All result types (`FitineraResult`, `FitineraSuccess`, `FitineraError`, and all subclasses, plus `SimulationData`) live
-in `fitinera.engine.result`. The module `fitinera.engine.exceptions` is retained as a re-export shim for backwards
-compatibility only; new code should import from `fitinera.engine.result` or from the top-level `fitinera` package.
+in `fitinera.engine.result`. Import from `fitinera.engine.result` directly, or from the top-level `fitinera` package.
+The module `fitinera.engine.exceptions` does not exist.
 
 ## Consequences
 

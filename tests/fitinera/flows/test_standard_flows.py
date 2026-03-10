@@ -8,7 +8,7 @@ from fitinera.flows import (
     NetWorthGenerator,
     AccountSolvencyGuardFlow,
 )
-from fitinera.engine.exceptions import SolvencyViolationError
+from fitinera.engine.result import SolvencyViolationError
 from fitinera.models import AccountState, Age, Income, Expense, Transfer, Person
 
 
