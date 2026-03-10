@@ -194,12 +194,15 @@ class TestConditionalLabelFlowExecute:
 class TestAccountSolvencyGuardFlowExecute:
     """Tests for AccountSolvencyGuardFlow.executeFlow() behavior."""
 
-    def test_logs_error_for_asset_account_with_negative_balance(self):
-        """AccountSolvencyGuardFlow logs error when an ASSET account has negative balance.
+    def test_raises_for_asset_account_with_negative_balance(self):
+        """AccountSolvencyGuardFlow raises SolvencyViolationError for negative ASSET balance.
 
         When an account has get_label('Type') == 'ASSET' and balance < 0,
-        logger.error must be called.
+        SolvencyViolationError must be raised with the account id and balance in the message.
         """
+        import pytest
+        from fitinera.engine.exceptions import SolvencyViolationError
+
         flow = AccountSolvencyGuardFlow()
         account = AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"})
         view = MagicMock()
@@ -207,10 +210,10 @@ class TestAccountSolvencyGuardFlowExecute:
         updater = MagicMock()
         logger = MagicMock()
 
-        flow.executeFlow(view, updater, logger)
+        with pytest.raises(SolvencyViolationError) as exc_info:
+            flow.executeFlow(view, updater, logger)
 
-        logger.error.assert_called_once()
-        error_msg = logger.error.call_args[0][0]
+        error_msg = str(exc_info.value)
         assert "checking" in error_msg
         assert "-100" in error_msg or "-100.0" in error_msg
 
@@ -282,11 +285,15 @@ class TestAccountSolvencyGuardFlowExecute:
 
         logger.error.assert_not_called()
 
-    def test_logs_error_for_each_violating_asset_account(self):
-        """AccountSolvencyGuardFlow logs one error per violating ASSET account.
+    def test_raises_for_first_violating_asset_account(self):
+        """AccountSolvencyGuardFlow raises SolvencyViolationError on the first violating ASSET account.
 
-        Multiple violating ASSET accounts each produce a separate logger.error call.
+        When multiple ASSET accounts have negative balances, execution halts at the first
+        violation via SolvencyViolationError — no further accounts are inspected.
         """
+        import pytest
+        from fitinera.engine.exceptions import SolvencyViolationError
+
         flow = AccountSolvencyGuardFlow()
         accounts = [
             AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"}),
@@ -297,16 +304,18 @@ class TestAccountSolvencyGuardFlowExecute:
         updater = MagicMock()
         logger = MagicMock()
 
-        flow.executeFlow(view, updater, logger)
-
-        assert logger.error.call_count == 2
+        with pytest.raises(SolvencyViolationError, match="checking"):
+            flow.executeFlow(view, updater, logger)
 
     def test_custom_asset_label_facet_and_value(self):
         """AccountSolvencyGuardFlow uses custom asset_label_facet and asset_label_value.
 
-        An account matching the custom facet/value and having negative balance triggers
-        logger.error; an account matching the default 'Type'/'ASSET' does not.
+        An account matching the custom facet/value and having negative balance raises
+        SolvencyViolationError; an account matching the default 'Type'/'ASSET' does not.
         """
+        import pytest
+        from fitinera.engine.exceptions import SolvencyViolationError
+
         flow = AccountSolvencyGuardFlow(
             asset_label_facet="Category", asset_label_value="CASH"
         )
@@ -316,9 +325,8 @@ class TestAccountSolvencyGuardFlowExecute:
         updater = MagicMock()
         logger = MagicMock()
 
-        flow.executeFlow(view, updater, logger)
-
-        logger.error.assert_called_once()
+        with pytest.raises(SolvencyViolationError, match="wallet"):
+            flow.executeFlow(view, updater, logger)
 
 
 # ---------------------------------------------------------------------------

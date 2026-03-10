@@ -133,20 +133,19 @@ class TestScenario4MortgagePaydown:
     (FR-014) and does not fire when a LIABILITY account has a negative balance.
     """
 
-    def test_scenario4_result_success_is_true(self):
-        """Simulation completes with success=True for 187 turns.
+    def test_scenario4_completes_without_exception(self):
+        """Simulation completes without exception for 187 turns.
 
         The checking ASSET account always stays positive (net income > payments).
-        AccountSolvencyGuardFlow therefore never fires, and the engine halts via
-        max_turns with success=True.
+        AccountSolvencyGuardFlow therefore never raises, and the engine halts via
+        max_turns.
         """
         config = _build_config()
         scenario = _build_scenario()
 
         result = SimulationEngine(config).run(scenario)
 
-        assert result.success is True
-        assert result.error_message is None
+        assert isinstance(result.turns, list)
 
     def test_scenario4_produces_expected_turn_count(self):
         """Engine runs for exactly 187 turns before max_turns is exhausted."""
@@ -193,20 +192,20 @@ class TestScenario4MortgagePaydown:
             f"Expected mortgage balance <= $0 at last turn, got {mortgage.balance}"
         )
 
-    def test_scenario4_solvency_guard_does_not_fire_when_liability_is_negative(self):
-        """AccountSolvencyGuardFlow does not trigger on a negative LIABILITY balance.
+    def test_scenario4_solvency_guard_does_not_raise_when_liability_is_negative(self):
+        """AccountSolvencyGuardFlow does not raise on a negative LIABILITY balance.
 
         The mortgage account has label Type=LIABILITY. Per FR-014, AccountSolvencyGuardFlow
         only inspects accounts where get_label('Type') == 'ASSET'. A negative mortgage
-        balance must not cause the simulation to fail.
+        balance must not cause the simulation to raise SolvencyViolationError.
         """
         config = _build_config()
         scenario = _build_scenario()
 
         result = SimulationEngine(config).run(scenario)
 
-        # Confirm the simulation succeeded despite the mortgage being negative throughout.
-        assert result.success is True
+        # Confirm the simulation produced turns despite the mortgage being negative.
+        assert len(result.turns) == _SIMULATION_TURNS
 
         # Verify the mortgage IS negative during the simulation (at turn 0).
         first_turn = result.turns[0]

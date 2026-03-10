@@ -113,8 +113,8 @@ class TestScenarioSimpleSaving:
             ],
         )
 
-    def test_scenario_1_succeeds(self):
-        """Running Scenario 1 produces result.success is True.
+    def test_scenario_1_completes_without_exception(self):
+        """Running Scenario 1 completes without raising an exception.
 
         The solvency guard never fires because the balance is never negative
         during the working phase, so the simulation reaches max_turns
@@ -123,7 +123,7 @@ class TestScenarioSimpleSaving:
         engine = SimulationEngine(self._build_config())
         result = engine.run(self._build_scenario())
 
-        assert result.success is True
+        assert isinstance(result.turns, list)
 
     def test_scenario_1_produces_936_turns(self):
         """Running Scenario 1 produces exactly 936 turns (78 years × 12 months).
@@ -164,12 +164,13 @@ class TestScenarioSimpleSaving:
 
         assert person.get_label("Status") == "Retired"
 
-    def test_scenario_1_error_message_is_none(self):
-        """No error_message is set when the simulation completes successfully.
+    def test_scenario_1_solvency_guard_does_not_raise(self):
+        """AccountSolvencyGuardFlow does not raise during Scenario 1.
 
-        A successful run (no logger.error called) must have error_message=None.
+        Income always exceeds expenses during the working phase, so the checking
+        account balance stays non-negative and SolvencyViolationError is never raised.
         """
         engine = SimulationEngine(self._build_config())
+        # If no exception is raised, the guard did not fire.
         result = engine.run(self._build_scenario())
-
-        assert result.error_message is None
+        assert len(result.turns) == 936

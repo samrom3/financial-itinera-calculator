@@ -11,7 +11,6 @@ from ..models import (
 from ..models.person import Person
 from ..models.scenario import Turn
 from .configuration import EngineConfiguration
-from .listeners import ListLogListener, PythonLoggingListener
 from .result import SimulationResult
 from .state import (
     _LivePersonState,
@@ -42,19 +41,18 @@ class SimulationEngine:
 
         Initialises live state from the scenario, then executes turns until
         one of the halt conditions is triggered (FR-023):
-          1. A flow emits a logger error -> success=False.
-          2. All persons are no longer living -> success=True.
-          3. max_turns months have been completed -> success=True.
+          1. A flow raises a FitineraError exception — propagates to the caller.
+          2. All persons are no longer living.
+          3. max_turns months have been completed.
 
         Within each turn the engine:
           1. Increments the current Date by one calendar month.
           2. Increments all persons' Age by one month.
           3. Runs all Flows in configuration order.
-          4. Checks for logger error (halts without snapshot if set).
-          5. Evaluates all MetricGenerators.
-          6. Snapshots the turn as a frozen Turn.
-          7. Clears the transaction buffer.
-          8. Checks remaining halt conditions.
+          4. Evaluates all MetricGenerators.
+          5. Snapshots the turn as a frozen Turn.
+          6. Clears the transaction buffer.
+          7. Checks remaining halt conditions.
         """
         cfg = self.configuration
 
@@ -96,15 +94,10 @@ class SimulationEngine:
 
         max_months = cfg.max_turns.months
         history: List[Turn] = []
-        all_log_messages: List[str] = []
 
         while turns_completed_ref[0] < max_months:
-            # Build per-turn listeners: a ListLogListener for error detection/accumulation
-            # and a PythonLoggingListener for operator visibility.
-            turn_list_listener = ListLogListener()
-            logger = _SimulationLoggerImpl(
-                listeners=[turn_list_listener, PythonLoggingListener()]
-            )
+            # Build per-turn logger from configuration-supplied listeners.
+            logger = _SimulationLoggerImpl(listeners=cfg.log_listeners)
             logger_ref[0] = logger
 
             # Step 1: Increment date by one calendar month.
@@ -114,29 +107,17 @@ class SimulationEngine:
             for state in person_states.values():
                 state.increment_age()
 
-            # Steps 3+4: Run flows; halt immediately after the offending flow if an error is logged.
+            # Step 3: Run flows — exceptions propagate directly to the caller.
             for flow in cfg.flows:
                 flow.executeFlow(view, updater, logger)
-                error_msgs = [
-                    m for m in turn_list_listener.messages if m.startswith("[ERROR] ")
-                ]
-                if error_msgs:
-                    all_log_messages.extend(turn_list_listener.messages)
-                    first_error = error_msgs[0][len("[ERROR] ") :]
-                    return SimulationResult(
-                        turns=history,
-                        success=False,
-                        error_message=first_error,
-                        log_messages=all_log_messages,
-                    )
 
-            # Step 5: Evaluate all MetricGenerators.
+            # Step 4: Evaluate all MetricGenerators.
             metrics: List[Metric] = [
                 Metric(name=name, value=gen.evaluate(view, logger))
                 for name, gen in cfg.metrics.items()
             ]
 
-            # Step 6: Snapshot the turn — accounts and persons reflect post-flow state.
+            # Step 5: Snapshot the turn — accounts and persons reflect post-flow state.
             snapshot_accounts = [
                 Account(id=s.id, balance=s.balance, labels=dict(s.labels))
                 for s in account_states
@@ -160,22 +141,15 @@ class SimulationEngine:
             )
             history.append(turn)
 
-            # Accumulate log messages from this turn.
-            all_log_messages.extend(turn_list_listener.messages)
-
-            # Step 7: Clear transaction buffer.
+            # Step 6: Clear transaction buffer.
             tx_buffer.clear()
 
-            # Step 8: Advance turns_completed counter.
+            # Step 7: Advance turns_completed counter.
             turns_completed_ref[0] += 1
 
-            # Step 8a: Check all-persons-deceased halt condition.
+            # Step 7a: Check all-persons-deceased halt condition.
             if person_states and all(not s.is_living() for s in person_states.values()):
-                return SimulationResult(
-                    turns=history, success=True, log_messages=all_log_messages
-                )
+                return SimulationResult(turns=history)
 
-        # Step 8b: max_turns exhausted.
-        return SimulationResult(
-            turns=history, success=True, log_messages=all_log_messages
-        )
+        # Step 7b: max_turns exhausted.
+        return SimulationResult(turns=history)

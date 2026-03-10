@@ -148,19 +148,18 @@ class TestScenario3RebalancingInflation:
     PersonRetirementLabelFlow produces a successful result over the working period.
     """
 
-    def test_scenario3_result_success_is_true(self):
-        """Simulation completes with success=True across 39 working years.
+    def test_scenario3_completes_without_exception(self):
+        """Simulation completes without exception across 39 working years.
 
         No ASSET account balance goes negative, so AccountSolvencyGuardFlow never
-        fires and the engine halts via max_turns.
+        raises and the engine halts via max_turns.
         """
         config = _build_config()
         scenario = _build_scenario()
 
         result = SimulationEngine(config).run(scenario)
 
-        assert result.success is True
-        assert result.error_message is None
+        assert isinstance(result.turns, list)
 
     def test_scenario3_produces_expected_turn_count(self):
         """Engine runs for exactly 468 turns (39 years * 12 months).
@@ -264,8 +263,8 @@ class TestScenario3RebalancingInflation:
         person = next(p for p in last_turn.persons if p.id == "person")
         assert person.get_label("Status") == "Retired"
 
-    def test_scenario3_solvency_guard_does_not_fire(self):
-        """AccountSolvencyGuardFlow does not fire during the working period.
+    def test_scenario3_solvency_guard_does_not_raise(self):
+        """AccountSolvencyGuardFlow does not raise during the working period.
 
         With income of $100k/yr and living expenses of $50k/yr, the net monthly
         inflow keeps the checking account positive throughout the working period.
@@ -275,6 +274,5 @@ class TestScenario3RebalancingInflation:
 
         result = SimulationEngine(config).run(scenario)
 
-        assert result.success is True
-        # Double-check: no error message was recorded.
-        assert result.error_message is None
+        expected_turns = _WORKING_YEARS * 12
+        assert len(result.turns) == expected_turns
