@@ -7,12 +7,12 @@ protocol:
   for in-process inspection and testing.
 - ``PythonLoggingListener``: delegates each call to
   ``logging.getLogger("fitinera.engine")`` at the corresponding level.
-
-Both classes are **stubs** in this story — all four log methods raise
-``NotImplementedError``.  Full implementations are delivered in story-02.
 """
 
+import logging
 from typing import List
+
+_ENGINE_LOGGER = logging.getLogger("fitinera.engine")
 
 
 class ListLogListener:
@@ -25,8 +25,7 @@ class ListLogListener:
         messages: Ordered list of log message strings in ``[LEVEL] msg`` format.
 
     Note:
-        This implementation is not thread-safe.  Story-02 delivers the real
-        implementation; until then all methods raise ``NotImplementedError``.
+        This implementation is not thread-safe.
     """
 
     def __init__(self) -> None:
@@ -38,44 +37,32 @@ class ListLogListener:
 
         Args:
             msg: The message string to record.
-
-        Raises:
-            NotImplementedError: Always — stub pending story-02 implementation.
         """
-        raise NotImplementedError("ListLogListener.debug is not yet implemented")
+        self.messages.append(f"[DEBUG] {msg}")
 
     def info(self, msg: str) -> None:
         """Appends an INFO-level message to self.messages.
 
         Args:
             msg: The message string to record.
-
-        Raises:
-            NotImplementedError: Always — stub pending story-02 implementation.
         """
-        raise NotImplementedError("ListLogListener.info is not yet implemented")
+        self.messages.append(f"[INFO] {msg}")
 
     def warning(self, msg: str) -> None:
         """Appends a WARNING-level message to self.messages.
 
         Args:
             msg: The message string to record.
-
-        Raises:
-            NotImplementedError: Always — stub pending story-02 implementation.
         """
-        raise NotImplementedError("ListLogListener.warning is not yet implemented")
+        self.messages.append(f"[WARNING] {msg}")
 
     def error(self, msg: str) -> None:
         """Appends an ERROR-level message to self.messages.
 
         Args:
             msg: The message string to record.
-
-        Raises:
-            NotImplementedError: Always — stub pending story-02 implementation.
         """
-        raise NotImplementedError("ListLogListener.error is not yet implemented")
+        self.messages.append(f"[ERROR] {msg}")
 
 
 class PythonLoggingListener:
@@ -86,8 +73,7 @@ class PythonLoggingListener:
 
     Note:
         This implementation is not thread-safe beyond what ``logging`` itself
-        guarantees.  Story-02 delivers the real implementation; until then all
-        methods raise ``NotImplementedError``.
+        guarantees.
     """
 
     def debug(self, msg: str) -> None:
@@ -95,43 +81,29 @@ class PythonLoggingListener:
 
         Args:
             msg: The message string to log.
-
-        Raises:
-            NotImplementedError: Always — stub pending story-02 implementation.
         """
-        raise NotImplementedError("PythonLoggingListener.debug is not yet implemented")
+        _ENGINE_LOGGER.debug(msg)
 
     def info(self, msg: str) -> None:
         """Delegates to logging.getLogger("fitinera.engine").info(msg).
 
         Args:
             msg: The message string to log.
-
-        Raises:
-            NotImplementedError: Always — stub pending story-02 implementation.
         """
-        raise NotImplementedError("PythonLoggingListener.info is not yet implemented")
+        _ENGINE_LOGGER.info(msg)
 
     def warning(self, msg: str) -> None:
         """Delegates to logging.getLogger("fitinera.engine").warning(msg).
 
         Args:
             msg: The message string to log.
-
-        Raises:
-            NotImplementedError: Always — stub pending story-02 implementation.
         """
-        raise NotImplementedError(
-            "PythonLoggingListener.warning is not yet implemented"
-        )
+        _ENGINE_LOGGER.warning(msg)
 
     def error(self, msg: str) -> None:
         """Delegates to logging.getLogger("fitinera.engine").error(msg).
 
         Args:
             msg: The message string to log.
-
-        Raises:
-            NotImplementedError: Always — stub pending story-02 implementation.
         """
-        raise NotImplementedError("PythonLoggingListener.error is not yet implemented")
+        _ENGINE_LOGGER.error(msg)
