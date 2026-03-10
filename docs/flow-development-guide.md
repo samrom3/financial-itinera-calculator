@@ -20,7 +20,7 @@ class Flow(Protocol):
         view: SimulationStateView,
         updater: SimulationStateUpdater,
         logger: SimulationLogger,
-    ) -> None: ...
+    ) -> Optional[FitineraError]: ...
 ```
 
 There is no base class to inherit from. Any object that exposes `executeFlow(view, updater, logger)` satisfies the
@@ -78,7 +78,7 @@ def executeFlow(
     view: SimulationStateView,
     updater: SimulationStateUpdater,
     logger: SimulationLogger,
-) -> None: ...
+) -> Optional[FitineraError]: ...
 ```
 
 ### `view` — `SimulationStateView`
@@ -119,24 +119,30 @@ Controlled write access for the current turn only.
 
 Use `logger.error` for non-halting error-level observations (e.g. a downstream service needed retries but eventually
 succeeded — worth alerting the user, but the simulation can continue). Use `logger.warning` for expected edge cases that
-should be visible but are not fatal. To halt the simulation for a genuine unrecoverable condition, raise a
-`FitineraError` subclass instead — see "When to raise vs. when to log" below.
+should be visible but are not fatal. To halt the simulation for a genuine unrecoverable condition, return a
+`FitineraError` subclass instance instead — see "When to return vs. when to log" below.
 
 ______________________________________________________________________
 
-## When to raise vs. when to log
+## When to return vs. when to log
 
-Fitinera draws a sharp line between **error signaling** (raising an exception) and **error observation** (logging at
-`ERROR` level). Understanding this distinction is essential for writing well-behaved flows.
+Fitinera draws a sharp line between **error signaling** (returning a `FitineraError` value) and **error observation**
+(logging at `ERROR` level). Understanding this distinction is essential for writing well-behaved flows.
 
-### Raise `FitineraError` for genuine unrecoverable conditions
+### Return `FitineraError` for genuine unrecoverable conditions
 
-Raise a `FitineraError` subclass when the simulation **cannot meaningfully continue** — the invariant is broken and
-proceeding would produce misleading results. Raising is **rare**. Every flow that can raise must document the exception
-type in its `executeFlow` docstring under a `Raises:` section so callers are never surprised.
+Return a `FitineraError` subclass instance when the simulation **cannot meaningfully continue** — the invariant is
+broken and proceeding would produce misleading results. Return `None` on the normal (continue) path. Returning a halt is
+**rare**. Every flow that can return a halt must document the return type in its `executeFlow` docstring under a
+`Returns:` section so callers are never surprised.
 
 ```python
-def executeFlow(self, view, updater, logger):
+def executeFlow(
+    self,
+    view: SimulationStateView,
+    updater: SimulationStateUpdater,
+    logger: SimulationLogger,
+) -> Optional[FitineraError]:
     """Check account solvency and halt if the balance is negative.
 
     Args:
@@ -144,14 +150,16 @@ def executeFlow(self, view, updater, logger):
         updater: Write interface (unused by this flow).
         logger: Logging interface for audit messages.
 
-    Raises:
-        SolvencyViolationError: When account balance falls below zero.
+    Returns:
+        None to continue the simulation, or SolvencyViolationError when the
+        account balance falls below zero.
     """
     account = view.get_account(self.account_id)
     if account.balance < 0:
-        raise SolvencyViolationError(
+        return SolvencyViolationError(
             f"Account '{self.account_id}' is insolvent: balance={account.balance:.2f}"
         )
+    return None
 ```
 
 ### Use `logger.error()` for non-halting error-level observations
@@ -169,7 +177,7 @@ logger.error(
 
 ### `FitineraError` subtype guidance
 
-| Exception                | When to use                                                                                   |
+| FitineraError subtype    | When to use                                                                                   |
 | ------------------------ | --------------------------------------------------------------------------------------------- |
 | `InternalError`          | An invariant that should never occur has been violated (programming error or corrupt state)   |
 | `InvalidArgumentError`   | A construction-time argument is invalid (caught at `__init__` time, not during `executeFlow`) |
@@ -468,8 +476,11 @@ December (the 12th month of each calendar year). It demonstrates:
 - A conditional `Income` emission with a descriptive label
 
 ```python
+from typing import Optional
+
 from fitinera import (
     Flow,
+    FitineraError,
     Income,
     SimulationStateView,
     SimulationStateUpdater,
@@ -500,7 +511,7 @@ class AnnualBonusFlow(Flow):
         view: SimulationStateView,
         updater: SimulationStateUpdater,
         logger: SimulationLogger,
-    ) -> None:
+    ) -> Optional[FitineraError]:
         """Emit the annual bonus income when the current turn falls in December.
 
         Guards:
@@ -513,6 +524,9 @@ class AnnualBonusFlow(Flow):
             view: Read-only view of the current simulation state.
             updater: Write interface for emitting the bonus transaction.
             logger: Logging interface for audit messages.
+
+        Returns:
+            None in all cases — this flow never halts the simulation.
         """
         # Gate 1: only act in December
         current_date = view.get_current_date()
@@ -556,6 +570,7 @@ class AnnualBonusFlow(Flow):
             f"AnnualBonusFlow: deposited ${self.amount:,.2f} bonus for "
             f"'{self.person_id}' in {current_date.year}-12."
         )
+        return None
 ```
 
 ### Usage in an `EngineConfiguration`
@@ -587,6 +602,7 @@ Before adding a new Flow to a pipeline:
 
 1. Does it need to mutate state (balances or labels)? If not, use a `MetricGenerator` instead.
 1. Are all guard conditions handled (person not found, wrong label, wrong date)?
-1. Is `FitineraError` raised only for genuinely unrecoverable conditions, documented in the Flow's docstring?
+1. Does `executeFlow` return `None` on the normal path and a `FitineraError` only for genuinely unrecoverable
+   conditions, documented under a `Returns:` section in the Flow's docstring?
 1. Does the flow's position in the pipeline respect intra-turn causality (ADR-0005)?
 1. Does the flow accept its parameters via the constructor rather than hard-coding scenario-specific values?
