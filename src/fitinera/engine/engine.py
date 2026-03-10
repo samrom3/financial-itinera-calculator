@@ -11,6 +11,7 @@ from ..models import (
 from ..models.person import Person
 from ..models.scenario import Turn
 from .configuration import EngineConfiguration
+from .listeners import ListLogListener, PythonLoggingListener
 from .result import SimulationResult
 from .state import (
     _LivePersonState,
@@ -74,7 +75,7 @@ class SimulationEngine:
         tx_buffer: List[Transaction] = []
 
         # --- Logger ref: placeholder replaced at start of each turn ---
-        logger_ref: List[_SimulationLoggerImpl] = [_SimulationLoggerImpl()]
+        logger_ref: List[_SimulationLoggerImpl] = [_SimulationLoggerImpl(listeners=[])]
 
         # --- Build the view/updater; logger is recreated per turn ---
         view = _SimulationStateViewImpl(
@@ -98,7 +99,12 @@ class SimulationEngine:
         all_log_messages: List[str] = []
 
         while turns_completed_ref[0] < max_months:
-            logger = _SimulationLoggerImpl()
+            # Build per-turn listeners: a ListLogListener for error detection/accumulation
+            # and a PythonLoggingListener for operator visibility.
+            turn_list_listener = ListLogListener()
+            logger = _SimulationLoggerImpl(
+                listeners=[turn_list_listener, PythonLoggingListener()]
+            )
             logger_ref[0] = logger
 
             # Step 1: Increment date by one calendar month.
@@ -111,12 +117,16 @@ class SimulationEngine:
             # Steps 3+4: Run flows; halt immediately after the offending flow if an error is logged.
             for flow in cfg.flows:
                 flow.executeFlow(view, updater, logger)
-                if logger.has_error:
-                    all_log_messages.extend(logger.messages)
+                error_msgs = [
+                    m for m in turn_list_listener.messages if m.startswith("[ERROR] ")
+                ]
+                if error_msgs:
+                    all_log_messages.extend(turn_list_listener.messages)
+                    first_error = error_msgs[0][len("[ERROR] ") :]
                     return SimulationResult(
                         turns=history,
                         success=False,
-                        error_message=logger.error_message,
+                        error_message=first_error,
                         log_messages=all_log_messages,
                     )
 
@@ -151,7 +161,7 @@ class SimulationEngine:
             history.append(turn)
 
             # Accumulate log messages from this turn.
-            all_log_messages.extend(logger.messages)
+            all_log_messages.extend(turn_list_listener.messages)
 
             # Step 7: Clear transaction buffer.
             tx_buffer.clear()
