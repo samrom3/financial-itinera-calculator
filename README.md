@@ -163,9 +163,14 @@ result = engine.run(scenario)
 > tradeoffs behind this design.
 
 > **Building custom Flows and MetricGenerators**: see
-> [`docs/flow-development-guide.md`](./docs/flow-development-guide.md) for the canonical guide covering the
-> `executeFlow` contract, transaction types, condition composition, pipeline ordering, and a fully annotated worked
+> [`docs/guides/flow-development-guide.md`](./docs/guides/flow-development-guide.md) for the canonical guide covering
+> the `executeFlow` contract, transaction types, condition composition, pipeline ordering, and a fully annotated worked
 > example.
+
+> **Extending the account type hierarchy**: see
+> [`docs/guides/account-type-development-guide.md`](./docs/guides/account-type-development-guide.md) for a guide on
+> subclassing `AssetAccount` or `LiabilityAccount`, implementing the `to_state()` / `to_snapshot()` factory methods, and
+> understanding how `isinstance`-based flows interact with new subtypes automatically.
 
 ### Primary User-Facing Elements
 

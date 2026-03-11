@@ -95,7 +95,7 @@ Read-only access to the current and past simulation state.
 | `view.get_elapsed_duration()`          | `TurnDuration`       | Months elapsed since start; `.years` and `.years_frac` are derived             |
 | `view.get_current_turn_transactions()` | `List[Transaction]`  | Transactions emitted so far within the current turn                            |
 
-**Intra-turn visibility ([ADR-0005](adrs/0005-intra-turn-causality-and-execution-order.md)):** transactions emitted
+**Intra-turn visibility ([ADR-0005](../adrs/0005-intra-turn-causality-and-execution-order.md)):** transactions emitted
 earlier in the pipeline are immediately visible to later flows in the same turn. `view.get_accounts()` always reflects
 the current, live balance — not the snapshot from the previous turn.
 
