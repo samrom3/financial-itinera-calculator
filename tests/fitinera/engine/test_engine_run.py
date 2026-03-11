@@ -14,7 +14,7 @@ from fitinera.engine.result import (
     ReachedMaxTurns,
     SolvencyViolationError,
 )
-from fitinera.flows import AccountSolvencyGuardFlow
+from fitinera.flows import AssetSolvencyGuardFlow
 from fitinera.models import (
     AccountState,
     AssetAccount,
@@ -462,10 +462,10 @@ class TestEngineRunHaltConditions:
         assert isinstance(data.result, ReachedMaxTurns)
 
     def test_solvency_guard_returns_error_on_negative_balance(self):
-        """AccountSolvencyGuardFlow returns SolvencyViolationError for negative-balance ASSET account."""
+        """AssetSolvencyGuardFlow returns SolvencyViolationError for negative-balance ASSET account."""
         config = _make_config(
             max_turns=TurnDuration.of(years=1),
-            flows=[AccountSolvencyGuardFlow()],
+            flows=[AssetSolvencyGuardFlow()],
         )
         engine = SimulationEngine(config)
         scenario = SimulationScenario(

@@ -8,7 +8,7 @@ The scenario runs for 78 years (936 monthly turns):
 - Person starts age 22, life expectancy 100 (78 years = 936 turns).
 - Person has label Status="Working".
 - Single checking account with ASSET label, initial balance $0, no interest.
-- Pipeline: AccountSolvencyGuardFlow, JobIncomeFlow, LivingExpenseFlow,
+- Pipeline: AssetSolvencyGuardFlow, JobIncomeFlow, LivingExpenseFlow,
   PersonRetirementLabelFlow (triggers at age 61).
 
 Expected outcome (FR-024):
@@ -36,7 +36,7 @@ from fitinera import (
     EngineConfiguration,
 )
 from fitinera.flows import (
-    AccountSolvencyGuardFlow,
+    AssetSolvencyGuardFlow,
     JobIncomeFlow,
     LivingExpenseFlow,
     PersonRetirementLabelFlow,
@@ -92,7 +92,7 @@ class TestScenarioSimpleSaving:
             start_date=Date(year=2024, month=1),
             max_turns=TurnDuration.of(years=78),
             flows=[
-                AccountSolvencyGuardFlow(),
+                AssetSolvencyGuardFlow(),
                 JobIncomeFlow(
                     person_id="person",
                     amount=100_000 / 12,
@@ -165,7 +165,7 @@ class TestScenarioSimpleSaving:
         assert person.get_label("Status") == "Retired"
 
     def test_scenario_1_solvency_guard_does_not_raise(self):
-        """AccountSolvencyGuardFlow does not raise during Scenario 1.
+        """AssetSolvencyGuardFlow does not raise during Scenario 1.
 
         Income always exceeds expenses during the working phase, so the checking
         account balance stays non-negative and SolvencyViolationError is never raised.

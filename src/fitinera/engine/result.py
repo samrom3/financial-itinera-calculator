@@ -122,7 +122,7 @@ class NotFoundError(FitineraError):
 class SolvencyViolationError(InternalError):
     """An asset account balance dropped below zero.
 
-    Returned by AccountSolvencyGuardFlow when a monitored asset account
+    Returned by AssetSolvencyGuardFlow when a monitored asset account
     becomes insolvent.  The message includes the account ID and offending
     balance so the caller can identify which account triggered the halt.
     """

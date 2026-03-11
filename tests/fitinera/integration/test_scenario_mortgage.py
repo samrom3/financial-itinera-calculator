@@ -2,7 +2,7 @@
 
 Two accounts: checking (ASSET, initial $10,000) and mortgage (LIABILITY,
 initial -$300,000 representing outstanding debt). The pipeline includes
-AccountSolvencyGuardFlow which monitors only ASSET-labeled accounts (FR-014);
+AssetSolvencyGuardFlow which monitors only ASSET-labeled accounts (FR-014);
 the mortgage LIABILITY account going negative (i.e. a debt balance exists) must
 NOT trigger the guard.
 
@@ -15,7 +15,7 @@ debt is repaid.
 The simulation runs for 187 monthly turns — just before full mortgage payoff —
 so that result.turns[-1] shows a still-negative mortgage balance (debt not yet
 fully discharged), confirming:
-  - AccountSolvencyGuardFlow does not fire on LIABILITY accounts (FR-014)
+  - AssetSolvencyGuardFlow does not fire on LIABILITY accounts (FR-014)
   - The checking ASSET account remains solvent throughout
   - Simulation completes without exception despite mortgage being negative
 """
@@ -31,7 +31,7 @@ from fitinera import (
 )
 from fitinera.engine import EngineConfiguration, SimulationEngine
 from fitinera.flows import (
-    AccountSolvencyGuardFlow,
+    AssetSolvencyGuardFlow,
     JobIncomeFlow,
     LivingExpenseFlow,
     MortgagePaymentFlow,
@@ -53,7 +53,7 @@ _CHECKING_INITIAL = 10_000.0
 
 # Run for 187 turns so the mortgage is still negative at the last turn,
 # explicitly demonstrating that a negative LIABILITY balance does not trigger
-# AccountSolvencyGuardFlow (FR-014).
+# AssetSolvencyGuardFlow (FR-014).
 _SIMULATION_TURNS = 187
 _MAX_TURNS = TurnDuration.of(months=_SIMULATION_TURNS)
 
@@ -94,7 +94,7 @@ def _build_config() -> EngineConfiguration:
     """Return the pipeline configuration for Scenario 4.
 
     Pipeline order per the spec:
-      1. AccountSolvencyGuardFlow — halt on negative ASSET balance
+      1. AssetSolvencyGuardFlow — halt on negative ASSET balance
       2. JobIncomeFlow            — monthly income while Status=Working
       3. MortgagePaymentFlow      — fixed monthly payment from checking to mortgage
       4. LivingExpenseFlow        — fixed monthly living expenses from checking
@@ -103,7 +103,7 @@ def _build_config() -> EngineConfiguration:
         start_date=Date(2026, 1),
         max_turns=_MAX_TURNS,
         flows=[
-            AccountSolvencyGuardFlow(),
+            AssetSolvencyGuardFlow(),
             JobIncomeFlow(
                 person_id="person",
                 amount=_MONTHLY_INCOME,
@@ -130,7 +130,7 @@ def _build_config() -> EngineConfiguration:
 class TestScenario4MortgagePaydown:
     """Integration tests for Scenario 4: mortgage paydown with solvency guard.
 
-    Validates that the AccountSolvencyGuardFlow only watches ASSET-labeled accounts
+    Validates that the AssetSolvencyGuardFlow only watches ASSET-labeled accounts
     (FR-014) and does not fire when a LIABILITY account has a negative balance.
     """
 
@@ -138,7 +138,7 @@ class TestScenario4MortgagePaydown:
         """Simulation completes without exception for 187 turns.
 
         The checking ASSET account always stays positive (net income > payments).
-        AccountSolvencyGuardFlow therefore never raises, and the engine halts via
+        AssetSolvencyGuardFlow therefore never raises, and the engine halts via
         max_turns.
         """
         config = _build_config()
@@ -161,7 +161,7 @@ class TestScenario4MortgagePaydown:
         """Checking ASSET account balance is non-negative across every turn.
 
         Monthly net inflow = $8,333 − $1,600 − $3,000 = $3,733 per turn.
-        Starting at $10,000 the balance grows monotonically, so AccountSolvencyGuardFlow
+        Starting at $10,000 the balance grows monotonically, so AssetSolvencyGuardFlow
         never fires.
         """
         config = _build_config()
@@ -194,9 +194,9 @@ class TestScenario4MortgagePaydown:
         )
 
     def test_scenario4_solvency_guard_does_not_raise_when_liability_is_negative(self):
-        """AccountSolvencyGuardFlow does not raise on a negative LIABILITY balance.
+        """AssetSolvencyGuardFlow does not raise on a negative LIABILITY balance.
 
-        The mortgage account has label Type=LIABILITY. Per FR-014, AccountSolvencyGuardFlow
+        The mortgage account has label Type=LIABILITY. Per FR-014, AssetSolvencyGuardFlow
         only inspects accounts where get_label('Type') == 'ASSET'. A negative mortgage
         balance must not cause the simulation to raise SolvencyViolationError.
         """

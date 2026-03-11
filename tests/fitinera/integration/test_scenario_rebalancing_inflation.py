@@ -26,7 +26,7 @@ from fitinera import (
 from fitinera.engine import EngineConfiguration, SimulationEngine
 from fitinera.flows import (
     AccountInterestFlow,
-    AccountSolvencyGuardFlow,
+    AssetSolvencyGuardFlow,
     ComparisonOperator,
     CurrentTurnExpenseStrategy,
     JobIncomeFlow,
@@ -97,7 +97,7 @@ def _build_config() -> EngineConfiguration:
       3. RebalanceExtraSavingsFlow — transfer excess from checking to brokerage
       4. AccountInterestFlow — 8% annual return on brokerage (monthly compounding)
       5. PersonRetirementLabelFlow — set Retired when age >= 61
-      6. AccountSolvencyGuardFlow — halt on negative ASSET balance
+      6. AssetSolvencyGuardFlow — halt on negative ASSET balance
     """
     return EngineConfiguration(
         start_date=Date(2026, 1),
@@ -130,7 +130,7 @@ def _build_config() -> EngineConfiguration:
                     age=_RETIRE_AGE,
                 ),
             ),
-            AccountSolvencyGuardFlow(),
+            AssetSolvencyGuardFlow(),
         ],
     )
 
@@ -151,7 +151,7 @@ class TestScenario3RebalancingInflation:
     def test_scenario3_completes_without_exception(self):
         """Simulation completes without exception across 39 working years.
 
-        No ASSET account balance goes negative, so AccountSolvencyGuardFlow never
+        No ASSET account balance goes negative, so AssetSolvencyGuardFlow never
         raises and the engine halts via max_turns.
         """
         config = _build_config()
@@ -178,7 +178,7 @@ class TestScenario3RebalancingInflation:
     def test_scenario3_checking_balance_never_negative(self):
         """Checking account balance is non-negative across every turn.
 
-        AccountSolvencyGuardFlow monitors the ASSET-labeled checking account.
+        AssetSolvencyGuardFlow monitors the ASSET-labeled checking account.
         Income exceeds expenses throughout the working period, so the balance
         stays non-negative after the first few turns needed to build the minimum
         savings buffer.
@@ -264,7 +264,7 @@ class TestScenario3RebalancingInflation:
         assert person.get_label("Status") == "Retired"
 
     def test_scenario3_solvency_guard_does_not_raise(self):
-        """AccountSolvencyGuardFlow does not raise during the working period.
+        """AssetSolvencyGuardFlow does not raise during the working period.
 
         With income of $100k/yr and living expenses of $50k/yr, the net monthly
         inflow keeps the checking account positive throughout the working period.

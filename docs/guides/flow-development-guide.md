@@ -437,7 +437,7 @@ transaction is immediately applied (intra-turn causality), **order matters**.
    `view.get_current_turn_transactions()` to compute the current-turn expense total. If `RebalanceExtraSavingsFlow` ran
    before `LivingExpenseFlow`, it would see zero expenses and compute a minimum buffer of zero, transferring the entire
    checking balance to brokerage.
-1. **Guard flows last** — `AccountSolvencyGuardFlow` should be the final flow so that all mutations for the turn are
+1. **Guard flows last** — `AssetSolvencyGuardFlow` should be the final flow so that all mutations for the turn are
    complete before the guard inspects balances.
 1. **Lifecycle flows (retirement transitions) after income** — if retirement is conditioned on net worth, place
    `PersonRetirementLabelFlow` after the income and interest flows that grow net worth; otherwise the transition fires
@@ -459,7 +459,7 @@ flows = [
         person_ids=["Sam"],
         condition=PersonAgeIs("Sam", ComparisonOperator.GE, Age(years=65)),
     ),
-    AccountSolvencyGuardFlow(),  # always last
+    AssetSolvencyGuardFlow(),  # always last
 ]
 ```
 

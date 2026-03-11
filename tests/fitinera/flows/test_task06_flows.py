@@ -3,7 +3,7 @@
 Covers API shapes for:
   - PersonRetirementLabelFlow (renamed from RetirementCheckFlow)
   - ConditionalLabelFlow (new in lifecycle.py)
-  - AccountSolvencyGuardFlow (moved to risk.py with new signature)
+  - AssetSolvencyGuardFlow (risk.py — type-safe, no-arg constructor)
   - MinSavingsStrategy Protocol (investments.py)
   - CurrentTurnExpenseStrategy (investments.py)
   - RollingAverageExpenseStrategy (investments.py)
@@ -15,7 +15,7 @@ TDD cycle: tests written first (red), then implementation (green).
 """
 
 from fitinera.flows.lifecycle import PersonRetirementLabelFlow, ConditionalLabelFlow
-from fitinera.flows.risk import AccountSolvencyGuardFlow
+from fitinera.flows.risk import AssetSolvencyGuardFlow
 from fitinera.flows.investments import (
     CurrentTurnExpenseStrategy,
     RollingAverageExpenseStrategy,
@@ -173,59 +173,33 @@ class TestConditionalLabelFlow:
 
 
 # ---------------------------------------------------------------------------
-# AccountSolvencyGuardFlow (risk.py — new constructor signature)
+# AssetSolvencyGuardFlow (risk.py)
 # ---------------------------------------------------------------------------
 
 
-class TestAccountSolvencyGuardFlowRisk:
-    """Tests for AccountSolvencyGuardFlow in risk.py with new signature."""
+class TestAssetSolvencyGuardFlowRisk:
+    """Tests for AssetSolvencyGuardFlow in risk.py — type-safe, no-arg constructor."""
 
-    def test_constructor_default_asset_label_facet(self):
-        """AccountSolvencyGuardFlow defaults asset_label_facet to 'Type'.
+    def test_constructor_takes_no_arguments(self):
+        """AssetSolvencyGuardFlow can be constructed with no arguments.
 
-        When constructed with no arguments, asset_label_facet must be 'Type'.
+        The guard is type-safe and requires no label configuration.
         """
-        flow = AccountSolvencyGuardFlow()
-        assert flow.asset_label_facet == "Type"
-
-    def test_constructor_default_asset_label_value(self):
-        """AccountSolvencyGuardFlow defaults asset_label_value to 'ASSET'.
-
-        When constructed with no arguments, asset_label_value must be 'ASSET'.
-        """
-        flow = AccountSolvencyGuardFlow()
-        assert flow.asset_label_value == "ASSET"
-
-    def test_constructor_custom_asset_label_facet(self):
-        """AccountSolvencyGuardFlow accepts a custom asset_label_facet.
-
-        Providing a custom facet must be reflected on the instance.
-        """
-        flow = AccountSolvencyGuardFlow(asset_label_facet="Category")
-        assert flow.asset_label_facet == "Category"
-
-    def test_constructor_custom_asset_label_value(self):
-        """AccountSolvencyGuardFlow accepts a custom asset_label_value.
-
-        Providing a custom value must be reflected on the instance.
-        """
-        flow = AccountSolvencyGuardFlow(asset_label_value="CHECKING")
-        assert flow.asset_label_value == "CHECKING"
+        flow = AssetSolvencyGuardFlow()
+        assert flow is not None
 
     def test_execute_flow_returns_error_for_negative_asset_balance(self):
-        """AccountSolvencyGuardFlow.executeFlow returns SolvencyViolationError for negative ASSET balance.
+        """AssetSolvencyGuardFlow.executeFlow returns SolvencyViolationError for negative AssetAccountState balance.
 
-        An AccountState with Type == 'ASSET' and a negative balance must cause executeFlow
-        to return a SolvencyViolationError; an ASSET with non-negative balance returns None.
+        An AssetAccountState with balance < 0 must cause executeFlow to return a
+        SolvencyViolationError; an AssetAccountState with non-negative balance returns None.
         """
         from unittest.mock import MagicMock
         from fitinera.models import AssetAccountState
         from fitinera.engine.result import SolvencyViolationError
 
-        flow = AccountSolvencyGuardFlow()
-        account = AssetAccountState(
-            id="checking", balance=-100.0, labels={"Type": "ASSET"}
-        )
+        flow = AssetSolvencyGuardFlow()
+        account = AssetAccountState(id="checking", balance=-100.0)
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()

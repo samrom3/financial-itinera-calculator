@@ -199,15 +199,14 @@ ______________________________________________________________________
 
 ## How `isinstance`-based flows interact with new subtypes automatically
 
-Built-in flows such as `AccountSolvencyGuardFlow` currently dispatch using the label pattern
-(`get_label("Type") == "ASSET"`). As the hierarchy matures, flows will migrate to `isinstance` checks against
-`AssetAccountState`. The important property is:
+Built-in flows such as `AssetSolvencyGuardFlow` dispatch using `isinstance` checks against `AssetAccountState`. The
+important property is:
 
 **Any new subclass of `AssetAccountState` is automatically included in `isinstance` checks against
 `AssetAccountState`.**
 
-For example, `SavingsAccountState` is a subclass of `AssetAccountState`, which is a subclass of `AccountState`. A future
-`AssetSolvencyGuardFlow` that iterates:
+For example, `SavingsAccountState` is a subclass of `AssetAccountState`, which is a subclass of `AccountState`.
+`AssetSolvencyGuardFlow` iterates:
 
 ```python
 for account in view.get_accounts():
