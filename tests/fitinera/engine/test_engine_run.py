@@ -18,6 +18,9 @@ from fitinera.flows import AccountSolvencyGuardFlow
 from fitinera.models import (
     AccountState,
     AssetAccount,
+    AssetAccountState,
+    LiabilityAccount,
+    LiabilityAccountState,
     Age,
     Date,
     Expense,
@@ -832,3 +835,124 @@ class TestEngineRunLoggerImpl:
         assert "dbg" in messages
         assert "inf" in messages
         assert "wrn" in messages
+
+
+# ---------------------------------------------------------------------------
+# TestEngineFactoryMethodRoundTrip
+# ---------------------------------------------------------------------------
+
+
+class TestEngineFactoryMethodRoundTrip:
+    """Tests verifying that the engine uses factory methods for state and snapshot production.
+
+    Confirms that account_states produced during initialisation are instances of
+    the correct concrete AccountState subclass, and that turn-end snapshots are
+    instances of the correct concrete Account subclass.
+    """
+
+    def test_asset_account_produces_asset_account_state_after_engine_init(self):
+        """Engine initialisation of an AssetAccount entry produces an AssetAccountState.
+
+        Given a scenario with an AssetAccount, the live account state captured
+        by a probe flow must be an instance of AssetAccountState.
+        """
+        seen_states = []
+
+        class _ProbeFlow:
+            def executeFlow(self, view, updater, logger):
+                seen_states.extend(view.get_accounts())
+
+        config = _make_config(max_turns=TurnDuration.of(months=1), flows=[_ProbeFlow()])
+        engine = SimulationEngine(config)
+        scenario = SimulationScenario(
+            initial_accounts=[AssetAccount(id="savings", balance=5000.0)]
+        )
+
+        engine.run(scenario)
+
+        assert len(seen_states) == 1
+        assert isinstance(seen_states[0], AssetAccountState)
+
+    def test_asset_account_state_snapshot_is_asset_account(self):
+        """Turn-end snapshot of an AssetAccountState is an AssetAccount instance.
+
+        Given a scenario with a single AssetAccount, the account in the first
+        Turn snapshot must be an instance of AssetAccount.
+        """
+        config = _make_config(max_turns=TurnDuration.of(months=1))
+        engine = SimulationEngine(config)
+        scenario = SimulationScenario(
+            initial_accounts=[AssetAccount(id="savings", balance=5000.0)]
+        )
+
+        result = engine.run(scenario)
+
+        snap = result.turns[0].accounts[0]
+        assert isinstance(snap, AssetAccount)
+
+    def test_liability_account_produces_liability_account_state_after_engine_init(self):
+        """Engine initialisation of a LiabilityAccount entry produces a LiabilityAccountState.
+
+        Given a scenario with a LiabilityAccount, the live account state captured
+        by a probe flow must be an instance of LiabilityAccountState.
+        """
+        seen_states = []
+
+        class _ProbeFlow:
+            def executeFlow(self, view, updater, logger):
+                seen_states.extend(view.get_accounts())
+
+        config = _make_config(max_turns=TurnDuration.of(months=1), flows=[_ProbeFlow()])
+        engine = SimulationEngine(config)
+        scenario = SimulationScenario(
+            initial_accounts=[LiabilityAccount(id="mortgage", balance=-200_000.0)]
+        )
+
+        engine.run(scenario)
+
+        assert len(seen_states) == 1
+        assert isinstance(seen_states[0], LiabilityAccountState)
+
+    def test_liability_account_state_snapshot_is_liability_account(self):
+        """Turn-end snapshot of a LiabilityAccountState is a LiabilityAccount instance.
+
+        Given a scenario with a single LiabilityAccount, the account in the first
+        Turn snapshot must be an instance of LiabilityAccount.
+        """
+        config = _make_config(max_turns=TurnDuration.of(months=1))
+        engine = SimulationEngine(config)
+        scenario = SimulationScenario(
+            initial_accounts=[LiabilityAccount(id="mortgage", balance=-200_000.0)]
+        )
+
+        result = engine.run(scenario)
+
+        snap = result.turns[0].accounts[0]
+        assert isinstance(snap, LiabilityAccount)
+
+    def test_mixed_accounts_produce_correct_state_types(self):
+        """A scenario with both AssetAccount and LiabilityAccount produces matching state types.
+
+        Given a scenario with one of each account type, probe flow must find
+        exactly one AssetAccountState and one LiabilityAccountState.
+        """
+        seen_states = []
+
+        class _ProbeFlow:
+            def executeFlow(self, view, updater, logger):
+                seen_states.extend(view.get_accounts())
+
+        config = _make_config(max_turns=TurnDuration.of(months=1), flows=[_ProbeFlow()])
+        engine = SimulationEngine(config)
+        scenario = SimulationScenario(
+            initial_accounts=[
+                AssetAccount(id="checking", balance=1000.0),
+                LiabilityAccount(id="loan", balance=-5000.0),
+            ]
+        )
+
+        engine.run(scenario)
+
+        state_by_id = {s.id: s for s in seen_states}
+        assert isinstance(state_by_id["checking"], AssetAccountState)
+        assert isinstance(state_by_id["loan"], LiabilityAccountState)
