@@ -59,9 +59,9 @@ Making `Account` abstract enforces at construction time that every account enter
 explicit type classification. Without ABC enforcement, a scenario author could write `Account(id="Savings", balance=0)`
 and the error would only surface later — potentially in a guard flow — rather than at the point of misconfiguration.
 
-The `SimulationScenario.accounts` annotation accepts `list[Account]`, which in practice means
-`list[AssetAccount | LiabilityAccount]` (or any future subclass). The abstract base provides the annotation target; the
-ABC prevents un-typed instances from satisfying the contract in any real scenario.
+The `SimulationScenario.initial_accounts` annotation is `List[AssetAccount | LiabilityAccount]`, which enforces that
+only typed subclasses can be passed as scenario accounts. The abstract base prevents un-typed `Account(...)` instances
+from entering a scenario at all.
 
 ### Relationship to ADR-0004
 

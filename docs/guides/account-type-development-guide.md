@@ -125,13 +125,15 @@ class SavingsAccountState(AssetAccountState):
 ### Step 3 — Use the new type in a `SimulationScenario`
 
 ```python
-from fitinera import SimulationScenario, Person
+from fitinera import SimulationScenario, Person, Age
 
 scenario = SimulationScenario(
-    accounts=[
+    initial_accounts=[
         SavingsAccount(id="High-Yield Savings", balance=20_000.0, annual_rate=0.04),
     ],
-    persons=[Person(id="Sam", date_of_birth=Date(year=1985, month=6))],
+    initial_persons=[
+        Person(id="Sam", age=Age(years=40), expectancy=Age(years=99)),
+    ],
 )
 ```
 
