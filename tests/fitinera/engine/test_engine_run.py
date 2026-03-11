@@ -16,8 +16,8 @@ from fitinera.engine.result import (
 )
 from fitinera.flows import AccountSolvencyGuardFlow
 from fitinera.models import (
-    Account,
     AccountState,
+    AssetAccount,
     Age,
     Date,
     Expense,
@@ -66,8 +66,8 @@ def _make_person(
 
 def _make_account(
     aid: str = "checking", balance: float = 1000.0, labels=None
-) -> Account:
-    return Account(id=aid, balance=balance, labels=labels or {})
+) -> AssetAccount:
+    return AssetAccount(id=aid, balance=balance, labels=labels or {})
 
 
 # ---------------------------------------------------------------------------

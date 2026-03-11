@@ -219,11 +219,13 @@ class TestAccountSolvencyGuardFlowRisk:
         to return a SolvencyViolationError; an ASSET with non-negative balance returns None.
         """
         from unittest.mock import MagicMock
-        from fitinera.models import AccountState
+        from fitinera.models import AssetAccountState
         from fitinera.engine.result import SolvencyViolationError
 
         flow = AccountSolvencyGuardFlow()
-        account = AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"})
+        account = AssetAccountState(
+            id="checking", balance=-100.0, labels={"Type": "ASSET"}
+        )
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
@@ -356,10 +358,10 @@ class TestAccountInterestFlow:
         once with an Income targeting account_id.
         """
         from unittest.mock import MagicMock
-        from fitinera.models import AccountState, Income
+        from fitinera.models import AssetAccountState, Income
 
         flow = AccountInterestFlow("savings", 0.05)
-        account = AccountState(id="savings", balance=1000.0, labels={})
+        account = AssetAccountState(id="savings", balance=1000.0, labels={})
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
@@ -415,12 +417,12 @@ class TestRebalanceExtraSavingsFlow:
         called and emit_transaction must not be called.
         """
         from unittest.mock import MagicMock
-        from fitinera.models import AccountState
+        from fitinera.models import AssetAccountState
 
         strategy = MagicMock()
         strategy.compute_minimum.return_value = 0.0
         flow = RebalanceExtraSavingsFlow("checking", "savings", strategy)
-        account = AccountState(id="checking", balance=5000.0, labels={})
+        account = AssetAccountState(id="checking", balance=5000.0, labels={})
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()

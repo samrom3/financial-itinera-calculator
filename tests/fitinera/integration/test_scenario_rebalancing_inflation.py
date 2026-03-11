@@ -16,7 +16,7 @@ go negative on the first post-retirement turn (expenses continue while income st
 """
 
 from fitinera import (
-    Account,
+    AssetAccount,
     Age,
     Date,
     Person,
@@ -74,12 +74,12 @@ def _build_scenario() -> SimulationScenario:
             )
         ],
         initial_accounts=[
-            Account(
+            AssetAccount(
                 id="checking",
                 balance=0.0,
                 labels={"Type": "ASSET"},
             ),
-            Account(
+            AssetAccount(
                 id="brokerage",
                 balance=0.0,
                 labels={"Type": "ASSET"},

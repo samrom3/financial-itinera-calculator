@@ -30,7 +30,7 @@ from fitinera import (
     Date,
     TurnDuration,
     Person,
-    Account,
+    AssetAccount,
     SimulationScenario,
     SimulationEngine,
     EngineConfiguration,
@@ -71,7 +71,7 @@ class TestScenarioSimpleSaving:
                 )
             ],
             initial_accounts=[
-                Account(
+                AssetAccount(
                     id="checking",
                     balance=0.0,
                     labels={"Type": "ASSET"},

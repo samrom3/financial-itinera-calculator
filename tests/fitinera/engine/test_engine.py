@@ -5,7 +5,7 @@ from fitinera.engine.result import (
     SolvencyViolationError,
 )
 from fitinera.flows import AccountSolvencyGuardFlow, LivingExpenseFlow
-from fitinera.models import Account, SimulationScenario, Date, TurnDuration
+from fitinera.models import AssetAccount, SimulationScenario, Date, TurnDuration
 from fitinera import SimulationData
 
 
@@ -66,7 +66,7 @@ def test_engine_returns_solvency_violation_in_result_on_negative_balance():
     scenario = SimulationScenario(
         initial_persons=[Person(id="p1", age=Age(30), expectancy=Age(90))],
         initial_accounts=[
-            Account(id="checking", balance=-500.0, labels={"Type": "ASSET"})
+            AssetAccount(id="checking", balance=-500.0, labels={"Type": "ASSET"})
         ],
     )
 
@@ -96,7 +96,7 @@ class TestEngineIntegration:
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
             initial_persons=[Person(id="p1", age=Age(30), expectancy=Age(90))],
-            initial_accounts=[Account(id="checking", balance=1000.0)],
+            initial_accounts=[AssetAccount(id="checking", balance=1000.0)],
         )
 
         data = engine.run(scenario)
@@ -119,7 +119,7 @@ class TestEngineIntegration:
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
             initial_accounts=[
-                Account(id="checking", balance=-500.0, labels={"Type": "ASSET"})
+                AssetAccount(id="checking", balance=-500.0, labels={"Type": "ASSET"})
             ],
         )
 
@@ -142,7 +142,7 @@ def test_engine_returns_solvency_error_when_living_expense_drains_account_negati
     engine = SimulationEngine(config)
     scenario = SimulationScenario(
         initial_accounts=[
-            Account(id="checking", balance=100.0, labels={"Type": "ASSET"})
+            AssetAccount(id="checking", balance=100.0, labels={"Type": "ASSET"})
         ],
     )
 
@@ -165,7 +165,7 @@ def test_engine_solvency_error_message_contains_account_id():
     engine = SimulationEngine(config)
     scenario = SimulationScenario(
         initial_accounts=[
-            Account(id="checking", balance=100.0, labels={"Type": "ASSET"})
+            AssetAccount(id="checking", balance=100.0, labels={"Type": "ASSET"})
         ],
     )
 

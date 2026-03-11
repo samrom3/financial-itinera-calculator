@@ -21,7 +21,8 @@ fully discharged), confirming:
 """
 
 from fitinera import (
-    Account,
+    AssetAccount,
+    LiabilityAccount,
     Age,
     Date,
     Person,
@@ -75,12 +76,12 @@ def _build_scenario() -> SimulationScenario:
             )
         ],
         initial_accounts=[
-            Account(
+            AssetAccount(
                 id="checking",
                 balance=_CHECKING_INITIAL,
                 labels={"Type": "ASSET"},
             ),
-            Account(
+            LiabilityAccount(
                 id="mortgage",
                 balance=_MORTGAGE_INITIAL,
                 labels={"Type": "LIABILITY"},

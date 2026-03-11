@@ -27,7 +27,14 @@ from fitinera.flows.investments import (
 )
 from fitinera.flows.spending import LivingExpenseFlow
 from fitinera.flows.debt import MortgagePaymentFlow
-from fitinera.models import AccountState, Expense, Transfer, Income, TurnDuration
+from fitinera.models import (
+    AssetAccountState,
+    LiabilityAccountState,
+    Expense,
+    Transfer,
+    Income,
+    TurnDuration,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -203,7 +210,9 @@ class TestAccountSolvencyGuardFlowExecute:
         from fitinera.engine.result import SolvencyViolationError
 
         flow = AccountSolvencyGuardFlow()
-        account = AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"})
+        account = AssetAccountState(
+            id="checking", balance=-100.0, labels={"Type": "ASSET"}
+        )
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
@@ -223,7 +232,9 @@ class TestAccountSolvencyGuardFlowExecute:
         must not be called.
         """
         flow = AccountSolvencyGuardFlow()
-        account = AccountState(id="checking", balance=500.0, labels={"Type": "ASSET"})
+        account = AssetAccountState(
+            id="checking", balance=500.0, labels={"Type": "ASSET"}
+        )
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
@@ -239,7 +250,9 @@ class TestAccountSolvencyGuardFlowExecute:
         Zero balance is not negative; logger.error must not be called.
         """
         flow = AccountSolvencyGuardFlow()
-        account = AccountState(id="checking", balance=0.0, labels={"Type": "ASSET"})
+        account = AssetAccountState(
+            id="checking", balance=0.0, labels={"Type": "ASSET"}
+        )
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
@@ -256,7 +269,7 @@ class TestAccountSolvencyGuardFlowExecute:
         (FR-014: only ASSET-labeled accounts are guarded).
         """
         flow = AccountSolvencyGuardFlow()
-        account = AccountState(
+        account = LiabilityAccountState(
             id="mortgage", balance=-200_000.0, labels={"Type": "LIABILITY"}
         )
         view = MagicMock()
@@ -274,7 +287,7 @@ class TestAccountSolvencyGuardFlowExecute:
         An account with no 'Type' label must not trigger logger.error.
         """
         flow = AccountSolvencyGuardFlow()
-        account = AccountState(id="escrow", balance=-50.0, labels={})
+        account = AssetAccountState(id="escrow", balance=-50.0, labels={})
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
@@ -294,8 +307,8 @@ class TestAccountSolvencyGuardFlowExecute:
 
         flow = AccountSolvencyGuardFlow()
         accounts = [
-            AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"}),
-            AccountState(id="savings", balance=-50.0, labels={"Type": "ASSET"}),
+            AssetAccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"}),
+            AssetAccountState(id="savings", balance=-50.0, labels={"Type": "ASSET"}),
         ]
         view = MagicMock()
         view.get_accounts.return_value = accounts
@@ -318,7 +331,9 @@ class TestAccountSolvencyGuardFlowExecute:
         flow = AccountSolvencyGuardFlow(
             asset_label_facet="Category", asset_label_value="CASH"
         )
-        account = AccountState(id="wallet", balance=-5.0, labels={"Category": "CASH"})
+        account = AssetAccountState(
+            id="wallet", balance=-5.0, labels={"Category": "CASH"}
+        )
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
@@ -344,7 +359,7 @@ class TestAccountInterestFlowExecute:
         Monthly rate = (1 + annual_rate)^(1/12) - 1; Income amount = balance * monthly_rate.
         """
         flow = AccountInterestFlow("savings", annual_rate=0.12)
-        account = AccountState(id="savings", balance=1_000.0, labels={})
+        account = AssetAccountState(id="savings", balance=1_000.0, labels={})
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
@@ -366,7 +381,7 @@ class TestAccountInterestFlowExecute:
         Zero-balance accounts still emit an Income transaction each turn.
         """
         flow = AccountInterestFlow("savings", annual_rate=0.05)
-        account = AccountState(id="savings", balance=0.0, labels={})
+        account = AssetAccountState(id="savings", balance=0.0, labels={})
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
@@ -385,8 +400,8 @@ class TestAccountInterestFlowExecute:
         The correct account must be found by matching its id against account_id.
         """
         flow = AccountInterestFlow("savings", annual_rate=0.05)
-        other_account = AccountState(id="checking", balance=500.0, labels={})
-        savings_account = AccountState(id="savings", balance=2_000.0, labels={})
+        other_account = AssetAccountState(id="checking", balance=500.0, labels={})
+        savings_account = AssetAccountState(id="savings", balance=2_000.0, labels={})
         view = MagicMock()
         view.get_accounts.return_value = [other_account, savings_account]
         updater = MagicMock()
@@ -588,7 +603,7 @@ class TestRebalanceExtraSavingsFlowExecute:
         strategy = MagicMock()
         strategy.compute_minimum.return_value = 3000.0
         flow = RebalanceExtraSavingsFlow("checking", "savings", strategy)
-        account = AccountState(id="checking", balance=5000.0, labels={})
+        account = AssetAccountState(id="checking", balance=5000.0, labels={})
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
@@ -611,7 +626,7 @@ class TestRebalanceExtraSavingsFlowExecute:
         strategy = MagicMock()
         strategy.compute_minimum.return_value = 5000.0
         flow = RebalanceExtraSavingsFlow("checking", "savings", strategy)
-        account = AccountState(id="checking", balance=5000.0, labels={})
+        account = AssetAccountState(id="checking", balance=5000.0, labels={})
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
@@ -629,7 +644,7 @@ class TestRebalanceExtraSavingsFlowExecute:
         strategy = MagicMock()
         strategy.compute_minimum.return_value = 8000.0
         flow = RebalanceExtraSavingsFlow("checking", "savings", strategy)
-        account = AccountState(id="checking", balance=5000.0, labels={})
+        account = AssetAccountState(id="checking", balance=5000.0, labels={})
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
@@ -647,7 +662,7 @@ class TestRebalanceExtraSavingsFlowExecute:
         strategy = MagicMock()
         strategy.compute_minimum.return_value = 0.0
         flow = RebalanceExtraSavingsFlow("checking", "savings", strategy)
-        account = AccountState(id="checking", balance=5000.0, labels={})
+        account = AssetAccountState(id="checking", balance=5000.0, labels={})
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
@@ -666,7 +681,7 @@ class TestRebalanceExtraSavingsFlowExecute:
         strategy = MagicMock()
         strategy.compute_minimum.return_value = 1000.0
         flow = RebalanceExtraSavingsFlow("checking", "savings", strategy)
-        account = AccountState(id="checking", balance=500.0, labels={})
+        account = AssetAccountState(id="checking", balance=500.0, labels={})
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()

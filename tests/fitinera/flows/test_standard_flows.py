@@ -9,7 +9,16 @@ from fitinera.flows import (
     AccountSolvencyGuardFlow,
 )
 from fitinera.engine.result import SolvencyViolationError
-from fitinera.models import AccountState, Age, Income, Expense, Transfer, Person
+from fitinera.models import (
+    AccountState,
+    AssetAccountState,
+    LiabilityAccountState,
+    Age,
+    Income,
+    Expense,
+    Transfer,
+    Person,
+)
 
 
 def test_job_income_flow_execute_raises_not_implemented():
@@ -235,7 +244,9 @@ class TestAccountSolvencyGuardFlow:
         to return a SolvencyViolationError whose message contains the account id and balance.
         """
         flow = AccountSolvencyGuardFlow()
-        account = AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"})
+        account = AssetAccountState(
+            id="checking", balance=-100.0, labels={"Type": "ASSET"}
+        )
         view = _make_view([account])
         updater = MagicMock()
         logger = MagicMock()
@@ -254,7 +265,9 @@ class TestAccountSolvencyGuardFlow:
         A non-negative balance on an ASSET account must return None (proceed).
         """
         flow = AccountSolvencyGuardFlow()
-        account = AccountState(id="savings", balance=500.0, labels={"Type": "ASSET"})
+        account = AssetAccountState(
+            id="savings", balance=500.0, labels={"Type": "ASSET"}
+        )
         view = _make_view([account])
         updater = MagicMock()
         logger = MagicMock()
@@ -267,7 +280,9 @@ class TestAccountSolvencyGuardFlow:
         Zero balance is not negative; None must be returned.
         """
         flow = AccountSolvencyGuardFlow()
-        account = AccountState(id="checking", balance=0.0, labels={"Type": "ASSET"})
+        account = AssetAccountState(
+            id="checking", balance=0.0, labels={"Type": "ASSET"}
+        )
         view = _make_view([account])
         updater = MagicMock()
         logger = MagicMock()
@@ -280,7 +295,7 @@ class TestAccountSolvencyGuardFlow:
         Only ASSET-labeled accounts are guarded; LIABILITY accounts are excluded.
         """
         flow = AccountSolvencyGuardFlow()
-        account = AccountState(
+        account = LiabilityAccountState(
             id="mortgage", balance=-200_000.0, labels={"Type": "LIABILITY"}
         )
         view = _make_view([account])
@@ -297,8 +312,8 @@ class TestAccountSolvencyGuardFlow:
         """
         flow = AccountSolvencyGuardFlow()
         accounts = [
-            AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"}),
-            AccountState(id="savings", balance=-50.0, labels={"Type": "ASSET"}),
+            AssetAccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"}),
+            AssetAccountState(id="savings", balance=-50.0, labels={"Type": "ASSET"}),
         ]
         view = _make_view(accounts)
         updater = MagicMock()
@@ -329,8 +344,8 @@ class TestNetWorthGenerator:
         """
         generator = NetWorthGenerator()
         accounts = [
-            AccountState(id="checking", balance=1_000.0, labels={"Type": "ASSET"}),
-            AccountState(id="savings", balance=500.0, labels={"Type": "ASSET"}),
+            AssetAccountState(id="checking", balance=1_000.0, labels={"Type": "ASSET"}),
+            AssetAccountState(id="savings", balance=500.0, labels={"Type": "ASSET"}),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 1_500.0
@@ -343,7 +358,7 @@ class TestNetWorthGenerator:
         """
         generator = NetWorthGenerator()
         accounts = [
-            AccountState(
+            LiabilityAccountState(
                 id="mortgage", balance=-200_000.0, labels={"Type": "LIABILITY"}
             ),
         ]
@@ -357,8 +372,8 @@ class TestNetWorthGenerator:
         """
         generator = NetWorthGenerator()
         accounts = [
-            AccountState(id="house", balance=500_000.0, labels={"Type": "ASSET"}),
-            AccountState(
+            AssetAccountState(id="house", balance=500_000.0, labels={"Type": "ASSET"}),
+            LiabilityAccountState(
                 id="mortgage", balance=-200_000.0, labels={"Type": "LIABILITY"}
             ),
         ]
@@ -372,8 +387,8 @@ class TestNetWorthGenerator:
         """
         generator = NetWorthGenerator()
         accounts = [
-            AccountState(id="checking", balance=1_000.0, labels={"Type": "ASSET"}),
-            AccountState(id="escrow", balance=50.0, labels={}),
+            AssetAccountState(id="checking", balance=1_000.0, labels={"Type": "ASSET"}),
+            AssetAccountState(id="escrow", balance=50.0, labels={}),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 1_050.0
@@ -385,8 +400,10 @@ class TestNetWorthGenerator:
         """
         generator = NetWorthGenerator()
         accounts = [
-            AccountState(id="checking", balance=1_000.0, labels={"Type": "ASSET"}),
-            AccountState(id="pension", balance=5_000.0, labels={"Type": "PENSION"}),
+            AssetAccountState(id="checking", balance=1_000.0, labels={"Type": "ASSET"}),
+            AssetAccountState(
+                id="pension", balance=5_000.0, labels={"Type": "PENSION"}
+            ),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 6_000.0
