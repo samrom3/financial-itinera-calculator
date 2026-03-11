@@ -468,9 +468,7 @@ class TestEngineRunHaltConditions:
             flows=[AssetSolvencyGuardFlow()],
         )
         engine = SimulationEngine(config)
-        scenario = SimulationScenario(
-            initial_accounts=[_make_account(balance=-500.0, labels={"Type": "ASSET"})]
-        )
+        scenario = SimulationScenario(initial_accounts=[_make_account(balance=-500.0)])
 
         data = engine.run(scenario)
 

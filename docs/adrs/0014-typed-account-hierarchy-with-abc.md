@@ -73,9 +73,9 @@ ADR-0004 introduced a label system (`Facet: Value`) for Accounts, Transactions, 
 - Applied to entities other than accounts (Transactions, Persons)
 
 The typed hierarchy replaces only the use of labels for **structural discrimination** between account types (previously
-the `Type: "ASSET"` / `Type: "LIABILITY"` pattern). Built-in flows that previously dispatched on
-`account.get_label("Type") == "ASSET"` can now use `isinstance(account, AssetAccountState)` instead. User-defined flows
-that already use labels for other purposes are unaffected.
+a `Type` label whose value indicated whether an account was an asset or a liability). Built-in flows that previously
+dispatched on a `get_label("Type")` equality check now use `isinstance(account, AssetAccountState)` instead.
+User-defined flows that already use labels for other purposes are unaffected.
 
 ### `BrokerageAccount` as the next planned extension (#29)
 
@@ -100,8 +100,8 @@ include `BrokerageAccountState` instances — demonstrating that the hierarchy e
   This prevents un-typed accounts from entering scenarios.
 - The factory methods (`to_state`, `to_snapshot`) establish a clear, consistent round-trip contract between the frozen
   snapshot and mutable live state layers.
-- Existing label-based dispatch (e.g. `get_label("Type") == "ASSET"`) is preserved for backward compatibility with flows
-  that rely on labels, while the type hierarchy provides an alternative structural dispatch path via `isinstance`.
+- The label system remains available for custom semantic annotations; the type hierarchy adds a structural dispatch path
+  via `isinstance` that supersedes the old label-based account-type discrimination.
 - Future account subtypes (e.g. `BrokerageAccount`, `PensionAccount`) integrate automatically with any flow that uses
   `isinstance(account, AssetAccountState)` — no flow changes required for new subtypes.
 

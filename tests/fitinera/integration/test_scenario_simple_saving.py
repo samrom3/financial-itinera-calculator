@@ -74,7 +74,6 @@ class TestScenarioSimpleSaving:
                 AssetAccount(
                     id="checking",
                     balance=0.0,
-                    labels={"Type": "ASSET"},
                 )
             ],
         )

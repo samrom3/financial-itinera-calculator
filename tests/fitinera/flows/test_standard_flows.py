@@ -330,72 +330,67 @@ class TestNetWorthGenerator:
         assert generator.evaluate(view, MagicMock()) == 0.0
 
     def test_evaluate_sums_asset_balances(self):
-        """NetWorthGenerator.evaluate sums balances of ASSET-typed accounts.
+        """NetWorthGenerator.evaluate sums balances of AssetAccountState instances.
 
-        Two ASSET accounts with balances 1000.0 and 500.0 → net worth 1500.0.
+        Two AssetAccountState accounts with balances 1000.0 and 500.0 → net worth 1500.0.
         """
         generator = NetWorthGenerator()
         accounts = [
-            AssetAccountState(id="checking", balance=1_000.0, labels={"Type": "ASSET"}),
-            AssetAccountState(id="savings", balance=500.0, labels={"Type": "ASSET"}),
+            AssetAccountState(id="checking", balance=1_000.0),
+            AssetAccountState(id="savings", balance=500.0),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 1_500.0
 
     def test_evaluate_sums_liability_balances(self):
-        """NetWorthGenerator.evaluate sums LIABILITY-typed account balances directly.
+        """NetWorthGenerator.evaluate sums LiabilityAccountState balances directly.
 
-        LIABILITY accounts carry negative balances by convention (e.g. a $200k mortgage
-        is stored as -200_000.0). Summing directly gives the correct net worth of -200_000.0.
+        LiabilityAccountState accounts carry negative balances by convention (e.g. a
+        $200k mortgage is stored as -200_000.0). Summing directly gives -200_000.0.
         """
         generator = NetWorthGenerator()
         accounts = [
-            LiabilityAccountState(
-                id="mortgage", balance=-200_000.0, labels={"Type": "LIABILITY"}
-            ),
+            LiabilityAccountState(id="mortgage", balance=-200_000.0),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == -200_000.0
 
     def test_evaluate_combines_assets_and_liabilities(self):
-        """NetWorthGenerator.evaluate correctly combines ASSET and LIABILITY balances.
+        """NetWorthGenerator.evaluate correctly combines asset and liability balances.
 
-        House ASSET 500_000.0 plus mortgage LIABILITY -200_000.0 → net worth 300_000.0.
+        House AssetAccountState 500_000.0 plus mortgage LiabilityAccountState
+        -200_000.0 → net worth 300_000.0.
         """
         generator = NetWorthGenerator()
         accounts = [
-            AssetAccountState(id="house", balance=500_000.0, labels={"Type": "ASSET"}),
-            LiabilityAccountState(
-                id="mortgage", balance=-200_000.0, labels={"Type": "LIABILITY"}
-            ),
+            AssetAccountState(id="house", balance=500_000.0),
+            LiabilityAccountState(id="mortgage", balance=-200_000.0),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 300_000.0
 
-    def test_evaluate_includes_accounts_without_type_label(self):
-        """NetWorthGenerator.evaluate includes accounts with no Type label.
+    def test_evaluate_includes_accounts_without_labels(self):
+        """NetWorthGenerator.evaluate includes accounts regardless of labels.
 
         All account balances are summed unconditionally regardless of labels.
         """
         generator = NetWorthGenerator()
         accounts = [
-            AssetAccountState(id="checking", balance=1_000.0, labels={"Type": "ASSET"}),
+            AssetAccountState(id="checking", balance=1_000.0),
             AssetAccountState(id="escrow", balance=50.0, labels={}),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 1_050.0
 
-    def test_evaluate_includes_accounts_with_unknown_type_label(self):
-        """NetWorthGenerator.evaluate includes accounts with unrecognised Type values.
+    def test_evaluate_includes_all_account_types(self):
+        """NetWorthGenerator.evaluate includes all account subtypes unconditionally.
 
-        All account balances are summed unconditionally regardless of Type value.
+        All account balances are summed regardless of subtype or labels.
         """
         generator = NetWorthGenerator()
         accounts = [
-            AssetAccountState(id="checking", balance=1_000.0, labels={"Type": "ASSET"}),
-            AssetAccountState(
-                id="pension", balance=5_000.0, labels={"Type": "PENSION"}
-            ),
+            AssetAccountState(id="checking", balance=1_000.0),
+            AssetAccountState(id="pension", balance=5_000.0, labels={"Tag": "pension"}),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 6_000.0

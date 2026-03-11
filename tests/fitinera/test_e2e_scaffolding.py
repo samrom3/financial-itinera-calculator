@@ -1,4 +1,6 @@
 from fitinera.models import (
+    AssetAccountState,
+    LiabilityAccountState,
     SimulationScenario,
     Person,
     Age,
@@ -24,7 +26,7 @@ class NetWorthGenerator(MetricGenerator):
         return sum(
             a.balance
             for a in view.get_accounts()
-            if a.get_label("Type") in ("ASSET", "LIABILITY")
+            if isinstance(a, (AssetAccountState, LiabilityAccountState))
         )
 
 
@@ -48,11 +50,9 @@ def test_e2e_scaffolding_runs_without_import_or_type_errors():
             AssetAccount(
                 id="Joint Checking",
                 balance=10000,
-                labels={"Type": "ASSET", "Liquidity": "LIQUID"},
+                labels={"Liquidity": "LIQUID"},
             ),
-            LiabilityAccount(
-                id="Mortgage", balance=-300000, labels={"Type": "LIABILITY"}
-            ),
+            LiabilityAccount(id="Mortgage", balance=-300000),
         ],
     )
 

@@ -39,12 +39,12 @@ class TestAccountGetLabel:
 
     def test_get_label_returns_value_for_existing_facet(self):
         """AssetAccount.get_label returns the label value for a known facet."""
-        acc = AssetAccount(id="checking", balance=0.0, labels={"Type": "ASSET"})
-        assert acc.get_label("Type") == "ASSET"
+        acc = AssetAccount(id="checking", balance=0.0, labels={"Liquidity": "LIQUID"})
+        assert acc.get_label("Liquidity") == "LIQUID"
 
     def test_get_label_returns_none_for_missing_facet(self):
         """AssetAccount.get_label returns None when the facet is not present."""
-        acc = AssetAccount(id="checking", balance=0.0, labels={"Type": "ASSET"})
+        acc = AssetAccount(id="checking", balance=0.0, labels={"Liquidity": "LIQUID"})
         assert acc.get_label("Category") is None
 
     def test_get_label_returns_none_when_labels_empty(self):
@@ -59,11 +59,11 @@ class TestAccountState:
     def test_account_state_has_required_fields(self):
         """AccountState can be constructed with id, balance, and labels."""
         state = AssetAccountState(
-            id="checking", balance=1_000.0, labels={"Type": "ASSET"}
+            id="checking", balance=1_000.0, labels={"Liquidity": "LIQUID"}
         )
         assert state.id == "checking"
         assert state.balance == 1_000.0
-        assert state.labels == {"Type": "ASSET"}
+        assert state.labels == {"Liquidity": "LIQUID"}
 
     def test_account_state_balance_is_mutable(self):
         """AssetAccountState.balance can be reassigned (it is not frozen)."""
@@ -78,12 +78,16 @@ class TestAccountState:
 
     def test_account_state_get_label_returns_value_for_existing_facet(self):
         """AssetAccountState.get_label returns the label value for a known facet."""
-        state = AssetAccountState(id="checking", balance=0.0, labels={"Type": "ASSET"})
-        assert state.get_label("Type") == "ASSET"
+        state = AssetAccountState(
+            id="checking", balance=0.0, labels={"Liquidity": "LIQUID"}
+        )
+        assert state.get_label("Liquidity") == "LIQUID"
 
     def test_account_state_get_label_returns_none_for_missing_facet(self):
         """AssetAccountState.get_label returns None when the facet is not present."""
-        state = AssetAccountState(id="checking", balance=0.0, labels={"Type": "ASSET"})
+        state = AssetAccountState(
+            id="checking", balance=0.0, labels={"Liquidity": "LIQUID"}
+        )
         assert state.get_label("Category") is None
 
     def test_account_state_get_label_returns_none_when_labels_empty(self):

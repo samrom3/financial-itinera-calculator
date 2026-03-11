@@ -79,12 +79,10 @@ def _build_scenario() -> SimulationScenario:
             AssetAccount(
                 id="checking",
                 balance=_CHECKING_INITIAL,
-                labels={"Type": "ASSET"},
             ),
             LiabilityAccount(
                 id="mortgage",
                 balance=_MORTGAGE_INITIAL,
-                labels={"Type": "LIABILITY"},
             ),
         ],
     )
@@ -196,8 +194,8 @@ class TestScenario4MortgagePaydown:
     def test_scenario4_solvency_guard_does_not_raise_when_liability_is_negative(self):
         """AssetSolvencyGuardFlow does not raise on a negative LIABILITY balance.
 
-        The mortgage account has label Type=LIABILITY. Per FR-014, AssetSolvencyGuardFlow
-        only inspects accounts where get_label('Type') == 'ASSET'. A negative mortgage
+        The mortgage account is a LiabilityAccount. Per FR-014, AssetSolvencyGuardFlow
+        only inspects AssetAccountState instances. A negative mortgage
         balance must not cause the simulation to raise SolvencyViolationError.
         """
         config = _build_config()
