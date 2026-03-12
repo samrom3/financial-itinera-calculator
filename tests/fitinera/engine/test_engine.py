@@ -4,8 +4,8 @@ from fitinera.engine.result import (
     ReachedMaxTurns,
     SolvencyViolationError,
 )
-from fitinera.flows import AccountSolvencyGuardFlow, LivingExpenseFlow
-from fitinera.models import Account, SimulationScenario, Date, TurnDuration
+from fitinera.flows import AssetSolvencyGuardFlow, LivingExpenseFlow
+from fitinera.models import AssetAccount, SimulationScenario, Date, TurnDuration
 from fitinera import SimulationData
 
 
@@ -60,14 +60,12 @@ def test_engine_returns_solvency_violation_in_result_on_negative_balance():
     config = EngineConfiguration(
         start_date=Date(2026, 1),
         max_turns=TurnDuration.of(years=1),
-        flows=[AccountSolvencyGuardFlow()],
+        flows=[AssetSolvencyGuardFlow()],
     )
     engine = SimulationEngine(config)
     scenario = SimulationScenario(
         initial_persons=[Person(id="p1", age=Age(30), expectancy=Age(90))],
-        initial_accounts=[
-            Account(id="checking", balance=-500.0, labels={"Type": "ASSET"})
-        ],
+        initial_accounts=[AssetAccount(id="checking", balance=-500.0)],
     )
 
     data = engine.run(scenario)
@@ -96,7 +94,7 @@ class TestEngineIntegration:
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
             initial_persons=[Person(id="p1", age=Age(30), expectancy=Age(90))],
-            initial_accounts=[Account(id="checking", balance=1000.0)],
+            initial_accounts=[AssetAccount(id="checking", balance=1000.0)],
         )
 
         data = engine.run(scenario)
@@ -105,22 +103,20 @@ class TestEngineIntegration:
         assert data.result.ok()
 
     def test_solvency_guard_flow_returns_error_on_negative_balance(self):
-        """AccountSolvencyGuardFlow triggers a SolvencyViolationError in SimulationData.result.
+        """AssetSolvencyGuardFlow triggers a SolvencyViolationError in SimulationData.result.
 
-        When AccountSolvencyGuardFlow is included in the pipeline and the initial
+        When AssetSolvencyGuardFlow is included in the pipeline and the initial
         balance of an ASSET-labeled account is negative, SimulationData.result
         holds a SolvencyViolationError.
         """
         config = EngineConfiguration(
             start_date=Date(2026, 1),
             max_turns=TurnDuration.of(years=1),
-            flows=[AccountSolvencyGuardFlow()],
+            flows=[AssetSolvencyGuardFlow()],
         )
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
-            initial_accounts=[
-                Account(id="checking", balance=-500.0, labels={"Type": "ASSET"})
-            ],
+            initial_accounts=[AssetAccount(id="checking", balance=-500.0)],
         )
 
         data = engine.run(scenario)
@@ -136,14 +132,12 @@ def test_engine_returns_solvency_error_when_living_expense_drains_account_negati
         max_turns=TurnDuration.of(years=1),
         flows=[
             LivingExpenseFlow(from_account="checking", amount=200.0),
-            AccountSolvencyGuardFlow(),
+            AssetSolvencyGuardFlow(),
         ],
     )
     engine = SimulationEngine(config)
     scenario = SimulationScenario(
-        initial_accounts=[
-            Account(id="checking", balance=100.0, labels={"Type": "ASSET"})
-        ],
+        initial_accounts=[AssetAccount(id="checking", balance=100.0)],
     )
 
     data = engine.run(scenario)
@@ -159,14 +153,12 @@ def test_engine_solvency_error_message_contains_account_id():
         max_turns=TurnDuration.of(years=1),
         flows=[
             LivingExpenseFlow(from_account="checking", amount=200.0),
-            AccountSolvencyGuardFlow(),
+            AssetSolvencyGuardFlow(),
         ],
     )
     engine = SimulationEngine(config)
     scenario = SimulationScenario(
-        initial_accounts=[
-            Account(id="checking", balance=100.0, labels={"Type": "ASSET"})
-        ],
+        initial_accounts=[AssetAccount(id="checking", balance=100.0)],
     )
 
     data = engine.run(scenario)

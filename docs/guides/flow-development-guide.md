@@ -57,13 +57,9 @@ Flow.
 ```python
 class NetWorthGenerator(MetricGenerator):
     def evaluate(self, view: SimulationStateView, logger: SimulationLogger) -> float:
-        assets = sum(
-            a.balance for a in view.get_accounts() if a.get_label("Type") == "ASSET"
-        )
-        liabilities = sum(
-            a.balance for a in view.get_accounts() if a.get_label("Type") == "LIABILITY"
-        )
-        return assets - liabilities
+        # Net worth is the sum of all account balances.
+        # By convention, liabilities carry negative balances.
+        return sum(a.balance for a in view.get_accounts())
 ```
 
 Register it once in `EngineConfiguration.metrics` and call `view.get_metric("Net_Worth")` from any Flow.
@@ -95,7 +91,7 @@ Read-only access to the current and past simulation state.
 | `view.get_elapsed_duration()`          | `TurnDuration`       | Months elapsed since start; `.years` and `.years_frac` are derived             |
 | `view.get_current_turn_transactions()` | `List[Transaction]`  | Transactions emitted so far within the current turn                            |
 
-**Intra-turn visibility ([ADR-0005](adrs/0005-intra-turn-causality-and-execution-order.md)):** transactions emitted
+**Intra-turn visibility ([ADR-0005](../adrs/0005-intra-turn-causality-and-execution-order.md)):** transactions emitted
 earlier in the pipeline are immediately visible to later flows in the same turn. `view.get_accounts()` always reflects
 the current, live balance — not the snapshot from the previous turn.
 
@@ -437,7 +433,7 @@ transaction is immediately applied (intra-turn causality), **order matters**.
    `view.get_current_turn_transactions()` to compute the current-turn expense total. If `RebalanceExtraSavingsFlow` ran
    before `LivingExpenseFlow`, it would see zero expenses and compute a minimum buffer of zero, transferring the entire
    checking balance to brokerage.
-1. **Guard flows last** — `AccountSolvencyGuardFlow` should be the final flow so that all mutations for the turn are
+1. **Guard flows last** — `AssetSolvencyGuardFlow` should be the final flow so that all mutations for the turn are
    complete before the guard inspects balances.
 1. **Lifecycle flows (retirement transitions) after income** — if retirement is conditioned on net worth, place
    `PersonRetirementLabelFlow` after the income and interest flows that grow net worth; otherwise the transition fires
@@ -459,7 +455,7 @@ flows = [
         person_ids=["Sam"],
         condition=PersonAgeIs("Sam", ComparisonOperator.GE, Age(years=65)),
     ),
-    AccountSolvencyGuardFlow(),  # always last
+    AssetSolvencyGuardFlow(),  # always last
 ]
 ```
 

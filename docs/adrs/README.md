@@ -96,3 +96,4 @@ ______________________________________________________________________
 | [0011](./0011-unified-logger-for-flow-and-metricgenerator.md) | Unified Logger for Flow and MetricGenerator                                | Accepted               |
 | [0012](./0012-return-value-flow-error-signaling.md)           | Return-Value Flow Error Signaling via FitineraResult Hierarchy             | Accepted               |
 | [0013](./0013-loglistener-dispatch-pattern.md)                | LogListener Dispatch Pattern                                               | Accepted               |
+| [0014](./0014-typed-account-hierarchy-with-abc.md)            | Typed Account Hierarchy with ABC Enforcement                               | Accepted               |

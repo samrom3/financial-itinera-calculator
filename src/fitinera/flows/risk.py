@@ -7,29 +7,16 @@ from ..engine.interfaces import (
     SimulationLogger,
 )
 from ..engine.result import FitineraError, SolvencyViolationError
+from ..models.account import AssetAccountState
 
 
-class AccountSolvencyGuardFlow(Flow):
-    """Monitors accounts and halts simulation when a solvency violation is detected.
+class AssetSolvencyGuardFlow(Flow):
+    """Monitors asset accounts and halts simulation when a solvency violation is detected.
 
-    Returns a SolvencyViolationError when an ASSET-labeled account has a
+    Returns a SolvencyViolationError when an AssetAccountState instance has a
     negative balance, signaling the engine to halt and embed the error in
-    SimulationData.result.
-
-    Args:
-        asset_label_facet: Label facet used to identify account type.
-            Defaults to 'Type'.
-        asset_label_value: Label value that marks an account as an asset to guard.
-            Defaults to 'ASSET'.
+    SimulationData.result. Guards are applied by type, not by label lookup.
     """
-
-    def __init__(
-        self,
-        asset_label_facet: str = "Type",
-        asset_label_value: str = "ASSET",
-    ):
-        self.asset_label_facet = asset_label_facet
-        self.asset_label_value = asset_label_value
 
     def executeFlow(
         self,
@@ -37,17 +24,16 @@ class AccountSolvencyGuardFlow(Flow):
         updater: SimulationStateUpdater,
         logger: SimulationLogger,
     ) -> Optional[FitineraError]:
-        """Return SolvencyViolationError for the first ASSET-labeled account with a negative balance.
+        """Return SolvencyViolationError for the first AssetAccountState with a negative balance.
 
         Returns:
-            SolvencyViolationError: When an ASSET-labeled account balance is negative,
+            SolvencyViolationError: When an AssetAccountState has a negative balance,
                 with the account ID and balance in the message.
-            None: When all ASSET-labeled accounts have non-negative balances.
+            None: When all AssetAccountState instances have non-negative balances.
         """
         for account in view.get_accounts():
-            if account.get_label(self.asset_label_facet) == self.asset_label_value:
-                if account.balance < 0:
-                    return SolvencyViolationError(
-                        f"Account '{account.id}' has negative balance: {account.balance}"
-                    )
+            if isinstance(account, AssetAccountState) and account.balance < 0:
+                return SolvencyViolationError(
+                    f"Account '{account.id}' has negative balance: {account.balance}"
+                )
         return None

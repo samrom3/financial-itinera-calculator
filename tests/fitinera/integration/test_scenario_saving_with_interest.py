@@ -9,7 +9,7 @@ The scenario runs for 78 years (936 monthly turns):
 - Person has label Status="Working".
 - Single checking account with ASSET label, initial balance $0.
 - Monthly interest rate r = (1.04)^(1/12) - 1.
-- Pipeline: AccountSolvencyGuardFlow, JobIncomeFlow, AccountInterestFlow,
+- Pipeline: AssetSolvencyGuardFlow, JobIncomeFlow, AccountInterestFlow,
   LivingExpenseFlow, PersonRetirementLabelFlow (triggers at age 61).
 
 Expected outcome:
@@ -47,13 +47,13 @@ from fitinera import (
     Date,
     TurnDuration,
     Person,
-    Account,
+    AssetAccount,
     SimulationScenario,
     SimulationEngine,
     EngineConfiguration,
 )
 from fitinera.flows import (
-    AccountSolvencyGuardFlow,
+    AssetSolvencyGuardFlow,
     JobIncomeFlow,
     AccountInterestFlow,
     LivingExpenseFlow,
@@ -127,10 +127,9 @@ class TestScenarioSavingWithInterest:
                 )
             ],
             initial_accounts=[
-                Account(
+                AssetAccount(
                     id="checking",
                     balance=0.0,
-                    labels={"Type": "ASSET"},
                 )
             ],
         )
@@ -149,7 +148,7 @@ class TestScenarioSavingWithInterest:
             start_date=Date(year=2024, month=1),
             max_turns=TurnDuration.of(years=78),
             flows=[
-                AccountSolvencyGuardFlow(),
+                AssetSolvencyGuardFlow(),
                 JobIncomeFlow(
                     person_id="person",
                     amount=100_000 / 12,
@@ -259,7 +258,7 @@ class TestScenarioSavingWithInterest:
         assert person.get_label("Status") == "Retired"
 
     def test_scenario_2_solvency_guard_does_not_raise(self):
-        """AccountSolvencyGuardFlow does not raise during Scenario 2.
+        """AssetSolvencyGuardFlow does not raise during Scenario 2.
 
         Compound interest keeps the checking account balance positive throughout
         the simulation so SolvencyViolationError is never raised.

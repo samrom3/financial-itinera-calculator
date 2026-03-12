@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 from fitinera import (
     Age,
     AccountBalanceIs,
-    AccountState,
+    AssetAccountState,
     ComparisonOperator,
     Condition,
     ConditionAnd,
@@ -215,7 +215,7 @@ class TestAccountBalanceIsEvaluate:
             operator=ComparisonOperator.GT,
             value=500.0,
         )
-        account = AccountState(id="checking", balance=1000.0)
+        account = AssetAccountState(id="checking", balance=1000.0)
         view = MagicMock(spec=SimulationStateView)
         view.get_accounts.return_value = [account]
         assert cond.evaluate(view) is True
@@ -227,7 +227,7 @@ class TestAccountBalanceIsEvaluate:
             operator=ComparisonOperator.GT,
             value=500.0,
         )
-        account = AccountState(id="checking", balance=400.0)
+        account = AssetAccountState(id="checking", balance=400.0)
         view = MagicMock(spec=SimulationStateView)
         view.get_accounts.return_value = [account]
         assert cond.evaluate(view) is False
@@ -250,7 +250,7 @@ class TestAccountBalanceIsEvaluate:
             operator=ComparisonOperator.GE,
             value=0.0,
         )
-        account = AccountState(id="checking", balance=1000.0)
+        account = AssetAccountState(id="checking", balance=1000.0)
         view = MagicMock(spec=SimulationStateView)
         view.get_accounts.return_value = [account]
         assert cond.evaluate(view) is False
@@ -262,8 +262,8 @@ class TestAccountBalanceIsEvaluate:
             operator=ComparisonOperator.GE,
             value=5000.0,
         )
-        checking = AccountState(id="checking", balance=100.0)
-        savings = AccountState(id="savings", balance=10000.0)
+        checking = AssetAccountState(id="checking", balance=100.0)
+        savings = AssetAccountState(id="savings", balance=10000.0)
         view = MagicMock(spec=SimulationStateView)
         view.get_accounts.return_value = [checking, savings]
         assert cond.evaluate(view) is True

@@ -1,7 +1,6 @@
 from typing import Dict, List
 
 from ..models import (
-    Account,
     AccountState,
     Date,
     Metric,
@@ -58,8 +57,7 @@ class SimulationEngine:
 
         # --- Initialise live account state ---
         account_states: List[AccountState] = [
-            AccountState(id=acct.id, balance=acct.balance, labels=dict(acct.labels))
-            for acct in scenario.initial_accounts
+            acct.to_state() for acct in scenario.initial_accounts
         ]
 
         # --- Initialise live person state ---
@@ -116,10 +114,7 @@ class SimulationEngine:
             ]
 
             # Step 5: Snapshot the turn — accounts and persons reflect post-flow state.
-            snapshot_accounts = [
-                Account(id=s.id, balance=s.balance, labels=dict(s.labels))
-                for s in account_states
-            ]
+            snapshot_accounts = [s.to_snapshot() for s in account_states]
             snapshot_persons = [
                 Person(
                     id=s.person.id,

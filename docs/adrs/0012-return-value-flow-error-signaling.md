@@ -123,7 +123,7 @@ returned type in its docstring under a `Returns:` section, so callers are never 
 | `InternalError`          | An invariant that should never be violated in correct usage is violated — indicates a programming error |
 | `InvalidArgumentError`   | A Flow is constructed with arguments that are logically invalid (e.g. a negative amount, an empty ID)   |
 | `NotFoundError`          | The Flow references an entity (account, person, …) that does not exist in the simulation state          |
-| `SolvencyViolationError` | An account's balance has breached its solvency constraint — used by `AccountSolvencyGuardFlow`          |
+| `SolvencyViolationError` | An account's balance has breached its solvency constraint — used by `AssetSolvencyGuardFlow`            |
 
 ### Module location
 

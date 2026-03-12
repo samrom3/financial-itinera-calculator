@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Union
 from .person import Person
-from .account import Account
+from .account import Account, AssetAccount, LiabilityAccount
 from .primitives import Date, Metric
 from .transaction import Transaction
 
@@ -22,4 +22,6 @@ class SimulationScenario:
     """The initial starting state of the Data Model."""
 
     initial_persons: List[Person] = field(default_factory=list)
-    initial_accounts: List[Account] = field(default_factory=list)
+    initial_accounts: List[Union[AssetAccount, LiabilityAccount]] = field(
+        default_factory=list
+    )

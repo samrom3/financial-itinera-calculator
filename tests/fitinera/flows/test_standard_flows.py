@@ -6,10 +6,19 @@ from fitinera.flows import (
     MortgagePaymentFlow,
     LivingExpenseFlow,
     NetWorthGenerator,
-    AccountSolvencyGuardFlow,
+    AssetSolvencyGuardFlow,
 )
 from fitinera.engine.result import SolvencyViolationError
-from fitinera.models import AccountState, Age, Income, Expense, Transfer, Person
+from fitinera.models import (
+    AccountState,
+    AssetAccountState,
+    LiabilityAccountState,
+    Age,
+    Income,
+    Expense,
+    Transfer,
+    Person,
+)
 
 
 def test_job_income_flow_execute_raises_not_implemented():
@@ -225,17 +234,17 @@ def _make_view(accounts: List[AccountState]) -> Any:
     return view
 
 
-class TestAccountSolvencyGuardFlow:
-    """Tests for AccountSolvencyGuardFlow.executeFlow() return-value semantics."""
+class TestAssetSolvencyGuardFlow:
+    """Tests for AssetSolvencyGuardFlow.executeFlow() return-value semantics."""
 
     def test_returns_solvency_violation_error_for_negative_asset_balance(self):
-        """AccountSolvencyGuardFlow returns SolvencyViolationError for a negative ASSET balance.
+        """AssetSolvencyGuardFlow returns SolvencyViolationError for a negative AssetAccountState balance.
 
-        An AccountState with Type == 'ASSET' and balance < 0 must cause executeFlow
-        to return a SolvencyViolationError whose message contains the account id and balance.
+        An AssetAccountState with balance < 0 must cause executeFlow to return a
+        SolvencyViolationError whose message contains the account id and balance.
         """
-        flow = AccountSolvencyGuardFlow()
-        account = AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"})
+        flow = AssetSolvencyGuardFlow()
+        account = AssetAccountState(id="checking", balance=-100.0)
         view = _make_view([account])
         updater = MagicMock()
         logger = MagicMock()
@@ -249,12 +258,12 @@ class TestAccountSolvencyGuardFlow:
         assert "-100" in error_msg or "-100.0" in error_msg
 
     def test_returns_none_for_positive_asset_balance(self):
-        """AccountSolvencyGuardFlow returns None when ASSET balance is positive.
+        """AssetSolvencyGuardFlow returns None when an AssetAccountState balance is positive.
 
-        A non-negative balance on an ASSET account must return None (proceed).
+        A non-negative balance on an AssetAccountState must return None (proceed).
         """
-        flow = AccountSolvencyGuardFlow()
-        account = AccountState(id="savings", balance=500.0, labels={"Type": "ASSET"})
+        flow = AssetSolvencyGuardFlow()
+        account = AssetAccountState(id="savings", balance=500.0)
         view = _make_view([account])
         updater = MagicMock()
         logger = MagicMock()
@@ -262,12 +271,12 @@ class TestAccountSolvencyGuardFlow:
         assert flow.executeFlow(view, updater, logger) is None
 
     def test_returns_none_for_zero_asset_balance(self):
-        """AccountSolvencyGuardFlow returns None when ASSET balance is exactly zero.
+        """AssetSolvencyGuardFlow returns None when an AssetAccountState balance is exactly zero.
 
         Zero balance is not negative; None must be returned.
         """
-        flow = AccountSolvencyGuardFlow()
-        account = AccountState(id="checking", balance=0.0, labels={"Type": "ASSET"})
+        flow = AssetSolvencyGuardFlow()
+        account = AssetAccountState(id="checking", balance=0.0)
         view = _make_view([account])
         updater = MagicMock()
         logger = MagicMock()
@@ -275,14 +284,13 @@ class TestAccountSolvencyGuardFlow:
         assert flow.executeFlow(view, updater, logger) is None
 
     def test_returns_none_for_liability_with_negative_balance(self):
-        """AccountSolvencyGuardFlow returns None for LIABILITY accounts with negative balance.
+        """AssetSolvencyGuardFlow returns None for LiabilityAccountState with negative balance.
 
-        Only ASSET-labeled accounts are guarded; LIABILITY accounts are excluded.
+        Only AssetAccountState instances are guarded; LiabilityAccountState is excluded
+        by type, regardless of balance.
         """
-        flow = AccountSolvencyGuardFlow()
-        account = AccountState(
-            id="mortgage", balance=-200_000.0, labels={"Type": "LIABILITY"}
-        )
+        flow = AssetSolvencyGuardFlow()
+        account = LiabilityAccountState(id="mortgage", balance=-200_000.0)
         view = _make_view([account])
         updater = MagicMock()
         logger = MagicMock()
@@ -290,15 +298,15 @@ class TestAccountSolvencyGuardFlow:
         assert flow.executeFlow(view, updater, logger) is None
 
     def test_returns_error_naming_first_violating_asset_account(self):
-        """AccountSolvencyGuardFlow returns SolvencyViolationError naming the first violating account.
+        """AssetSolvencyGuardFlow returns SolvencyViolationError naming the first violating account.
 
-        When multiple ASSET accounts are negative, the returned error message must contain
-        the id of the first violating account.
+        When multiple AssetAccountState instances are negative, the returned error message
+        must contain the id of the first violating account.
         """
-        flow = AccountSolvencyGuardFlow()
+        flow = AssetSolvencyGuardFlow()
         accounts = [
-            AccountState(id="checking", balance=-100.0, labels={"Type": "ASSET"}),
-            AccountState(id="savings", balance=-50.0, labels={"Type": "ASSET"}),
+            AssetAccountState(id="checking", balance=-100.0),
+            AssetAccountState(id="savings", balance=-50.0),
         ]
         view = _make_view(accounts)
         updater = MagicMock()
@@ -323,70 +331,67 @@ class TestNetWorthGenerator:
         assert generator.evaluate(view, MagicMock()) == 0.0
 
     def test_evaluate_sums_asset_balances(self):
-        """NetWorthGenerator.evaluate sums balances of ASSET-typed accounts.
+        """NetWorthGenerator.evaluate sums balances of AssetAccountState instances.
 
-        Two ASSET accounts with balances 1000.0 and 500.0 → net worth 1500.0.
+        Two AssetAccountState accounts with balances 1000.0 and 500.0 → net worth 1500.0.
         """
         generator = NetWorthGenerator()
         accounts = [
-            AccountState(id="checking", balance=1_000.0, labels={"Type": "ASSET"}),
-            AccountState(id="savings", balance=500.0, labels={"Type": "ASSET"}),
+            AssetAccountState(id="checking", balance=1_000.0),
+            AssetAccountState(id="savings", balance=500.0),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 1_500.0
 
     def test_evaluate_sums_liability_balances(self):
-        """NetWorthGenerator.evaluate sums LIABILITY-typed account balances directly.
+        """NetWorthGenerator.evaluate sums LiabilityAccountState balances directly.
 
-        LIABILITY accounts carry negative balances by convention (e.g. a $200k mortgage
-        is stored as -200_000.0). Summing directly gives the correct net worth of -200_000.0.
+        LiabilityAccountState accounts carry negative balances by convention (e.g. a
+        $200k mortgage is stored as -200_000.0). Summing directly gives -200_000.0.
         """
         generator = NetWorthGenerator()
         accounts = [
-            AccountState(
-                id="mortgage", balance=-200_000.0, labels={"Type": "LIABILITY"}
-            ),
+            LiabilityAccountState(id="mortgage", balance=-200_000.0),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == -200_000.0
 
     def test_evaluate_combines_assets_and_liabilities(self):
-        """NetWorthGenerator.evaluate correctly combines ASSET and LIABILITY balances.
+        """NetWorthGenerator.evaluate correctly combines asset and liability balances.
 
-        House ASSET 500_000.0 plus mortgage LIABILITY -200_000.0 → net worth 300_000.0.
+        House AssetAccountState 500_000.0 plus mortgage LiabilityAccountState
+        -200_000.0 → net worth 300_000.0.
         """
         generator = NetWorthGenerator()
         accounts = [
-            AccountState(id="house", balance=500_000.0, labels={"Type": "ASSET"}),
-            AccountState(
-                id="mortgage", balance=-200_000.0, labels={"Type": "LIABILITY"}
-            ),
+            AssetAccountState(id="house", balance=500_000.0),
+            LiabilityAccountState(id="mortgage", balance=-200_000.0),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 300_000.0
 
-    def test_evaluate_includes_accounts_without_type_label(self):
-        """NetWorthGenerator.evaluate includes accounts with no Type label.
+    def test_evaluate_includes_accounts_without_labels(self):
+        """NetWorthGenerator.evaluate includes accounts regardless of labels.
 
         All account balances are summed unconditionally regardless of labels.
         """
         generator = NetWorthGenerator()
         accounts = [
-            AccountState(id="checking", balance=1_000.0, labels={"Type": "ASSET"}),
-            AccountState(id="escrow", balance=50.0, labels={}),
+            AssetAccountState(id="checking", balance=1_000.0),
+            AssetAccountState(id="escrow", balance=50.0, labels={}),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 1_050.0
 
-    def test_evaluate_includes_accounts_with_unknown_type_label(self):
-        """NetWorthGenerator.evaluate includes accounts with unrecognised Type values.
+    def test_evaluate_includes_all_account_types(self):
+        """NetWorthGenerator.evaluate includes all account subtypes unconditionally.
 
-        All account balances are summed unconditionally regardless of Type value.
+        All account balances are summed regardless of subtype or labels.
         """
         generator = NetWorthGenerator()
         accounts = [
-            AccountState(id="checking", balance=1_000.0, labels={"Type": "ASSET"}),
-            AccountState(id="pension", balance=5_000.0, labels={"Type": "PENSION"}),
+            AssetAccountState(id="checking", balance=1_000.0),
+            AssetAccountState(id="pension", balance=5_000.0, labels={"Tag": "pension"}),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 6_000.0

@@ -14,7 +14,7 @@ from .conditions import (
     ConditionOr,
     ConditionAnd,
 )
-from .risk import AccountSolvencyGuardFlow
+from .risk import AssetSolvencyGuardFlow
 from .investments import (
     MinSavingsStrategy,
     CurrentTurnExpenseStrategy,
@@ -40,7 +40,7 @@ __all__ = [
     "PersonAgeIs",
     "ConditionOr",
     "ConditionAnd",
-    "AccountSolvencyGuardFlow",
+    "AssetSolvencyGuardFlow",
     "MinSavingsStrategy",
     "CurrentTurnExpenseStrategy",
     "RollingAverageExpenseStrategy",
