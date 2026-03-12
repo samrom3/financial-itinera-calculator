@@ -55,20 +55,11 @@ This means a MetricGenerator may be evaluated multiple times within a single tur
 Flow.
 
 ```python
-from fitinera.models import AssetAccountState, LiabilityAccountState
-
-
 class NetWorthGenerator(MetricGenerator):
     def evaluate(self, view: SimulationStateView, logger: SimulationLogger) -> float:
-        assets = sum(
-            a.balance for a in view.get_accounts() if isinstance(a, AssetAccountState)
-        )
-        liabilities = sum(
-            a.balance
-            for a in view.get_accounts()
-            if isinstance(a, LiabilityAccountState)
-        )
-        return assets - liabilities
+        # Net worth is the sum of all account balances.
+        # By convention, liabilities carry negative balances.
+        return sum(a.balance for a in view.get_accounts())
 ```
 
 Register it once in `EngineConfiguration.metrics` and call `view.get_metric("Net_Worth")` from any Flow.

@@ -10,6 +10,7 @@ from fitinera.flows import (
 )
 from fitinera.engine.result import SolvencyViolationError
 from fitinera.models import (
+    AccountState,
     AssetAccountState,
     LiabilityAccountState,
     Age,
@@ -226,7 +227,7 @@ class TestMortgagePaymentFlow:
         assert emitted.amount == 800.0
 
 
-def _make_view(accounts: List) -> Any:
+def _make_view(accounts: List[AccountState]) -> Any:
     """Build a minimal SimulationStateView mock returning the given accounts."""
     view = MagicMock()
     view.get_accounts.return_value = accounts

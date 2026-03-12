@@ -41,8 +41,9 @@ currency. Examples:
 
 ### Use `LiabilityAccount` when the account represents a debt the simulation owner **owes**
 
-Liability accounts track outstanding obligations. A positive balance typically means the owner still owes that amount.
-Examples:
+Liability accounts track outstanding obligations. By convention, they carry **negative** balances (e.g. a $300,000
+mortgage is stored as `balance=-300_000.0`). Net worth is the sum of all account balances, so a negative liability
+balance correctly reduces it. Examples:
 
 - Mortgages
 - Personal loans or student loans
@@ -180,7 +181,7 @@ class SavingsInterestFlow(Flow):
         for account in view.get_accounts():
             if not isinstance(account, SavingsAccountState):
                 continue
-            monthly_rate = account.annual_rate / 12
+            monthly_rate = (1 + account.annual_rate) ** (1 / 12) - 1
             interest = account.balance * monthly_rate
             if interest <= 0:
                 continue
