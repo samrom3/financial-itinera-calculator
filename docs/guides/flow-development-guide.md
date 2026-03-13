@@ -59,12 +59,13 @@ class NetWorthGenerator(MetricGenerator):
     def evaluate(self, view: SimulationStateView, logger: SimulationLogger) -> float:
         # Net worth = total assets - total liabilities.
         # Both carry positive balances; liabilities represent debt owed.
-        accounts = view.get_accounts()
-        assets = sum(a.balance for a in accounts if isinstance(a, AssetAccountState))
-        liabilities = sum(
-            a.balance for a in accounts if isinstance(a, LiabilityAccountState)
-        )
-        return assets - liabilities
+        net_worth = 0.0
+        for account in view.get_accounts():
+            if isinstance(account, AssetAccountState):
+                net_worth += account.balance
+            elif isinstance(account, LiabilityAccountState):
+                net_worth -= account.balance
+        return net_worth
 ```
 
 Register it once in `EngineConfiguration.metrics` and call `view.get_metric("Net_Worth")` from any Flow.
