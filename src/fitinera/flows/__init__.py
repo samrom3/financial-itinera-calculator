@@ -1,6 +1,6 @@
 from .interfaces import Flow, MetricGenerator
 from .income import JobIncomeFlow
-from .debt import MortgagePaymentFlow
+from .debt import SimpleMortgagePaymentFlow
 from .spending import LivingExpenseFlow
 from .lifecycle import PersonRetirementLabelFlow, ConditionalLabelFlow
 from .metrics import NetWorthGenerator
@@ -27,7 +27,7 @@ __all__ = [
     "Flow",
     "MetricGenerator",
     "JobIncomeFlow",
-    "MortgagePaymentFlow",
+    "SimpleMortgagePaymentFlow",
     "LivingExpenseFlow",
     "PersonRetirementLabelFlow",
     "ConditionalLabelFlow",

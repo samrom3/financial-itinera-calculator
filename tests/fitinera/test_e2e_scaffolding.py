@@ -13,7 +13,7 @@ from fitinera.engine import SimulationEngine, EngineConfiguration
 from fitinera.flows import (
     MetricGenerator,
     JobIncomeFlow,
-    MortgagePaymentFlow,
+    SimpleMortgagePaymentFlow,
     LivingExpenseFlow,
     PersonRetirementLabelFlow,
     MetricCondition,
@@ -62,7 +62,7 @@ def test_e2e_scaffolding_runs_without_import_or_type_errors():
         metrics={"Net_Worth": NetWorthGenerator()},
         flows=[
             JobIncomeFlow(person_id="Sam", amount=3000, to_account="Joint Checking"),
-            MortgagePaymentFlow(
+            SimpleMortgagePaymentFlow(
                 from_account="Joint Checking", to_account="Mortgage", amount=1500
             ),
             LivingExpenseFlow(from_account="Joint Checking", amount=2500),

@@ -139,7 +139,7 @@ pipeline = EngineConfiguration(
     metrics={"Net_Worth": NetWorthGenerator()},
     flows=[
         JobIncomeFlow(),
-        # ... additional user-defined flows (e.g. MortgagePaymentFlow, LivingExpenseFlow) ...
+        # ... additional user-defined flows (e.g. SimpleMortgagePaymentFlow, LivingExpenseFlow) ...
         # Lazily evaluates NetWorthGenerator based on exact account balances RIGHT NOW.
         # This means it accounts for JobIncomeFlow that just ran before it in the pipeline.
         PersonRetirementLabelFlow(

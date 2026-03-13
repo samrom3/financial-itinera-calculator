@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 from fitinera.flows import (
     JobIncomeFlow,
-    MortgagePaymentFlow,
+    SimpleMortgagePaymentFlow,
     LivingExpenseFlow,
     NetWorthGenerator,
     AssetSolvencyGuardFlow,
@@ -26,7 +26,7 @@ def test_job_income_flow_execute_raises_not_implemented():
 
 
 def test_mortgage_payment_flow_initialization_stores_accounts():
-    flow = MortgagePaymentFlow("Checking", "Mortgage", 1000)
+    flow = SimpleMortgagePaymentFlow("Checking", "Mortgage", 1000)
     assert flow.from_account == "Checking"
 
 
@@ -183,16 +183,16 @@ class TestLivingExpenseFlow:
         assert emitted.from_account == "savings"
 
 
-class TestMortgagePaymentFlow:
-    """Tests for MortgagePaymentFlow.executeFlow()."""
+class TestSimpleMortgagePaymentFlow:
+    """Tests for SimpleMortgagePaymentFlow.executeFlow()."""
 
     def test_emits_transfer_with_configured_fields(self):
-        """MortgagePaymentFlow emits Transfer with from_account, to_account, and amount.
+        """SimpleMortgagePaymentFlow emits Transfer with from_account, to_account, and amount.
 
         emit_transaction must be called exactly once with a Transfer carrying all
         three constructor-provided values.
         """
-        flow = MortgagePaymentFlow(
+        flow = SimpleMortgagePaymentFlow(
             from_account="checking", to_account="mortgage", amount=1500.0
         )
         view = MagicMock()
@@ -206,11 +206,11 @@ class TestMortgagePaymentFlow:
         )
 
     def test_emits_transfer_every_turn_regardless_of_state(self):
-        """MortgagePaymentFlow always emits its transfer without consulting view state.
+        """SimpleMortgagePaymentFlow always emits its transfer without consulting view state.
 
         Mortgage payments are unconditional fixed obligations each turn.
         """
-        flow = MortgagePaymentFlow(
+        flow = SimpleMortgagePaymentFlow(
             from_account="checking", to_account="lender", amount=800.0
         )
         view = MagicMock()

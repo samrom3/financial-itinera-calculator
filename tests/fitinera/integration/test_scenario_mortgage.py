@@ -8,7 +8,7 @@ NOT trigger the guard.
 
 Account convention: liability balances are stored as negative values (the common
 accounting representation where a $300,000 mortgage appears as -$300,000 in the
-ledger). Each MortgagePaymentFlow Transfer(checking, mortgage, 1_600) deducts from
+ledger). Each SimpleMortgagePaymentFlow Transfer(checking, mortgage, 1_600) deducts from
 checking and adds $1,600 to the mortgage balance, bringing it toward zero as the
 debt is repaid.
 
@@ -34,7 +34,7 @@ from fitinera.flows import (
     AssetSolvencyGuardFlow,
     JobIncomeFlow,
     LivingExpenseFlow,
-    MortgagePaymentFlow,
+    SimpleMortgagePaymentFlow,
 )
 
 # ---------------------------------------------------------------------------
@@ -94,7 +94,7 @@ def _build_config() -> EngineConfiguration:
     Pipeline order per the spec:
       1. AssetSolvencyGuardFlow — halt on negative ASSET balance
       2. JobIncomeFlow            — monthly income while Status=Working
-      3. MortgagePaymentFlow      — fixed monthly payment from checking to mortgage
+      3. SimpleMortgagePaymentFlow      — fixed monthly payment from checking to mortgage
       4. LivingExpenseFlow        — fixed monthly living expenses from checking
     """
     return EngineConfiguration(
@@ -107,7 +107,7 @@ def _build_config() -> EngineConfiguration:
                 amount=_MONTHLY_INCOME,
                 to_account="checking",
             ),
-            MortgagePaymentFlow(
+            SimpleMortgagePaymentFlow(
                 from_account="checking",
                 to_account="mortgage",
                 amount=_MORTGAGE_PAYMENT,

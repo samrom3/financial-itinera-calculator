@@ -10,7 +10,7 @@ Covers executeFlow() and compute_minimum() behavior for:
   - RebalanceExtraSavingsFlow (investments.py)
   - LivingExpenseFlow zero-inflation path (spending.py)
   - LivingExpenseFlow inflation path (spending.py)
-  - MortgagePaymentFlow (debt.py)
+  - SimpleMortgagePaymentFlow (debt.py)
 
 TDD cycle: tests written first (red), then implementation (green).
 """
@@ -26,7 +26,7 @@ from fitinera.flows.investments import (
     RebalanceExtraSavingsFlow,
 )
 from fitinera.flows.spending import LivingExpenseFlow
-from fitinera.flows.debt import MortgagePaymentFlow
+from fitinera.flows.debt import SimpleMortgagePaymentFlow
 from fitinera.models import (
     AssetAccountState,
     LiabilityAccountState,
@@ -750,19 +750,19 @@ class TestLivingExpenseFlowWithInflation:
 
 
 # ---------------------------------------------------------------------------
-# MortgagePaymentFlow — executeFlow() behavior
+# SimpleMortgagePaymentFlow — executeFlow() behavior
 # ---------------------------------------------------------------------------
 
 
-class TestMortgagePaymentFlowExecute:
-    """Tests for MortgagePaymentFlow.executeFlow() behavior."""
+class TestSimpleMortgagePaymentFlowExecute:
+    """Tests for SimpleMortgagePaymentFlow.executeFlow() behavior."""
 
     def test_emits_transfer_with_configured_fields(self):
-        """MortgagePaymentFlow emits Transfer with from_account, to_account, and amount.
+        """SimpleMortgagePaymentFlow emits Transfer with from_account, to_account, and amount.
 
         emit_transaction must be called exactly once with the configured values.
         """
-        flow = MortgagePaymentFlow("checking", "mortgage", 1500.0)
+        flow = SimpleMortgagePaymentFlow("checking", "mortgage", 1500.0)
         view = MagicMock()
         updater = MagicMock()
         logger = MagicMock()
@@ -774,11 +774,11 @@ class TestMortgagePaymentFlowExecute:
         )
 
     def test_emits_transfer_unconditionally(self):
-        """MortgagePaymentFlow emits Transfer every turn without consulting state.
+        """SimpleMortgagePaymentFlow emits Transfer every turn without consulting state.
 
         Mortgage payments are fixed unconditional obligations.
         """
-        flow = MortgagePaymentFlow("checking", "lender", 800.0)
+        flow = SimpleMortgagePaymentFlow("checking", "lender", 800.0)
         view = MagicMock()
         updater = MagicMock()
         logger = MagicMock()
