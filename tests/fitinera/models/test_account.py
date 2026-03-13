@@ -238,6 +238,40 @@ class TestLiabilityAccountStateToSnapshot:
         assert snapshot.labels == {"Lender": "Nationwide"}
 
 
+class TestAssetAccountStateApplyDelta:
+    """Tests for AssetAccountState.apply_delta() scaffold stub."""
+
+    def test_apply_delta_is_callable(self):
+        """AssetAccountState.apply_delta exists and is callable."""
+        state = AssetAccountState(id="savings", balance=5_000.0)
+        assert callable(state.apply_delta)
+
+    def test_apply_delta_raises_not_implemented_error(self):
+        """AssetAccountState.apply_delta raises NotImplementedError in scaffold stage."""
+        import pytest
+
+        state = AssetAccountState(id="savings", balance=5_000.0)
+        with pytest.raises(NotImplementedError):
+            state.apply_delta(100.0)
+
+
+class TestLiabilityAccountStateApplyDelta:
+    """Tests for LiabilityAccountState.apply_delta() scaffold stub."""
+
+    def test_apply_delta_is_callable(self):
+        """LiabilityAccountState.apply_delta exists and is callable."""
+        state = LiabilityAccountState(id="mortgage", balance=-200_000.0)
+        assert callable(state.apply_delta)
+
+    def test_apply_delta_raises_not_implemented_error(self):
+        """LiabilityAccountState.apply_delta raises NotImplementedError in scaffold stage."""
+        import pytest
+
+        state = LiabilityAccountState(id="mortgage", balance=-200_000.0)
+        with pytest.raises(NotImplementedError):
+            state.apply_delta(-500.0)
+
+
 class TestTopLevelImports:
     """Tests verifying all four types are importable from fitinera directly."""
 

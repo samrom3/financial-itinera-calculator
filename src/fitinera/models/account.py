@@ -50,6 +50,17 @@ class AccountState(ABC):
         return self.labels.get(facet)
 
     @abstractmethod
+    def apply_delta(self, delta: float) -> None:
+        """Apply a signed balance change to this account.
+
+        Concrete subclasses define how the delta affects the internal balance
+        (e.g. asset vs liability sign conventions).
+
+        Args:
+            delta: The signed amount to apply.
+        """
+
+    @abstractmethod
     def to_snapshot(self) -> Account:
         """Produce a frozen Account snapshot from the current mutable state."""
 
@@ -102,6 +113,17 @@ class AssetAccountState(AccountState):
     calls to_snapshot() to produce an immutable AssetAccount for the Turn record.
     """
 
+    def apply_delta(self, delta: float) -> None:
+        """Apply a signed balance change to this asset account.
+
+        Args:
+            delta: The signed amount to apply.
+
+        Raises:
+            NotImplementedError: Stub — real dispatch logic is not yet implemented.
+        """
+        raise NotImplementedError
+
     def to_snapshot(self) -> AssetAccount:
         """Produce a frozen AssetAccount snapshot from the current state.
 
@@ -120,6 +142,17 @@ class LiabilityAccountState(AccountState):
     calls to_snapshot() to produce an immutable LiabilityAccount for the Turn
     record.
     """
+
+    def apply_delta(self, delta: float) -> None:
+        """Apply a signed balance change to this liability account.
+
+        Args:
+            delta: The signed amount to apply.
+
+        Raises:
+            NotImplementedError: Stub — real dispatch logic is not yet implemented.
+        """
+        raise NotImplementedError
 
     def to_snapshot(self) -> LiabilityAccount:
         """Produce a frozen LiabilityAccount snapshot from the current state.
