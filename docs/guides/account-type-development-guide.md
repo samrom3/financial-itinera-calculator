@@ -41,16 +41,25 @@ currency. Examples:
 
 ### Use `LiabilityAccount` when the account represents a debt the simulation owner **owes**
 
-Liability accounts track outstanding obligations. By convention, they carry **negative** balances (e.g. a $300,000
-mortgage is stored as `balance=-300_000.0`). Net worth is the sum of all account balances, so a negative liability
-balance correctly reduces it. Examples:
+Liability accounts track outstanding obligations. By convention, they carry **positive** balances representing the
+amount of debt owed (e.g. a $300,000 mortgage is stored as `balance=300_000.0`). Net worth is calculated as
+`total assets − total liabilities`, both positive. Examples:
 
 - Mortgages
 - Personal loans or student loans
 - Credit card balances
 
+A `__post_init__` validator on `LiabilityAccount` raises `ValueError` if `balance < 0`, catching misconfiguration at
+scenario construction time. See [ADR-0015](../adrs/0015-liability-balance-sign-convention.md) for the full rationale.
+
 If an account does not fit cleanly into either category (e.g. a complex instrument that is simultaneously asset and
 liability), model it as an `AssetAccount` with an explanatory label and document the convention in the scenario.
+
+> **Migration note (ADR-0015):** Prior to ADR-0015, liability balances were stored as negative numbers. If you have
+> user-written flows or conditions that check liability balance thresholds, you must update them. For example, a
+> condition like `acct.balance > -50_000` (checking a negative balance approaching zero) should become
+> `acct.balance < 50_000` (checking a positive balance decreasing toward zero). Similarly, `acct.balance < 0` no longer
+> indicates "debt exists" — under the positive convention, `acct.balance > 0` means "debt exists."
 
 ______________________________________________________________________
 

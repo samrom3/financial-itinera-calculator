@@ -97,3 +97,4 @@ ______________________________________________________________________
 | [0012](./0012-return-value-flow-error-signaling.md)           | Return-Value Flow Error Signaling via FitineraResult Hierarchy             | Accepted               |
 | [0013](./0013-loglistener-dispatch-pattern.md)                | LogListener Dispatch Pattern                                               | Accepted               |
 | [0014](./0014-typed-account-hierarchy-with-abc.md)            | Typed Account Hierarchy with ABC Enforcement                               | Accepted               |
+| [0015](./0015-liability-balance-sign-convention.md)           | Liability Balance Sign Convention                                          | Accepted               |
