@@ -376,8 +376,14 @@ indicating a flow error or an overly generous debt payoff schedule) would be a n
 
 ### Mortgage payment mechanics under apply_delta
 
-A concrete mortgage payment illustrates how `apply_delta` dispatches correctly without any flow-level sign awareness.
-Consider a $1,500/month mortgage payment split into $300 principal and $1,200 interest.
+> **Note:** The following walkthrough uses a hypothetical split-payment model to illustrate how `apply_delta` dispatches
+> across account types. The current `MortgagePaymentFlow` in `flows/debt.py` emits a single `Transfer` for the full
+> payment amount, treating it entirely as principal reduction. Updating `MortgagePaymentFlow` to correctly split
+> principal and interest is a separate enhancement, not in scope for issue #31. The sign-flip fix applies correctly to
+> the existing single-Transfer model as well.
+
+A concrete example illustrates how `apply_delta` dispatches correctly without any flow-level sign awareness. Consider a
+$1,500/month mortgage payment split into $300 principal and $1,200 interest.
 
 **How `apply_delta` is defined on each type:**
 
