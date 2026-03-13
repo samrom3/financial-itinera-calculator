@@ -283,14 +283,14 @@ class TestAssetSolvencyGuardFlow:
 
         assert flow.executeFlow(view, updater, logger) is None
 
-    def test_returns_none_for_liability_with_negative_balance(self):
-        """AssetSolvencyGuardFlow returns None for LiabilityAccountState with negative balance.
+    def test_returns_none_for_liability_with_positive_balance(self):
+        """AssetSolvencyGuardFlow returns None for LiabilityAccountState with positive balance.
 
         Only AssetAccountState instances are guarded; LiabilityAccountState is excluded
         by type, regardless of balance.
         """
         flow = AssetSolvencyGuardFlow()
-        account = LiabilityAccountState(id="mortgage", balance=-200_000.0)
+        account = LiabilityAccountState(id="mortgage", balance=200_000.0)
         view = _make_view([account])
         updater = MagicMock()
         logger = MagicMock()
@@ -343,15 +343,15 @@ class TestNetWorthGenerator:
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 1_500.0
 
-    def test_evaluate_sums_liability_balances(self):
-        """NetWorthGenerator.evaluate sums LiabilityAccountState balances directly.
+    def test_evaluate_subtracts_liability_balances(self):
+        """NetWorthGenerator.evaluate subtracts LiabilityAccountState balances.
 
-        LiabilityAccountState accounts carry negative balances by convention (e.g. a
-        $200k mortgage is stored as -200_000.0). Summing directly gives -200_000.0.
+        LiabilityAccountState accounts carry positive balances by convention (e.g. a
+        $200k mortgage is stored as 200_000.0). Net worth = 0 - 200_000 = -200_000.0.
         """
         generator = NetWorthGenerator()
         accounts = [
-            LiabilityAccountState(id="mortgage", balance=-200_000.0),
+            LiabilityAccountState(id="mortgage", balance=200_000.0),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == -200_000.0
@@ -359,13 +359,13 @@ class TestNetWorthGenerator:
     def test_evaluate_combines_assets_and_liabilities(self):
         """NetWorthGenerator.evaluate correctly combines asset and liability balances.
 
-        House AssetAccountState 500_000.0 plus mortgage LiabilityAccountState
-        -200_000.0 → net worth 300_000.0.
+        House AssetAccountState 500_000.0 minus mortgage LiabilityAccountState
+        200_000.0 → net worth 300_000.0.
         """
         generator = NetWorthGenerator()
         accounts = [
             AssetAccountState(id="house", balance=500_000.0),
-            LiabilityAccountState(id="mortgage", balance=-200_000.0),
+            LiabilityAccountState(id="mortgage", balance=200_000.0),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 300_000.0

@@ -124,26 +124,28 @@ class _SimulationStateUpdaterImpl(SimulationStateUpdater):
         self._tx_buffer = tx_buffer
 
     def emit_transaction(self, transaction: Transaction) -> None:
-        """Apply balance delta immediately and record transaction in buffer.
+        """Apply balance delta via apply_delta and record transaction in buffer.
 
-        Supports Income (adds to to_account), Expense (subtracts from from_account),
-        and Transfer (subtracts from from_account, adds to to_account).
+        Supports Income (credits to_account), Expense (debits from_account),
+        and Transfer (debits from_account, credits to_account). The engine
+        stays type-agnostic — sign inversion for liabilities lives in
+        LiabilityAccountState.apply_delta().
         """
         if isinstance(transaction, Income):
             acct = self._accounts_by_id.get(transaction.to_account)
             if acct is not None:
-                acct.balance += transaction.amount
+                acct.apply_delta(transaction.amount)
         elif isinstance(transaction, Expense):
             acct = self._accounts_by_id.get(transaction.from_account)
             if acct is not None:
-                acct.balance -= transaction.amount
+                acct.apply_delta(-transaction.amount)
         elif isinstance(transaction, Transfer):
             src = self._accounts_by_id.get(transaction.from_account)
             dst = self._accounts_by_id.get(transaction.to_account)
             if src is not None:
-                src.balance -= transaction.amount
+                src.apply_delta(-transaction.amount)
             if dst is not None:
-                dst.balance += transaction.amount
+                dst.apply_delta(transaction.amount)
         self._tx_buffer.append(transaction)
 
     def update_person_label(self, person_id: str, facet: str, value: str) -> None:

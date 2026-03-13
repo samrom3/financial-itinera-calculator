@@ -1,23 +1,22 @@
 """Integration test — Scenario 4: mortgage debt paydown with solvency guard.
 
 Two accounts: checking (ASSET, initial $10,000) and mortgage (LIABILITY,
-initial -$300,000 representing outstanding debt). The pipeline includes
-AssetSolvencyGuardFlow which monitors only ASSET-labeled accounts (FR-014);
-the mortgage LIABILITY account going negative (i.e. a debt balance exists) must
-NOT trigger the guard.
+initial $300,000 representing outstanding debt stored as a positive value).
+The pipeline includes AssetSolvencyGuardFlow which monitors only ASSET-labeled
+accounts (FR-014); the mortgage LIABILITY account must NOT trigger the guard.
 
-Account convention: liability balances are stored as negative values (the common
-accounting representation where a $300,000 mortgage appears as -$300,000 in the
-ledger). Each SimpleMortgagePaymentFlow Transfer(checking, mortgage, 1_600) deducts from
-checking and adds $1,600 to the mortgage balance, bringing it toward zero as the
-debt is repaid.
+Account convention: liability balances are stored as positive values (the amount
+owed). Each SimpleMortgagePaymentFlow Transfer(checking, mortgage, 1_600) debits
+$1,600 from checking and credits $1,600 to the mortgage. Because
+LiabilityAccountState.apply_delta inverts the sign, the mortgage balance
+*decreases* by $1,600 each turn as the debt is repaid.
 
 The simulation runs for 187 monthly turns — just before full mortgage payoff —
-so that result.turns[-1] shows a still-negative mortgage balance (debt not yet
+so that result.turns[-1] shows a still-positive mortgage balance (debt not yet
 fully discharged), confirming:
   - AssetSolvencyGuardFlow does not fire on LIABILITY accounts (FR-014)
   - The checking ASSET account remains solvent throughout
-  - Simulation completes without exception despite mortgage being negative
+  - Simulation completes without exception despite mortgage being positive
 """
 
 from fitinera import (
@@ -45,14 +44,14 @@ _MONTHLY_INCOME = 8_333.0
 _MORTGAGE_PAYMENT = 1_600.0
 _MONTHLY_EXPENSE = 3_000.0
 
-# Mortgage modeled as negative: -$300,000 represents $300,000 owed.
-# Each $1,600/month payment brings the balance ~$1,600 closer to zero.
-# After 187 turns: -300_000 + 187*1_600 = -800 (still negative, debt not cleared).
-_MORTGAGE_INITIAL = -300_000.0
+# Mortgage modeled as positive: $300,000 represents $300,000 owed.
+# Each $1,600/month payment decreases the balance by $1,600.
+# After 187 turns: 300_000 - 187*1_600 = 800 (still positive, debt not cleared).
+_MORTGAGE_INITIAL = 300_000.0
 _CHECKING_INITIAL = 10_000.0
 
-# Run for 187 turns so the mortgage is still negative at the last turn,
-# explicitly demonstrating that a negative LIABILITY balance does not trigger
+# Run for 187 turns so the mortgage is still positive at the last turn,
+# explicitly demonstrating that a positive LIABILITY balance does not trigger
 # AssetSolvencyGuardFlow (FR-014).
 _SIMULATION_TURNS = 187
 _MAX_TURNS = TurnDuration.of(months=_SIMULATION_TURNS)
@@ -64,7 +63,7 @@ _PERSON_LIFE_EXPECTANCY = Age(85)
 def _build_scenario() -> SimulationScenario:
     """Return a scenario with checking and mortgage accounts plus one working person.
 
-    The mortgage balance starts negative (−$300,000) representing outstanding debt.
+    The mortgage balance starts positive ($300,000) representing outstanding debt.
     """
     return SimulationScenario(
         initial_persons=[
@@ -129,7 +128,7 @@ class TestScenario4MortgagePaydown:
     """Integration tests for Scenario 4: mortgage paydown with solvency guard.
 
     Validates that the AssetSolvencyGuardFlow only watches ASSET-labeled accounts
-    (FR-014) and does not fire when a LIABILITY account has a negative balance.
+    (FR-014) and does not fire when a LIABILITY account has a positive balance.
     """
 
     def test_scenario4_completes_without_exception(self):
@@ -158,7 +157,7 @@ class TestScenario4MortgagePaydown:
     def test_scenario4_checking_account_stays_solvent(self):
         """Checking ASSET account balance is non-negative across every turn.
 
-        Monthly net inflow = $8,333 − $1,600 − $3,000 = $3,733 per turn.
+        Monthly net inflow = $8,333 - $1,600 - $3,000 = $3,733 per turn.
         Starting at $10,000 the balance grows monotonically, so AssetSolvencyGuardFlow
         never fires.
         """
@@ -173,11 +172,11 @@ class TestScenario4MortgagePaydown:
                 f"Checking went negative at turn {i + 1}: {checking.balance}"
             )
 
-    def test_scenario4_mortgage_balance_is_negative_at_last_turn(self):
-        """Mortgage LIABILITY account balance is ≤ $0 at the final turn (debt not cleared).
+    def test_scenario4_mortgage_balance_is_positive_at_last_turn(self):
+        """Mortgage LIABILITY account balance is > 0 at the final turn (debt not cleared).
 
         After 187 monthly payments of $1,600 against an initial debt of $300,000,
-        the remaining balance is approximately −$800, confirming the debt has not
+        the remaining balance is approximately $800, confirming the debt has not
         yet been fully discharged by end of the simulation window.
         """
         config = _build_config()
@@ -187,15 +186,15 @@ class TestScenario4MortgagePaydown:
 
         last_turn = result.turns[-1]
         mortgage = next(a for a in last_turn.accounts if a.id == "mortgage")
-        assert mortgage.balance <= 0.0, (
-            f"Expected mortgage balance <= $0 at last turn, got {mortgage.balance}"
+        assert mortgage.balance > 0.0, (
+            f"Expected mortgage balance > $0 at last turn, got {mortgage.balance}"
         )
 
-    def test_scenario4_solvency_guard_does_not_raise_when_liability_is_negative(self):
-        """AssetSolvencyGuardFlow does not raise on a negative LIABILITY balance.
+    def test_scenario4_solvency_guard_does_not_raise_when_liability_is_positive(self):
+        """AssetSolvencyGuardFlow does not raise on a positive LIABILITY balance.
 
         The mortgage account is a LiabilityAccount. Per FR-014, AssetSolvencyGuardFlow
-        only inspects AssetAccountState instances. A negative mortgage
+        only inspects AssetAccountState instances. A positive mortgage
         balance must not cause the simulation to raise SolvencyViolationError.
         """
         config = _build_config()
@@ -203,37 +202,37 @@ class TestScenario4MortgagePaydown:
 
         result = SimulationEngine(config).run(scenario)
 
-        # Confirm the simulation produced turns despite the mortgage being negative.
+        # Confirm the simulation produced turns despite the mortgage being positive.
         assert len(result.turns) == _SIMULATION_TURNS
 
-        # Verify the mortgage IS negative during the simulation (at turn 0).
+        # Verify the mortgage IS positive during the simulation (at turn 0).
         first_turn = result.turns[0]
         mortgage = next(a for a in first_turn.accounts if a.id == "mortgage")
-        assert mortgage.balance < 0.0, (
-            "Expected mortgage to be negative in the first turn "
+        assert mortgage.balance > 0.0, (
+            "Expected mortgage to be positive in the first turn "
             f"(debt not yet repaid), got {mortgage.balance}"
         )
 
-    def test_scenario4_mortgage_balance_increases_toward_zero_each_turn(self):
-        """Mortgage balance increases by $1,600 each turn as payments are applied.
+    def test_scenario4_mortgage_balance_decreases_toward_zero_each_turn(self):
+        """Mortgage balance decreases by $1,600 each turn as payments are applied.
 
-        Transfer(checking, mortgage, 1_600) adds $1,600 to the mortgage account
-        each month, bringing the outstanding debt balance from −$300,000 toward
-        zero over the simulation period.
+        Transfer(checking, mortgage, 1_600) applies +1_600 via apply_delta, which
+        inverts to -1_600 on the liability, bringing the outstanding debt balance
+        from $300,000 toward zero over the simulation period.
         """
         config = _build_config()
         scenario = _build_scenario()
 
         result = SimulationEngine(config).run(scenario)
 
-        # Mortgage starts at -300_000 and each turn adds 1_600.
+        # Mortgage starts at 300_000 and each turn decreases by 1_600.
         prev_balance = _MORTGAGE_INITIAL
         for i, turn in enumerate(result.turns):
             mortgage = next(a for a in turn.accounts if a.id == "mortgage")
             assert (
-                mortgage.balance > prev_balance or mortgage.balance == prev_balance
+                mortgage.balance < prev_balance or mortgage.balance == prev_balance
             ), (
-                f"Mortgage balance decreased unexpectedly at turn {i + 1}: "
+                f"Mortgage balance increased unexpectedly at turn {i + 1}: "
                 f"{prev_balance} -> {mortgage.balance}"
             )
             prev_balance = mortgage.balance
@@ -241,7 +240,7 @@ class TestScenario4MortgagePaydown:
     def test_scenario4_checking_grows_steadily(self):
         """Checking balance increases each turn by approximately $3,733.
 
-        Net monthly inflow = income ($8,333) − mortgage payment ($1,600) −
+        Net monthly inflow = income ($8,333) - mortgage payment ($1,600) -
         living expense ($3,000) = $3,733. Starting at $10,000, the balance
         grows monotonically throughout the simulation.
         """

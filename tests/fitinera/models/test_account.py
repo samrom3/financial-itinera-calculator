@@ -1,5 +1,7 @@
 """Tests for Account, AccountState, and their typed subclasses."""
 
+import pytest
+
 import fitinera
 from fitinera.models import (
     Account,
@@ -28,10 +30,10 @@ class TestAccountBalance:
         acc = AssetAccount(id="savings", balance=0.0)
         assert acc.balance == 0.0
 
-    def test_balance_returns_negative_when_balance_is_negative(self):
-        """LiabilityAccount.balance correctly represents a liability (negative balance)."""
-        acc = LiabilityAccount(id="mortgage", balance=-300_000.0)
-        assert acc.balance == -300_000.0
+    def test_liability_balance_returns_positive_value(self):
+        """LiabilityAccount.balance stores debts as positive values."""
+        acc = LiabilityAccount(id="mortgage", balance=300_000.0)
+        assert acc.balance == 300_000.0
 
 
 class TestAccountGetLabel:
@@ -106,7 +108,7 @@ class TestAssetAccountSubclassing:
 
     def test_liability_account_is_instance_of_account(self):
         """LiabilityAccount is an instance of Account (subclass relationship holds)."""
-        acc = LiabilityAccount(id="mortgage", balance=-200_000.0)
+        acc = LiabilityAccount(id="mortgage", balance=200_000.0)
         assert isinstance(acc, Account)
 
     def test_asset_account_state_is_instance_of_account_state(self):
@@ -116,7 +118,7 @@ class TestAssetAccountSubclassing:
 
     def test_liability_account_state_is_instance_of_account_state(self):
         """LiabilityAccountState is an instance of AccountState."""
-        state = LiabilityAccountState(id="mortgage", balance=-200_000.0)
+        state = LiabilityAccountState(id="mortgage", balance=200_000.0)
         assert isinstance(state, AccountState)
 
 
@@ -155,26 +157,26 @@ class TestLiabilityAccountToState:
 
     def test_to_state_returns_liability_account_state(self):
         """LiabilityAccount.to_state() returns a LiabilityAccountState instance."""
-        acc = LiabilityAccount(id="mortgage", balance=-250_000.0)
+        acc = LiabilityAccount(id="mortgage", balance=250_000.0)
         state = acc.to_state()
         assert isinstance(state, LiabilityAccountState)
 
     def test_to_state_preserves_id(self):
         """LiabilityAccount.to_state() produces a state with the same account id."""
-        acc = LiabilityAccount(id="car-loan", balance=-15_000.0)
+        acc = LiabilityAccount(id="car-loan", balance=15_000.0)
         state = acc.to_state()
         assert state.id == "car-loan"
 
     def test_to_state_preserves_balance(self):
         """LiabilityAccount.to_state() produces a state with the same initial balance."""
-        acc = LiabilityAccount(id="student-loan", balance=-40_000.0)
+        acc = LiabilityAccount(id="student-loan", balance=40_000.0)
         state = acc.to_state()
-        assert state.balance == -40_000.0
+        assert state.balance == 40_000.0
 
     def test_to_state_preserves_labels(self):
         """LiabilityAccount.to_state() produces a state with matching labels."""
         acc = LiabilityAccount(
-            id="mortgage", balance=-250_000.0, labels={"Priority": "High"}
+            id="mortgage", balance=250_000.0, labels={"Priority": "High"}
         )
         state = acc.to_state()
         assert state.labels == {"Priority": "High"}
@@ -213,63 +215,102 @@ class TestLiabilityAccountStateToSnapshot:
 
     def test_to_snapshot_returns_liability_account(self):
         """LiabilityAccountState.to_snapshot() returns a LiabilityAccount instance."""
-        state = LiabilityAccountState(id="mortgage", balance=-200_000.0)
+        state = LiabilityAccountState(id="mortgage", balance=200_000.0)
         snapshot = state.to_snapshot()
         assert isinstance(snapshot, LiabilityAccount)
 
     def test_to_snapshot_preserves_id(self):
         """LiabilityAccountState.to_snapshot() produces a snapshot with the same id."""
-        state = LiabilityAccountState(id="car-loan", balance=-12_000.0)
+        state = LiabilityAccountState(id="car-loan", balance=12_000.0)
         snapshot = state.to_snapshot()
         assert snapshot.id == "car-loan"
 
     def test_to_snapshot_preserves_balance(self):
         """LiabilityAccountState.to_snapshot() produces a snapshot with the current balance."""
-        state = LiabilityAccountState(id="credit-card", balance=-3_000.0)
+        state = LiabilityAccountState(id="credit-card", balance=3_000.0)
         snapshot = state.to_snapshot()
-        assert snapshot.balance == -3_000.0
+        assert snapshot.balance == 3_000.0
 
     def test_to_snapshot_preserves_labels(self):
         """LiabilityAccountState.to_snapshot() produces a snapshot with matching labels."""
         state = LiabilityAccountState(
-            id="mortgage", balance=-200_000.0, labels={"Lender": "Nationwide"}
+            id="mortgage", balance=200_000.0, labels={"Lender": "Nationwide"}
         )
         snapshot = state.to_snapshot()
         assert snapshot.labels == {"Lender": "Nationwide"}
 
 
 class TestAssetAccountStateApplyDelta:
-    """Tests for AssetAccountState.apply_delta() scaffold stub."""
+    """Tests for AssetAccountState.apply_delta() — natural sign convention."""
 
     def test_apply_delta_is_callable(self):
         """AssetAccountState.apply_delta exists and is callable."""
         state = AssetAccountState(id="savings", balance=5_000.0)
         assert callable(state.apply_delta)
 
-    def test_apply_delta_raises_not_implemented_error(self):
-        """AssetAccountState.apply_delta raises NotImplementedError in scaffold stage."""
-        import pytest
-
+    def test_apply_delta_positive_increases_balance(self):
+        """AssetAccountState.apply_delta(+100) increases balance by 100."""
         state = AssetAccountState(id="savings", balance=5_000.0)
-        with pytest.raises(NotImplementedError):
-            state.apply_delta(100.0)
+        state.apply_delta(100.0)
+        assert state.balance == 5_100.0
+
+    def test_apply_delta_negative_decreases_balance(self):
+        """AssetAccountState.apply_delta(-200) decreases balance by 200."""
+        state = AssetAccountState(id="savings", balance=5_000.0)
+        state.apply_delta(-200.0)
+        assert state.balance == 4_800.0
+
+    def test_apply_delta_zero_leaves_balance_unchanged(self):
+        """AssetAccountState.apply_delta(0) leaves balance unchanged."""
+        state = AssetAccountState(id="savings", balance=5_000.0)
+        state.apply_delta(0.0)
+        assert state.balance == 5_000.0
 
 
 class TestLiabilityAccountStateApplyDelta:
-    """Tests for LiabilityAccountState.apply_delta() scaffold stub."""
+    """Tests for LiabilityAccountState.apply_delta() — inverted sign convention."""
 
     def test_apply_delta_is_callable(self):
         """LiabilityAccountState.apply_delta exists and is callable."""
-        state = LiabilityAccountState(id="mortgage", balance=-200_000.0)
+        state = LiabilityAccountState(id="mortgage", balance=200_000.0)
         assert callable(state.apply_delta)
 
-    def test_apply_delta_raises_not_implemented_error(self):
-        """LiabilityAccountState.apply_delta raises NotImplementedError in scaffold stage."""
-        import pytest
+    def test_apply_delta_positive_decreases_balance(self):
+        """LiabilityAccountState.apply_delta(+500) decreases balance by 500 (debt repayment)."""
+        state = LiabilityAccountState(id="mortgage", balance=200_000.0)
+        state.apply_delta(500.0)
+        assert state.balance == 199_500.0
 
-        state = LiabilityAccountState(id="mortgage", balance=-200_000.0)
-        with pytest.raises(NotImplementedError):
-            state.apply_delta(-500.0)
+    def test_apply_delta_negative_increases_balance(self):
+        """LiabilityAccountState.apply_delta(-300) increases balance by 300 (new debt)."""
+        state = LiabilityAccountState(id="mortgage", balance=200_000.0)
+        state.apply_delta(-300.0)
+        assert state.balance == 200_300.0
+
+    def test_apply_delta_zero_leaves_balance_unchanged(self):
+        """LiabilityAccountState.apply_delta(0) leaves balance unchanged."""
+        state = LiabilityAccountState(id="mortgage", balance=200_000.0)
+        state.apply_delta(0.0)
+        assert state.balance == 200_000.0
+
+
+class TestLiabilityAccountValidator:
+    """Tests for LiabilityAccount.__post_init__ balance validator."""
+
+    def test_raises_value_error_for_negative_balance(self):
+        """LiabilityAccount raises ValueError when constructed with a negative balance."""
+        with pytest.raises(ValueError, match="balance must be >= 0"):
+            LiabilityAccount(id="bad-loan", balance=-1.0)
+
+    def test_accepts_zero_balance(self):
+        """LiabilityAccount accepts a zero balance without error."""
+        acc = LiabilityAccount(id="paid-off", balance=0.0)
+        assert acc.balance == 0.0
+
+    def test_accepts_positive_balance(self):
+        """LiabilityAccount accepts a positive balance without error."""
+        acc = LiabilityAccount(id="mortgage", balance=300_000.0)
+        assert acc.balance == 300_000.0
 
 
 class TestTopLevelImports:

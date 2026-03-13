@@ -23,11 +23,12 @@ from fitinera.flows import (
 
 class NetWorthGenerator(MetricGenerator):
     def evaluate(self, view, logger):
-        return sum(
-            a.balance
-            for a in view.get_accounts()
-            if isinstance(a, (AssetAccountState, LiabilityAccountState))
+        accounts = view.get_accounts()
+        assets = sum(a.balance for a in accounts if isinstance(a, AssetAccountState))
+        liabilities = sum(
+            a.balance for a in accounts if isinstance(a, LiabilityAccountState)
         )
+        return assets - liabilities
 
 
 def test_e2e_scaffolding_runs_without_import_or_type_errors():
@@ -52,7 +53,7 @@ def test_e2e_scaffolding_runs_without_import_or_type_errors():
                 balance=10000,
                 labels={"Liquidity": "LIQUID"},
             ),
-            LiabilityAccount(id="Mortgage", balance=-300000),
+            LiabilityAccount(id="Mortgage", balance=1_200_000),
         ],
     )
 

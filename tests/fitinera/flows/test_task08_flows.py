@@ -251,14 +251,14 @@ class TestAssetSolvencyGuardFlowExecute:
 
         assert flow.executeFlow(view, updater, logger) is None
 
-    def test_liability_account_with_negative_balance_does_not_trigger_guard(self):
-        """AssetSolvencyGuardFlow returns None for LiabilityAccountState with negative balance.
+    def test_liability_account_with_positive_balance_does_not_trigger_guard(self):
+        """AssetSolvencyGuardFlow returns None for LiabilityAccountState with positive balance.
 
         A LiabilityAccountState is excluded by type — only AssetAccountState instances
         are guarded.
         """
         flow = AssetSolvencyGuardFlow()
-        account = LiabilityAccountState(id="mortgage", balance=-200_000.0)
+        account = LiabilityAccountState(id="mortgage", balance=200_000.0)
         view = MagicMock()
         view.get_accounts.return_value = [account]
         updater = MagicMock()
