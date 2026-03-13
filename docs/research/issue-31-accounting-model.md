@@ -63,20 +63,20 @@ ______________________________________________________________________
 
 ### What changes, file by file
 
-| File                                                   | Change Required                                                                                                                                 | Risk                     |
-| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| `src/fitinera/engine/state.py`                         | Add `isinstance(acct, LiabilityAccountState)` dispatch to invert balance deltas in `emit_transaction`                                           | High — core engine logic |
-| `src/fitinera/flows/metrics.py`                        | `NetWorthGenerator`: replace `sum(all)` with `assets − liabilities` using isinstance dispatch                                                   | Medium                   |
-| `src/fitinera/flows/debt.py`                           | **No code change** — `MortgagePaymentFlow` emits a type-agnostic `Transfer`; the engine's new dispatch handles the sign inversion automatically | None                     |
-| `tests/fitinera/integration/test_scenario_mortgage.py` | Flip `_MORTGAGE_INITIAL = -300_000.0` → `300_000.0`; invert balance-trend assertions                                                            | Medium                   |
-| `tests/fitinera/flows/test_standard_flows.py`          | ~5–8 liability-balance assertions                                                                                                               | Medium                   |
-| `tests/fitinera/models/test_account.py`                | ~6–8 liability-balance fixture values                                                                                                           | Medium                   |
-| `tests/fitinera/engine/test_engine_run.py`             | ~3–5 liability account setup lines                                                                                                              | Low–Medium               |
-| `tests/fitinera/flows/test_task08_flows.py`            | 1–2 liability setup lines                                                                                                                       | Low                      |
-| `tests/fitinera/test_e2e_scaffolding.py`               | Mortgage balance + `NetWorthGenerator` usage                                                                                                    | Low                      |
-| `README.md`                                            | `LiabilityAccount(balance=-300000)` → positive; update `NetWorthGenerator` example                                                              | Low                      |
-| `docs/guides/account-type-development-guide.md`        | Clarify "positive balance = debt owed" convention                                                                                               | Low                      |
-| New `docs/adrs/0015-liability-sign-convention.md`      | Document the decision and rationale                                                                                                             | New                      |
+| File                                                   | Change Required                                                                                                                                       | Risk                     |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `src/fitinera/engine/state.py`                         | Add `isinstance(acct, LiabilityAccountState)` dispatch to invert balance deltas in `emit_transaction`                                                 | High — core engine logic |
+| `src/fitinera/flows/metrics.py`                        | `NetWorthGenerator`: replace `sum(all)` with `assets − liabilities` using isinstance dispatch                                                         | Medium                   |
+| `src/fitinera/flows/debt.py`                           | **No code change** — `SimpleMortgagePaymentFlow` emits a type-agnostic `Transfer`; the engine's new dispatch handles the sign inversion automatically | None                     |
+| `tests/fitinera/integration/test_scenario_mortgage.py` | Flip `_MORTGAGE_INITIAL = -300_000.0` → `300_000.0`; invert balance-trend assertions                                                                  | Medium                   |
+| `tests/fitinera/flows/test_standard_flows.py`          | ~5–8 liability-balance assertions                                                                                                                     | Medium                   |
+| `tests/fitinera/models/test_account.py`                | ~6–8 liability-balance fixture values                                                                                                                 | Medium                   |
+| `tests/fitinera/engine/test_engine_run.py`             | ~3–5 liability account setup lines                                                                                                                    | Low–Medium               |
+| `tests/fitinera/flows/test_task08_flows.py`            | 1–2 liability setup lines                                                                                                                             | Low                      |
+| `tests/fitinera/test_e2e_scaffolding.py`               | Mortgage balance + `NetWorthGenerator` usage                                                                                                          | Low                      |
+| `README.md`                                            | `LiabilityAccount(balance=-300000)` → positive; update `NetWorthGenerator` example                                                                    | Low                      |
+| `docs/guides/account-type-development-guide.md`        | Clarify "positive balance = debt owed" convention                                                                                                     | Low                      |
+| New `docs/adrs/0015-liability-sign-convention.md`      | Document the decision and rationale                                                                                                                   | New                      |
 
 **Effort estimate:** ~3–5 hours of mechanical changes plus testing. No architectural uncertainty.
 
@@ -377,10 +377,10 @@ indicating a flow error or an overly generous debt payoff schedule) would be a n
 ### Mortgage payment mechanics under apply_delta
 
 > **Note:** The following walkthrough uses a hypothetical split-payment model to illustrate how `apply_delta` dispatches
-> across account types. The current `MortgagePaymentFlow` in `flows/debt.py` emits a single `Transfer` for the full
-> payment amount, treating it entirely as principal reduction. Updating `MortgagePaymentFlow` to correctly split
-> principal and interest is a separate enhancement, not in scope for issue #31. The sign-flip fix applies correctly to
-> the existing single-Transfer model as well.
+> across account types. The current `SimpleMortgagePaymentFlow` in `flows/debt.py` emits a single `Transfer` for the
+> full payment amount, treating it entirely as principal reduction. Updating `SimpleMortgagePaymentFlow` to correctly
+> split principal and interest is a separate enhancement, not in scope for issue #31. The sign-flip fix applies
+> correctly to the existing single-Transfer model as well.
 
 A concrete example illustrates how `apply_delta` dispatches correctly without any flow-level sign awareness. Consider a
 $1,500/month mortgage payment split into $300 principal and $1,200 interest.

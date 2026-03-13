@@ -903,7 +903,7 @@ class TestEngineFactoryMethodRoundTrip:
         config = _make_config(max_turns=TurnDuration.of(months=1), flows=[_ProbeFlow()])
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
-            initial_accounts=[LiabilityAccount(id="mortgage", balance=-200_000.0)]
+            initial_accounts=[LiabilityAccount(id="mortgage", balance=200_000.0)]
         )
 
         engine.run(scenario)
@@ -920,7 +920,7 @@ class TestEngineFactoryMethodRoundTrip:
         config = _make_config(max_turns=TurnDuration.of(months=1))
         engine = SimulationEngine(config)
         scenario = SimulationScenario(
-            initial_accounts=[LiabilityAccount(id="mortgage", balance=-200_000.0)]
+            initial_accounts=[LiabilityAccount(id="mortgage", balance=200_000.0)]
         )
 
         result = engine.run(scenario)
@@ -945,7 +945,7 @@ class TestEngineFactoryMethodRoundTrip:
         scenario = SimulationScenario(
             initial_accounts=[
                 AssetAccount(id="checking", balance=1000.0),
-                LiabilityAccount(id="loan", balance=-5000.0),
+                LiabilityAccount(id="loan", balance=5000.0),
             ]
         )
 
@@ -954,3 +954,75 @@ class TestEngineFactoryMethodRoundTrip:
         state_by_id = {s.id: s for s in seen_states}
         assert isinstance(state_by_id["checking"], AssetAccountState)
         assert isinstance(state_by_id["loan"], LiabilityAccountState)
+
+
+# ---------------------------------------------------------------------------
+# TestEngineApplyDeltaDispatch
+# ---------------------------------------------------------------------------
+
+
+class TestEngineApplyDeltaDispatch:
+    """Tests verifying the engine dispatches balance changes via apply_delta.
+
+    Confirms that emit_transaction uses apply_delta rather than direct balance
+    mutation, so that LiabilityAccountState sign inversion is applied correctly.
+    """
+
+    def test_transfer_to_liability_decreases_liability_balance(self):
+        """Transfer to a LiabilityAccountState decreases its balance (debt repayment).
+
+        A Transfer(from=checking, to=mortgage, amount=1000) should decrease the
+        mortgage balance by 1000 (from 200_000 to 199_000) because
+        LiabilityAccountState.apply_delta inverts the sign.
+        """
+
+        class _TransferFlow:
+            def executeFlow(self, view, updater, logger):
+                updater.emit_transaction(
+                    Transfer(
+                        amount=1000.0, from_account="checking", to_account="mortgage"
+                    )
+                )
+
+        config = _make_config(
+            max_turns=TurnDuration.of(months=1), flows=[_TransferFlow()]
+        )
+        engine = SimulationEngine(config)
+        scenario = SimulationScenario(
+            initial_accounts=[
+                AssetAccount(id="checking", balance=10_000.0),
+                LiabilityAccount(id="mortgage", balance=200_000.0),
+            ]
+        )
+
+        result = engine.run(scenario)
+
+        accounts = {a.id: a for a in result.turns[0].accounts}
+        assert accounts["checking"].balance == 9_000.0
+        assert accounts["mortgage"].balance == 199_000.0
+
+    def test_income_to_liability_decreases_liability_balance(self):
+        """Income to a LiabilityAccountState decreases its balance.
+
+        Income(to_account=mortgage, amount=500) applies +500 via apply_delta,
+        which inverts to -500, decreasing the mortgage balance.
+        """
+
+        class _IncomeToLiabilityFlow:
+            def executeFlow(self, view, updater, logger):
+                updater.emit_transaction(Income(amount=500.0, to_account="mortgage"))
+
+        config = _make_config(
+            max_turns=TurnDuration.of(months=1), flows=[_IncomeToLiabilityFlow()]
+        )
+        engine = SimulationEngine(config)
+        scenario = SimulationScenario(
+            initial_accounts=[
+                LiabilityAccount(id="mortgage", balance=200_000.0),
+            ]
+        )
+
+        result = engine.run(scenario)
+
+        mortgage = result.turns[0].accounts[0]
+        assert mortgage.balance == 199_500.0

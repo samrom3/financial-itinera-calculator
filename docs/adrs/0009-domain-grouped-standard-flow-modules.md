@@ -19,13 +19,13 @@ pattern for adding future components (e.g. tax flows, rental income, investment 
 
 Replace `flows/examples.py` with a set of domain-grouped modules, each covering one financial concern:
 
-| Module               | Domain                       | Contents              |
-| -------------------- | ---------------------------- | --------------------- |
-| `flows/income.py`    | Employment & revenue         | `JobIncomeFlow`       |
-| `flows/debt.py`      | Debt servicing               | `MortgagePaymentFlow` |
-| `flows/spending.py`  | Recurring expenditure        | `LivingExpenseFlow`   |
-| `flows/lifecycle.py` | Life-event state transitions | `RetirementCheckFlow` |
-| `flows/metrics.py`   | Metric observers             | `NetWorthGenerator`   |
+| Module               | Domain                       | Contents                    |
+| -------------------- | ---------------------------- | --------------------------- |
+| `flows/income.py`    | Employment & revenue         | `JobIncomeFlow`             |
+| `flows/debt.py`      | Debt servicing               | `SimpleMortgagePaymentFlow` |
+| `flows/spending.py`  | Recurring expenditure        | `LivingExpenseFlow`         |
+| `flows/lifecycle.py` | Life-event state transitions | `RetirementCheckFlow`       |
+| `flows/metrics.py`   | Metric observers             | `NetWorthGenerator`         |
 
 `flows/interfaces.py` continues to hold the abstract `Flow` and `MetricGenerator` protocols, unchanged.
 

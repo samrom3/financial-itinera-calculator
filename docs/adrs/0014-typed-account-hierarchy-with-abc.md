@@ -77,6 +77,16 @@ a `Type` label whose value indicated whether an account was an asset or a liabil
 dispatched on a `get_label("Type")` equality check now use `isinstance(account, AssetAccountState)` instead.
 User-defined flows that already use labels for other purposes are unaffected.
 
+### `apply_delta` — first behavioral override (ADR-0015)
+
+The `apply_delta(delta: float)` abstract method on `AccountState` is the first behavioral override enabled by this typed
+hierarchy. `AssetAccountState` applies deltas as a passthrough (`self.balance += delta`), while `LiabilityAccountState`
+inverts the sign (`self.balance -= delta`) to support the positive liability balance convention (ADR-0015). The engine
+calls `acct.apply_delta(...)` without knowing the account type — validating ADR-0014's design intent of putting behavior
+in the type, not in the dispatcher.
+
+See [ADR-0015](./0015-liability-balance-sign-convention.md) for the full rationale behind the sign convention decision.
+
 ### `BrokerageAccount` as the next planned extension (#29)
 
 `BrokerageAccount(AssetAccount)` and `BrokerageAccountState(AssetAccountState)` are the natural next extension of this

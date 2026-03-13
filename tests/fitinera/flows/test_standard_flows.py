@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 from fitinera.flows import (
     JobIncomeFlow,
-    MortgagePaymentFlow,
+    SimpleMortgagePaymentFlow,
     LivingExpenseFlow,
     NetWorthGenerator,
     AssetSolvencyGuardFlow,
@@ -26,7 +26,7 @@ def test_job_income_flow_execute_raises_not_implemented():
 
 
 def test_mortgage_payment_flow_initialization_stores_accounts():
-    flow = MortgagePaymentFlow("Checking", "Mortgage", 1000)
+    flow = SimpleMortgagePaymentFlow("Checking", "Mortgage", 1000)
     assert flow.from_account == "Checking"
 
 
@@ -183,16 +183,16 @@ class TestLivingExpenseFlow:
         assert emitted.from_account == "savings"
 
 
-class TestMortgagePaymentFlow:
-    """Tests for MortgagePaymentFlow.executeFlow()."""
+class TestSimpleMortgagePaymentFlow:
+    """Tests for SimpleMortgagePaymentFlow.executeFlow()."""
 
     def test_emits_transfer_with_configured_fields(self):
-        """MortgagePaymentFlow emits Transfer with from_account, to_account, and amount.
+        """SimpleMortgagePaymentFlow emits Transfer with from_account, to_account, and amount.
 
         emit_transaction must be called exactly once with a Transfer carrying all
         three constructor-provided values.
         """
-        flow = MortgagePaymentFlow(
+        flow = SimpleMortgagePaymentFlow(
             from_account="checking", to_account="mortgage", amount=1500.0
         )
         view = MagicMock()
@@ -206,11 +206,11 @@ class TestMortgagePaymentFlow:
         )
 
     def test_emits_transfer_every_turn_regardless_of_state(self):
-        """MortgagePaymentFlow always emits its transfer without consulting view state.
+        """SimpleMortgagePaymentFlow always emits its transfer without consulting view state.
 
         Mortgage payments are unconditional fixed obligations each turn.
         """
-        flow = MortgagePaymentFlow(
+        flow = SimpleMortgagePaymentFlow(
             from_account="checking", to_account="lender", amount=800.0
         )
         view = MagicMock()
@@ -283,14 +283,14 @@ class TestAssetSolvencyGuardFlow:
 
         assert flow.executeFlow(view, updater, logger) is None
 
-    def test_returns_none_for_liability_with_negative_balance(self):
-        """AssetSolvencyGuardFlow returns None for LiabilityAccountState with negative balance.
+    def test_returns_none_for_liability_with_positive_balance(self):
+        """AssetSolvencyGuardFlow returns None for LiabilityAccountState with positive balance.
 
         Only AssetAccountState instances are guarded; LiabilityAccountState is excluded
         by type, regardless of balance.
         """
         flow = AssetSolvencyGuardFlow()
-        account = LiabilityAccountState(id="mortgage", balance=-200_000.0)
+        account = LiabilityAccountState(id="mortgage", balance=200_000.0)
         view = _make_view([account])
         updater = MagicMock()
         logger = MagicMock()
@@ -343,15 +343,15 @@ class TestNetWorthGenerator:
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 1_500.0
 
-    def test_evaluate_sums_liability_balances(self):
-        """NetWorthGenerator.evaluate sums LiabilityAccountState balances directly.
+    def test_evaluate_subtracts_liability_balances(self):
+        """NetWorthGenerator.evaluate subtracts LiabilityAccountState balances.
 
-        LiabilityAccountState accounts carry negative balances by convention (e.g. a
-        $200k mortgage is stored as -200_000.0). Summing directly gives -200_000.0.
+        LiabilityAccountState accounts carry positive balances by convention (e.g. a
+        $200k mortgage is stored as 200_000.0). Net worth = 0 - 200_000 = -200_000.0.
         """
         generator = NetWorthGenerator()
         accounts = [
-            LiabilityAccountState(id="mortgage", balance=-200_000.0),
+            LiabilityAccountState(id="mortgage", balance=200_000.0),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == -200_000.0
@@ -359,13 +359,13 @@ class TestNetWorthGenerator:
     def test_evaluate_combines_assets_and_liabilities(self):
         """NetWorthGenerator.evaluate correctly combines asset and liability balances.
 
-        House AssetAccountState 500_000.0 plus mortgage LiabilityAccountState
-        -200_000.0 → net worth 300_000.0.
+        House AssetAccountState 500_000.0 minus mortgage LiabilityAccountState
+        200_000.0 → net worth 300_000.0.
         """
         generator = NetWorthGenerator()
         accounts = [
             AssetAccountState(id="house", balance=500_000.0),
-            LiabilityAccountState(id="mortgage", balance=-200_000.0),
+            LiabilityAccountState(id="mortgage", balance=200_000.0),
         ]
         view = _make_view(accounts)
         assert generator.evaluate(view, MagicMock()) == 300_000.0

@@ -50,6 +50,17 @@ class AccountState(ABC):
         return self.labels.get(facet)
 
     @abstractmethod
+    def apply_delta(self, delta: float) -> None:
+        """Apply a signed balance change to this account.
+
+        Concrete subclasses define how the delta affects the internal balance
+        (e.g. asset vs liability sign conventions).
+
+        Args:
+            delta: The signed amount to apply.
+        """
+
+    @abstractmethod
     def to_snapshot(self) -> Account:
         """Produce a frozen Account snapshot from the current mutable state."""
 
@@ -76,11 +87,24 @@ class AssetAccount(Account):
 
 @dataclass(frozen=True)
 class LiabilityAccount(Account):
-    """A frozen snapshot of a liability account (negative-balance account).
+    """A frozen snapshot of a liability account (positive-balance convention).
 
     Represents accounts that track debts owed by the simulation owner, such as
-    mortgages, loans, or credit card balances.
+    mortgages, loans, or credit card balances. Balances are stored as positive
+    values representing the amount owed (e.g. a $300,000 mortgage is stored as
+    300_000.0).
     """
+
+    def __post_init__(self) -> None:
+        """Validate that the liability balance is non-negative.
+
+        Raises:
+            ValueError: If balance is negative.
+        """
+        if self.balance < 0:
+            raise ValueError(
+                f"LiabilityAccount '{self.id}' balance must be >= 0, got {self.balance}"
+            )
 
     def to_state(self) -> "LiabilityAccountState":
         """Produce a LiabilityAccountState initialised from this snapshot.
@@ -102,6 +126,17 @@ class AssetAccountState(AccountState):
     calls to_snapshot() to produce an immutable AssetAccount for the Turn record.
     """
 
+    def apply_delta(self, delta: float) -> None:
+        """Apply a signed balance change to this asset account.
+
+        Assets use natural sign convention: a positive delta increases the
+        balance and a negative delta decreases it.
+
+        Args:
+            delta: The signed amount to apply.
+        """
+        self.balance += delta
+
     def to_snapshot(self) -> AssetAccount:
         """Produce a frozen AssetAccount snapshot from the current state.
 
@@ -120,6 +155,20 @@ class LiabilityAccountState(AccountState):
     calls to_snapshot() to produce an immutable LiabilityAccount for the Turn
     record.
     """
+
+    def apply_delta(self, delta: float) -> None:
+        """Apply a signed balance change to this liability account.
+
+        Liabilities use inverted sign convention: a positive delta (e.g. a
+        payment toward the debt) *decreases* the stored balance, and a
+        negative delta *increases* it. This inversion keeps the engine
+        type-agnostic — it always passes +amount for credits and -amount
+        for debits regardless of account type.
+
+        Args:
+            delta: The signed amount to apply (inverted before storage).
+        """
+        self.balance -= delta
 
     def to_snapshot(self) -> LiabilityAccount:
         """Produce a frozen LiabilityAccount snapshot from the current state.
