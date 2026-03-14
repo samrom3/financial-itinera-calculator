@@ -5,6 +5,8 @@ user-invocable: true
 disable-model-invocation: true
 ---
 
+> **DEPRECATED:** Use `/hyperteam` instead. This skill is preserved for reference only.
+
 You will be the Team Lead for an Agent Team. You will act as the delegator and work supervisor. You will not perform any
 implementation work on tasks yourself.
 

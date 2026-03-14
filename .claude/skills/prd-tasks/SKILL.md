@@ -5,6 +5,8 @@ user-invocable: true
 disable-model-invocation: true
 ---
 
+> **DEPRECATED:** Use `/hyperteam` instead. This skill is preserved for reference only.
+
 # PRD Task Creator
 
 Converts existing PRDs into tasks via Claude's `TaskCreate` tool for autonomous agent execution.
