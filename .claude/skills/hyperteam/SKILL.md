@@ -387,3 +387,56 @@ The gate agent does **not** proceed with remediation until the user responds aff
 ______________________________________________________________________
 
 ## Phase 4: Completion and PR Offer
+
+After the team lead returns and the GATE has passed:
+
+### Step 1 — Compute completion summary
+
+Read `plans/<branch>-progress.txt` and `plans/<branch>-team-state.json`. Report:
+
+- Total tasks completed (count by type: FEAT, DOC, GATE)
+- Number of FEAT tasks validated by the validator agent
+- Number of gate iterations (from team-state.json `gate_iterations`)
+- Time elapsed: timestamp of first progress.txt entry to last
+
+### Step 2 — Mark run complete
+
+Update `plans/<branch>-team-state.json` metadata field `"status": "complete"`.
+Append a final entry to `plans/<branch>-progress.txt`:
+
+```
+## [ISO timestamp] - COMPLETE
+- All tasks validated and gate passed.
+- Total tasks: N (FEAT: X, DOC: Y, GATE: Z)
+- Gate iterations: N
+- Time elapsed: [computed duration]
+---
+```
+
+### Step 3 — Offer PR creation
+
+Use `AskUserQuestion` to ask:
+
+> "GATE passed. All tasks complete. Create a PR for branch `<branch>`?
+> (Title will be derived from the PRD title. Answering 'no' leaves the branch open for a manual PR.)"
+
+### Step 4a — On confirmation: create the PR
+
+Run `gh pr create`:
+
+- `--title`: The title from `plans/<branch>-prd.md` (first H1 heading after frontmatter, minus the
+  backtick-wrapped skill name if any — use the plain prose title)
+- `--body`: A summary including:
+  - **Goals** section from the PRD (verbatim or abbreviated)
+  - Linked stories: list of `FEAT-*` and `DOC-*` task IDs with their titles
+  - Standard footer:
+    ```
+    ---
+    🤖 Generated with [Claude Code](https://claude.com/claude-code)
+    ```
+- `--base main` (or the repo's default branch)
+
+### Step 4b — On decline
+
+Print a note: "Branch `<branch>` is ready. Run `gh pr create` manually when you are ready."
+Exit cleanly.
