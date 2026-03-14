@@ -190,9 +190,34 @@ After writing the file, proceed to Phase 2.
 
 ______________________________________________________________________
 
-### Phase 1-Resume
+### Phase 1-Resume: Resuming from Existing State
 
-*(Phase 1-Resume is documented below under the Phase 1-Resume section.)*
+This path is taken when `plans/<branch>-team-state.json` already exists (detected in Phase 0 Step 3).
+
+**Step 1 — Read authoritative state**
+- Read `plans/<branch>-team-state.json` (authoritative source of truth)
+- Read `plans/<branch>-progress.txt` if it exists (for context only)
+
+**Step 2 — Reconcile state**
+- Tasks with `status: completed` or `status: validated` in team-state.json are done.
+- Ignore any discrepancy between progress.txt and team-state.json — team-state.json wins.
+- Identify remaining tasks: all tasks with `status: pending` or `status: in_progress` (treat in_progress as interrupted, reset to pending).
+
+**Step 3 — Render resume summary**
+Present to the user:
+- How many tasks completed (list their IDs and titles)
+- How many tasks remaining (list their IDs and titles)
+- Current gate_iterations count
+
+**Step 4 — Confirm with user**
+Use `AskUserQuestion` to ask:
+> "Found existing run for `<branch>`. Completed: N tasks. Remaining: M tasks.
+> [list of remaining task IDs and titles]
+> Continue with remaining tasks?"
+
+**Step 5 — Proceed**
+- If user confirms: proceed to Phase 2 with the full team-state.json as-is (remaining tasks will be dispatched by the team lead)
+- If user declines: stop here and leave state files unchanged
 
 ______________________________________________________________________
 
