@@ -221,7 +221,47 @@ Use `AskUserQuestion` to ask:
 
 ______________________________________________________________________
 
-## Phase 2: Write team-state.json and Initialise Team
+## Phase 2: Team Creation and Dispatch
+
+This phase hands off to the team lead agent to orchestrate all task execution.
+
+### Step 1 — Create the team
+
+Call `TeamCreate` with team name `<branch>`.
+
+### Step 2 — Dispatch the team lead
+
+Use the `Agent` tool with `subagent_type: hyperteam-lead` to dispatch the team lead agent.
+
+Pass the following context in the prompt:
+
+- Branch: `<branch>`
+- `team_state_path`: `plans/<branch>-team-state.json`
+- `progress_path`: `plans/<branch>-progress.txt`
+- PRD path: `plans/<branch>-prd.md`
+- Instruction: "Orchestrate all tasks in team-state.json until all non-GATE tasks are validated. Then dispatch the GATE
+  task."
+
+### Step 3 — Wait
+
+The main thread waits for the team lead to return. The lead handles all worker and validator dispatch internally (per its
+sub-agent definition in `.claude/agents/hyperteam-lead.md`).
+
+### What the team lead does (for reference — implemented in `.claude/agents/hyperteam-lead.md`)
+
+- Reads `team-state.json`, finds unblocked tasks (those with `status: pending` and all `blocked_by` tasks at `validated`
+  or `completed`)
+- Dispatches up to 4 workers in parallel (Agent tool, `subagent_type: hyperteam-worker`)
+- After each worker completes: dispatches a validator (`subagent_type: hyperteam-validator`)
+- After validator PASS: marks task `status` → `validated` in `team-state.json`, appends a progress entry to
+  `progress.txt`, and unlocks dependent tasks
+- After validator FAIL: appends validator notes to the task record in `team-state.json`, then re-dispatches the worker
+  with those notes
+- Loops until all FEAT and DOC tasks are `validated`
+- Dispatches the GATE task, then returns control to the main thread
+
+> **Note:** Phase 3 (back-pressure gate detail) is handled after the team lead returns. Once all tasks except GATE are
+> validated, the lead dispatches GATE and returns; the main thread then proceeds to Phase 3.
 
 ______________________________________________________________________
 
