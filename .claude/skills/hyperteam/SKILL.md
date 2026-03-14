@@ -14,6 +14,10 @@ ______________________________________________________________________
 
 ## Phase 0: Pre-Flight and PRD Ingestion
 
+> **Prerequisites:** This skill requires the Agent Teams feature.
+> Ensure `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is set in your environment.
+> Also requires `gh` CLI installed and authenticated for Phase 4 PR creation.
+
 Before doing anything else, run these checks in order. **Stop and surface each issue as you encounter it.**
 
 ### Step 1 — Read settings and derive branch/slug
@@ -148,7 +152,8 @@ Once the user approves the plan, write `plans/<branch>-team-state.json` with the
       "started_at": null,
       "completed_at": null,
       "validator_result": null,
-      "validator_notes": null
+      "validator_notes": null,
+      "validated_at": null
     },
     {
       "id": "DOC-<slug>-01",
@@ -160,7 +165,8 @@ Once the user approves the plan, write `plans/<branch>-team-state.json` with the
       "started_at": null,
       "completed_at": null,
       "validator_result": null,
-      "validator_notes": null
+      "validator_notes": null,
+      "validated_at": null
     },
     {
       "id": "GATE-<slug>-01",
@@ -172,7 +178,8 @@ Once the user approves the plan, write `plans/<branch>-team-state.json` with the
       "started_at": null,
       "completed_at": null,
       "validator_result": null,
-      "validator_notes": null
+      "validator_notes": null,
+      "validated_at": null
     }
   ],
   "gate_iterations": 0
@@ -249,8 +256,9 @@ prompt:
 
 ### Step 3 — Wait
 
-The main thread waits for the team lead to return. The lead handles all worker and validator dispatch internally (per its
-sub-agent definition in `.claude/agents/hyperteam-lead.md`).
+The main thread waits for the team lead to return. The team lead returns **only after** the GATE task has passed (Phase 3
+describes what happens inside the gate dispatch — it is not a separate main-thread phase). The lead handles all worker,
+validator, and gate dispatch internally (per `.claude/agents/hyperteam-lead.md`).
 
 ### What the team lead does (for reference — implemented in `.claude/agents/hyperteam-lead.md`)
 
@@ -260,29 +268,34 @@ sub-agent definition in `.claude/agents/hyperteam-lead.md`).
 - After each worker completes: atomically sets task `status` → `completed` in `team-state.json` AND appends a progress
   entry to `progress.txt` (read JSON → update status → write JSON, then append to progress.txt before any other agent
   reads them)
-- After that, dispatches a validator (`subagent_type: hyperteam-validator`)
-- After validator PASS: sets task `status` → `validated` in `team-state.json`, and unlocks dependent tasks
-- After validator FAIL: appends validator notes to the task record in `team-state.json`, then re-dispatches the worker
-  with those notes
-- Status flow: `pending` → `in_progress` → `completed` (after worker done + progress.txt append) → `validated` (after
-  validator PASS)
-- Loops until all FEAT and DOC tasks have `status: validated`
-- Dispatches the GATE task, then returns control to the main thread
-
-> **Note:** Phase 3 (back-pressure gate detail) is handled after the team lead returns. Once all tasks except GATE are
-> validated, the lead dispatches GATE and returns; the main thread then proceeds to Phase 3.
+- After that, checks task type:
+  - **FEAT tasks**: dispatches a validator (`subagent_type: hyperteam-validator`)
+  - **DOC tasks**: skips validator; marks task `status` → `completed` (DOC tasks need no validator; their terminal
+    pre-GATE state is `completed`)
+- After validator PASS on FEAT: sets task `status` → `validated` in `team-state.json`, and unlocks dependent tasks
+- After validator FAIL on FEAT: appends validator notes to the task record in `team-state.json`, then re-dispatches the
+  worker with those notes. If a task fails validation twice, marks it `blocked` and notifies the user.
+- Status flow: `pending` → `in_progress` → `completed` (after worker done) → `validated` (after validator PASS, FEAT
+  only)
+- Loops until all FEAT tasks have `status: validated` and all DOC tasks have `status: completed`
+- Dispatches the GATE task using `subagent_type: hyperteam-validator` with the gate-task-template content injected (not
+  as a normal worker task — see `.claude/agents/hyperteam-lead.md` Step 6 for details)
+- Waits for GATE to pass, then returns control to the main thread
 
 ______________________________________________________________________
 
 ## Phase 3: Back-Pressure Gate
 
-After the team lead returns (all FEAT and DOC tasks are `validated` and the GATE task has been
-dispatched), the main thread enters this phase.
+> **Note:** The following describes the gate agent's behavior, which runs **inside** the team
+> lead's GATE task dispatch. The main thread does not enter this phase directly — it remains
+> waiting (Phase 2 Step 3) while the team lead orchestrates the gate. The team lead returns to the
+> main thread only after the GATE task has passed. Phase 4 follows the team lead's return.
 
 ### Step 1 — Gate agent execution
 
-The team lead dispatches the gate agent (per `.claude/agents/hyperteam-lead.md`) with the
-instructions from `references/gate-task-template.md`. The gate agent runs all five checks in order:
+The team lead dispatches the gate agent using `subagent_type: hyperteam-validator` with the full
+content of `references/gate-task-template.md` injected into the prompt (not via a separate
+sub-agent definition file). The gate agent runs all five checks in order:
 
 1. **Check 1 — Documentation–code alignment:** verifies that `docs/`, `README.md`, and
    `CONTRIBUTING.md` match the implemented code. Fixes mismatches in-place if the PRD is
@@ -347,7 +360,8 @@ The gate agent does **not** proceed with remediation until the user responds aff
      "started_at": null,
      "completed_at": null,
      "validator_result": null,
-     "validator_notes": null
+     "validator_notes": null,
+     "validated_at": null
    }
    ```
 
@@ -374,7 +388,8 @@ The gate agent does **not** proceed with remediation until the user responds aff
      "started_at": null,
      "completed_at": null,
      "validator_result": null,
-     "validator_notes": null
+     "validator_notes": null,
+     "validated_at": null
    }
    ```
 

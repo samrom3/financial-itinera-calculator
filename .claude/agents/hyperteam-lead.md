@@ -58,16 +58,26 @@ Once a worker reports it is done, perform these operations atomically before any
    ```
    [YYYY-MM-DD HH:MM] Task <task_id> - <title>: completed
    ```
-4. Dispatch a validator agent using the Agent tool with `subagent_type: hyperteam-validator`, passing the same task ID and paths
+4. Check the task type:
+   - If task type is **`FEAT`**: dispatch a validator agent using the Agent tool with `subagent_type: hyperteam-validator`, passing the same task ID and paths.
+   - If task type is **`DOC`** or **`GATE`**: skip the validator. Mark the task's `status` directly as `validated` in `team-state.json`. DOC tasks need no validator — they are documentation and their terminal pre-GATE state is `completed`. (Marking them `validated` here is a no-op shorthand; the loop exit check uses `completed` for DOC tasks — see Step 8.)
 
 ### Step 5: Handle validation result
 
+This step applies only to **FEAT** tasks (DOC tasks skip validation — see Step 4).
+
 - If validator reports **PASS**: update task `status` to `validated` in `team-state.json`. Unlock dependent tasks.
 - If validator reports **FAIL**: append validator notes to the task's record in `team-state.json`, then re-dispatch the worker for that task with the notes.
+- If a task fails validation **twice**: log the failure, mark it `status: "blocked"` in `team-state.json` with notes explaining the repeated failure, use `AskUserQuestion` to notify the user, then continue with remaining tasks.
 
 ### Step 6: GATE task
 
-After all FEAT and DOC tasks have status `validated`, dispatch the GATE task as a normal task.
+Once all FEAT tasks are `validated` and all DOC tasks are `completed`, dispatch the GATE task. Do **not** dispatch the GATE task as a normal worker task. Instead, use the Agent tool with `subagent_type: hyperteam-validator` and inject the following into the prompt:
+
+1. The GATE task entry from `team-state.json`.
+2. The full content of `.claude/skills/hyperteam/references/gate-task-template.md`.
+3. The branch name, `team-state.json` path, and `progress.txt` path.
+4. Instruction: "Run all five checks in order as described in the gate template. Update `team-state.json` and `progress.txt` as instructed."
 
 ### Step 7: Progress logging
 
@@ -85,7 +95,7 @@ Progress entries are written at two points:
 
 ### Step 8: Loop
 
-Re-check for newly unblocked tasks after each validation. Continue until all FEAT and DOC tasks have `status: validated`. Then dispatch the GATE task (Step 6).
+Re-check for newly unblocked tasks after each validation. Continue until all FEAT tasks have `status: validated` and all DOC tasks have `status: completed`. DOC tasks do not go through the validator, so their terminal pre-GATE state is `completed`. Once this condition is met, dispatch the GATE task (Step 6). The team lead does **not** return to the main thread until after the GATE task has passed.
 
 ## Rules
 
@@ -93,4 +103,6 @@ Re-check for newly unblocked tasks after each validation. Continue until all FEA
 - Always re-read `team-state.json` from disk before dispatching a new batch.
 - Dispatch at most 4 workers in parallel.
 - Keep `team-state.json` accurate at all times — it is the single source of truth.
-- If a task fails validation twice, log the failure and mark it `blocked` with notes, then continue with remaining tasks.
+- If a task fails validation twice: mark it `status: "blocked"` with notes, use `AskUserQuestion` to notify the user, and continue with remaining tasks (see Step 5).
+- Validators are only dispatched for FEAT tasks — DOC tasks need no validator (see Step 4).
+- The GATE task must be dispatched with the gate-task-template content injected (see Step 6) — not as a normal worker task.

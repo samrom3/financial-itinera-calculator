@@ -75,9 +75,12 @@ Stage all relevant files. Never skip hooks or bypass signing.
 
 Update the task record in `team-state.json`:
 
-- Set `status: completed`
-- Set `completed_at` to the current UTC timestamp (ISO 8601 format)
+- Set `started_at` to the UTC timestamp when you began this task (if not already set) and `completed_at` to the current
+  UTC timestamp (ISO 8601 format)
 - If validator notes were present from a prior failed validation, leave them in place for reference
+
+> **Note:** The team lead will set `status: completed` after your work is received. Do not set the status yourself — the
+> lead re-reads `team-state.json` before writing to avoid race conditions.
 
 ### Step 9: Append progress report
 
