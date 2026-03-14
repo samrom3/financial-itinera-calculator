@@ -274,12 +274,116 @@ sub-agent definition in `.claude/agents/hyperteam-lead.md`).
 
 ______________________________________________________________________
 
-## Phase 3: Dispatch Loop
+## Phase 3: Back-Pressure Gate
+
+After the team lead returns (all FEAT and DOC tasks are `validated` and the GATE task has been
+dispatched), the main thread enters this phase.
+
+### Step 1 — Gate agent execution
+
+The team lead dispatches the gate agent (per `.claude/agents/hyperteam-lead.md`) with the
+instructions from `references/gate-task-template.md`. The gate agent runs all five checks in order:
+
+1. **Check 1 — Documentation–code alignment:** verifies that `docs/`, `README.md`, and
+   `CONTRIBUTING.md` match the implemented code. Fixes mismatches in-place if the PRD is
+   unambiguous; asks the user if not.
+2. **Check 2 — ADR sync:** verifies that all applicable design choices have ADRs with correct
+   Status fields. Updates ADRs in-place if needed.
+3. **Check 3 — Pre-commit checks:** runs `uv run pre-commit run`. Must exit 0.
+4. **Check 4 — Acceptance criteria:** verifies every acceptance criterion in every PRD story has
+   been met.
+5. **Check 5 — Success metrics:** verifies every success metric in the PRD has been met.
+
+After each check (pass or fail) and after every user interaction, the gate agent appends a summary
+entry to `plans/<branch>-progress.txt` using the format defined in `gate-task-template.md`.
+
+### Step 2 — Gate pass
+
+If all five checks pass, the gate agent marks `GATE-<slug>-NN` as `completed` in
+`plans/<branch>-team-state.json`, appends a final pass summary to `progress.txt`, and returns
+control to the team lead. The team lead then returns to the main thread.
+
+The main thread proceeds to Phase 4.
+
+### Step 3 — Gate fail (checks 3–5)
+
+If checks 1–2 fail, the gate agent fixes them in-place (as described in the gate-task-template).
+
+If any of checks 3–5 fail, the gate agent follows this remediation sequence:
+
+#### Iteration guard
+
+Before writing any remediation entries, the gate agent reads `gate_iterations` from
+`plans/<branch>-team-state.json`. If `gate_iterations` is **4 or higher**, the gate agent uses
+`AskUserQuestion` to ask the user before proceeding. The message must include:
+
+- The current gate iteration number.
+- A summary of which checks have been failing and whether the same checks have failed repeatedly
+  across prior gate iterations (recurring) or are new failures — determined by reading
+  `plans/<branch>-progress.txt`.
+- What problems still remain and what remediation entries would be written if the user approves.
+- A clear question: should the escalation proceed, or should the user intervene directly?
+
+The gate agent does **not** proceed with remediation until the user responds affirmatively.
+
+#### Remediation steps
+
+1. **Write remediation task entries to `team-state.json`:** The gate agent appends new task
+   objects to the `tasks` array in `plans/<branch>-team-state.json`. Each new task has
+   `"status": "pending"` and appropriate `blocked_by` entries referencing tasks they depend on.
+   These are written directly to `team-state.json` — **not** created via an external task service
+   (`TaskCreate` is not used for remediation entries; `team-state.json` is the single source of
+   truth).
+
+   Example remediation task entry:
+   ```json
+   {
+     "id": "FEAT-<slug>-NN",
+     "title": "<short description of remediation>",
+     "description": "<details of what failed and what must be fixed>",
+     "type": "FEAT",
+     "status": "pending",
+     "blocked_by": [],
+     "started_at": null,
+     "completed_at": null,
+     "validator_result": null,
+     "validator_notes": null
+   }
+   ```
+
+2. **Append to `progress.txt`:** The gate agent appends a summary of each remediation entry to
+   `plans/<branch>-progress.txt`, following the format in `gate-task-template.md`.
+
+3. **Increment `gate_iterations`:** The gate agent increments `gate_iterations` by 1 in
+   `plans/<branch>-team-state.json`.
+
+4. **Add a new GATE entry to `team-state.json`:** The gate agent appends a new
+   `GATE-<slug>-NN+1` task object to the `tasks` array with `"status": "pending"` and
+   `blocked_by` set to the IDs of all remediation tasks just written (so the new gate only runs
+   after remediation is complete).
+
+   Example next-gate entry:
+   ```json
+   {
+     "id": "GATE-<slug>-02",
+     "title": "Back-pressure gate (iteration 2)",
+     "description": "Re-run all five gate checks per references/gate-task-template.md.",
+     "type": "GATE",
+     "status": "pending",
+     "blocked_by": ["FEAT-<slug>-NN"],
+     "started_at": null,
+     "completed_at": null,
+     "validator_result": null,
+     "validator_notes": null
+   }
+   ```
+
+5. **Team lead re-enters the dispatch loop:** The gate agent signals completion (by returning).
+   The team lead, upon receiving the gate result, re-reads `plans/<branch>-team-state.json` and
+   continues its dispatch loop, picking up the new remediation tasks (which are now unblocked or
+   will become unblocked as prior remediation completes) and eventually dispatching the new
+   `GATE-<slug>-NN+1` task. The main thread remains waiting while the team lead iterates.
 
 ______________________________________________________________________
 
-## Phase 4: Back-Pressure Gate
-
-______________________________________________________________________
-
-## Phase 5: Completion and PR Offer
+## Phase 4: Completion and PR Offer
