@@ -227,20 +227,25 @@ This phase hands off to the team lead agent to orchestrate all task execution.
 
 ### Step 1 — Create the team
 
-Call `TeamCreate` with team name `<branch>`.
+Call `TeamCreate` with team name `<branch>`. Pass a prompt to the team creation that includes: the branch name, the path
+to `plans/<branch>-team-state.json`, the path to `plans/<branch>-progress.txt`, and the path to `plans/<branch>-prd.md`.
+The `hyperteam-lead` sub-agent (defined in `.claude/agents/hyperteam-lead.md`) will serve as the team orchestrator.
+
+The prompt should describe the work in natural language, for example:
+> "Implement all tasks for `<branch>` as specified in `plans/<branch>-team-state.json`. Progress log:
+> `plans/<branch>-progress.txt`. PRD: `plans/<branch>-prd.md`."
 
 ### Step 2 — Dispatch the team lead
 
-Use the `Agent` tool with `subagent_type: hyperteam-lead` to dispatch the team lead agent.
-
-Pass the following context in the prompt:
+Dispatch `hyperteam-lead` via the Agent tool with `subagent_type: hyperteam-lead`, providing all the above paths in the
+prompt:
 
 - Branch: `<branch>`
 - `team_state_path`: `plans/<branch>-team-state.json`
 - `progress_path`: `plans/<branch>-progress.txt`
 - PRD path: `plans/<branch>-prd.md`
-- Instruction: "Orchestrate all tasks in team-state.json until all non-GATE tasks are validated. Then dispatch the GATE
-  task."
+- Instruction: "Orchestrate all tasks in team-state.json until all FEAT and DOC tasks are validated. Then dispatch the
+  GATE task."
 
 ### Step 3 — Wait
 
@@ -252,12 +257,16 @@ sub-agent definition in `.claude/agents/hyperteam-lead.md`).
 - Reads `team-state.json`, finds unblocked tasks (those with `status: pending` and all `blocked_by` tasks at `validated`
   or `completed`)
 - Dispatches up to 4 workers in parallel (Agent tool, `subagent_type: hyperteam-worker`)
-- After each worker completes: dispatches a validator (`subagent_type: hyperteam-validator`)
-- After validator PASS: marks task `status` → `validated` in `team-state.json`, appends a progress entry to
-  `progress.txt`, and unlocks dependent tasks
+- After each worker completes: atomically sets task `status` → `completed` in `team-state.json` AND appends a progress
+  entry to `progress.txt` (read JSON → update status → write JSON, then append to progress.txt before any other agent
+  reads them)
+- After that, dispatches a validator (`subagent_type: hyperteam-validator`)
+- After validator PASS: sets task `status` → `validated` in `team-state.json`, and unlocks dependent tasks
 - After validator FAIL: appends validator notes to the task record in `team-state.json`, then re-dispatches the worker
   with those notes
-- Loops until all FEAT and DOC tasks are `validated`
+- Status flow: `pending` → `in_progress` → `completed` (after worker done + progress.txt append) → `validated` (after
+  validator PASS)
+- Loops until all FEAT and DOC tasks have `status: validated`
 - Dispatches the GATE task, then returns control to the main thread
 
 > **Note:** Phase 3 (back-pressure gate detail) is handled after the team lead returns. Once all tasks except GATE are

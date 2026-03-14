@@ -50,10 +50,15 @@ Before dispatching, update the task's `status` to `in_progress` in `team-state.j
 
 ### Step 4: After worker completes
 
-Once a worker reports it is done:
+Once a worker reports it is done, perform these operations atomically before any other agent reads the files:
 
 1. Re-read `team-state.json` to get the latest state
-2. Dispatch a validator agent using the Agent tool with `subagent_type: hyperteam-validator`, passing the same task ID and paths
+2. Update the task's `status` to `completed` in `team-state.json` and write the file
+3. Append a progress entry to `progress.txt`:
+   ```
+   [YYYY-MM-DD HH:MM] Task <task_id> - <title>: completed
+   ```
+4. Dispatch a validator agent using the Agent tool with `subagent_type: hyperteam-validator`, passing the same task ID and paths
 
 ### Step 5: Handle validation result
 
@@ -66,15 +71,21 @@ After all FEAT and DOC tasks have status `validated`, dispatch the GATE task as 
 
 ### Step 7: Progress logging
 
-After each task reaches `validated` or `completed`, append a summary line to `progress.txt`:
+Progress entries are written at two points:
 
-```
-[YYYY-MM-DD HH:MM] Task <task_id> - <title>: <status> (validator: <PASS/FAIL>)
-```
+- When a worker completes (in Step 4): append `completed` entry to `progress.txt`
+- When a validator returns PASS (in Step 5): append a `validated` entry to `progress.txt`:
+  ```
+  [YYYY-MM-DD HH:MM] Task <task_id> - <title>: validated (validator: PASS)
+  ```
+- When a validator returns FAIL (in Step 5): append a `validation_failed` entry to `progress.txt`:
+  ```
+  [YYYY-MM-DD HH:MM] Task <task_id> - <title>: validation_failed (validator: FAIL)
+  ```
 
 ### Step 8: Loop
 
-Re-check for newly unblocked tasks after each validation. Continue until ALL tasks (including the GATE) are complete.
+Re-check for newly unblocked tasks after each validation. Continue until all FEAT and DOC tasks have `status: validated`. Then dispatch the GATE task (Step 6).
 
 ## Rules
 
