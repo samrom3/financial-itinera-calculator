@@ -36,7 +36,11 @@ When contributing, ensure you adhere strictly to the following quality guideline
 - **DAMP Test Style**: Ensure test code is written in a DAMP (Descriptive and Meaningful Phrases) style, optimizing for
   test readability and clear intent over strict DRY (Don't Repeat Yourself) principles.
 
-## Agentic Development with Hyperworker
+## Agentic Development with Hyperteam
 
-This project supports multi-agent development using Claude Code CLI and the Hyperworker workflow. See
-[docs/hyperworker.md](docs/hyperworker.md) for setup instructions and usage.
+This project supports multi-agent development using Claude Code CLI and the Hyperteam workflow. The current two-command
+workflow is `/prd` → `/hyperteam`. See the skill definition at `.claude/skills/hyperteam/SKILL.md` for full usage
+instructions.
+
+> **Note:** `docs/hyperworker.md` documents the old `/prd-tasks` + `/hyperworker` three-command workflow, which has been
+> superseded by `/hyperteam`. It is preserved for historical reference only.

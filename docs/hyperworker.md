@@ -1,5 +1,8 @@
 # Fitinera Hyperworker — Python Multi-Agent Workflow
 
+> **DEPRECATED:** The `/hyperworker` skill has been replaced by `/hyperteam`. The new two-command workflow is `/prd` →
+> `/hyperteam`. This document is preserved for historical reference.
+
 Hyperworker turns Claude Code CLI into a multi-agent development team lead. It generates a PRD, converts it into a
 dependency-ordered task DAG, and dispatches autonomous agents that implement tasks in parallel while enforcing quality
 gates — all adapted for fitinera's Python/uv toolchain.
