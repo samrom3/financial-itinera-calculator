@@ -72,7 +72,7 @@ pending → in_progress → completed → validated
 - `in_progress`: an agent has claimed the task.
 - `completed`: the agent finished and committed its work.
 - `validated`: a gate check confirmed the work meets acceptance criteria.
-- `failed`: the agent or gate check determined the task did not succeed; remediation needed.
+- `failed`: Set by a worker that cannot complete its task after retries. The team lead will attempt one re-dispatch before escalating to `blocked`.
 - `blocked`: task failed validation twice and cannot proceed without manual intervention. `AskUserQuestion` was used to notify the user.
 
 ### Example task objects

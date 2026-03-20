@@ -82,13 +82,13 @@ Update the task record in `team-state.json`:
 > **Note:** The team lead will set `status: completed` after your work is received. Do not set the status yourself — the
 > lead re-reads `team-state.json` before writing to avoid race conditions.
 
-### Step 9: Append progress report
+> **Note:** The team lead writes the completion entry to `progress.txt` — do not write to it yourself.
 
-Append a line to `progress.txt`:
+### Step 9: If you cannot complete the task
 
-```
-[YYYY-MM-DD HH:MM UTC] Worker completed task <task_id> - <title>
-```
+If `uv run pre-commit run` fails after 3 retries, or you encounter an unresolvable blocker, set
+`status: "failed"` in `team-state.json` with a `reason` note, then stop. Do NOT commit partial
+work. The team lead will handle re-dispatch or escalation.
 
 ### Step 10: Stop
 

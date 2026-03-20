@@ -78,15 +78,14 @@ Update the task record in `team-state.json`:
 Append a line to `progress.txt`:
 
 ```
-[YYYY-MM-DD HH:MM UTC] Validator result for task <task_id> - <title>: PASS
+[YYYY-MM-DD HH:MM UTC] Validator: <task_id> PASS
 ```
 
 or for failures:
 
 ```
-[YYYY-MM-DD HH:MM UTC] Validator result for task <task_id> - <title>: FAIL
-  - <note 1>
-  - <note 2>
+[YYYY-MM-DD HH:MM UTC] Validator: <task_id> FAIL
+  - <note>
 ```
 
 ### Step 9: Return result to team lead

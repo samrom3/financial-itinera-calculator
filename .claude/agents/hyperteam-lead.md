@@ -50,17 +50,18 @@ Before dispatching, update the task's `status` to `in_progress` in `team-state.j
 
 ### Step 4: After worker completes
 
-Once a worker reports it is done, perform these operations atomically before any other agent reads the files:
+Once a worker reports it is done, perform these operations in sequence before any other agent reads the files:
 
 1. Re-read `team-state.json` to get the latest state
 2. Update the task's `status` to `completed` in `team-state.json` and write the file
 3. Append a progress entry to `progress.txt`:
    ```
-   [YYYY-MM-DD HH:MM] Task <task_id> - <title>: completed
+   [YYYY-MM-DD HH:MM UTC] <task_id> - <title>: completed
    ```
 4. Check the task type:
    - If task type is **`FEAT`**: dispatch a validator agent using the Agent tool with `subagent_type: hyperteam-validator`, passing the same task ID and paths.
-   - If task type is **`DOC`** or **`GATE`**: skip the validator. Mark the task's `status` directly as `validated` in `team-state.json`. DOC tasks need no validator — they are documentation and their terminal pre-GATE state is `completed`. (Marking them `validated` here is a no-op shorthand; the loop exit check uses `completed` for DOC tasks — see Step 8.)
+   - If task type is **`DOC`** or **`GATE`**: skip the validator. Mark the task's `status` as `completed` in `team-state.json`. DOC tasks skip the validator — `completed` is their terminal pre-GATE state.
+5. If the worker set `status: "failed"`: re-dispatch the worker once with the failure reason appended to the task entry. If it fails a second time, mark `status: "blocked"` and use `AskUserQuestion` to notify the user.
 
 ### Step 5: Handle validation result
 
@@ -86,11 +87,11 @@ Progress entries are written at two points:
 - When a worker completes (in Step 4): append `completed` entry to `progress.txt`
 - When a validator returns PASS (in Step 5): append a `validated` entry to `progress.txt`:
   ```
-  [YYYY-MM-DD HH:MM] Task <task_id> - <title>: validated (validator: PASS)
+  [YYYY-MM-DD HH:MM UTC] <task_id> - <title>: validated (PASS)
   ```
 - When a validator returns FAIL (in Step 5): append a `validation_failed` entry to `progress.txt`:
   ```
-  [YYYY-MM-DD HH:MM] Task <task_id> - <title>: validation_failed (validator: FAIL)
+  [YYYY-MM-DD HH:MM UTC] <task_id> - <title>: validation_failed (FAIL)
   ```
 
 ### Step 8: Loop
