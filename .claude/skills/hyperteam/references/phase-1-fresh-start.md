@@ -87,9 +87,25 @@ Use `AskUserQuestion` to present the full rendered DAG and ask:
 
 Wait for the user's response.
 
-- **If approved** — proceed to Step 6.
+- **If approved** — proceed to Step 5b.
 - **If changes requested** — apply the requested changes, re-render the DAG, and ask again. Repeat
   until the user approves.
+
+______________________________________________________________________
+
+## Step 5b — Assign role hints
+
+For each task, assign a `role_hint` using the following heuristic:
+
+| Condition | `role_hint` |
+|-----------|-------------|
+| FEAT task that is first in its dependency chain, OR whose title contains any of: `scaffold`, `stub`, `api`, `dataclass`, `interface`, `abc` | `hyperteam-py-api-scaffolder` |
+| Other FEAT tasks | `hyperteam-py-builder` |
+| DOC tasks | `hyperteam-techwriter` |
+| GATE tasks | `hyperteam-reviewer` |
+| Unclassifiable (no clear specialist match) | `hyperteam-worker` |
+
+Apply the heuristic in order — the first matching condition wins.
 
 ______________________________________________________________________
 
@@ -113,39 +129,48 @@ Once the user approves the plan, write `plans/<branch>-team-state.json` (schema:
       "title": "<story title>",
       "description": "<full story text including acceptance criteria>",
       "type": "FEAT",
+      "role_hint": "hyperteam-py-api-scaffolder",
       "status": "pending",
       "blocked_by": [],
+      "native_task_id": null,
       "started_at": null,
       "completed_at": null,
-      "validator_result": null,
-      "validator_notes": null,
-      "validated_at": null
+      "reviewed": false,
+      "review_result": null,
+      "review_notes": null,
+      "reviewed_at": null
     },
     {
       "id": "DOC-<slug>-01",
       "title": "<story title>",
       "description": "<full story text>",
       "type": "DOC",
+      "role_hint": "hyperteam-techwriter",
       "status": "pending",
       "blocked_by": ["FEAT-<slug>-01"],
+      "native_task_id": null,
       "started_at": null,
       "completed_at": null,
-      "validator_result": null,
-      "validator_notes": null,
-      "validated_at": null
+      "reviewed": false,
+      "review_result": null,
+      "review_notes": null,
+      "reviewed_at": null
     },
     {
       "id": "GATE-<slug>-01",
       "title": "Back-pressure gate",
       "description": "Run all five gate checks per references/gate-task-template.md.",
       "type": "GATE",
+      "role_hint": "hyperteam-reviewer",
       "status": "pending",
       "blocked_by": ["<all FEAT and DOC task IDs>"],
+      "native_task_id": null,
       "started_at": null,
       "completed_at": null,
-      "validator_result": null,
-      "validator_notes": null,
-      "validated_at": null
+      "reviewed": false,
+      "review_result": null,
+      "review_notes": null,
+      "reviewed_at": null
     }
   ],
   "gate_iterations": 0
@@ -156,7 +181,10 @@ Rules:
 
 - `metadata.created_at` — current UTC timestamp in ISO 8601 format (e.g. `"2026-03-14T10:00:00Z"`).
 - All tasks have `"status": "pending"` and all timestamp/result fields `null`.
+- All tasks have `"native_task_id": null` — native tasks are seeded by Phase 2 Step 3.
+- All FEAT tasks have `"reviewed": false`.
 - Task order: FEAT tasks first (in PRD order), then DOC tasks (in PRD order), then the GATE task.
 - `blocked_by` arrays contain the exact task IDs (strings) derived in Step 3.
+- `role_hint` values are assigned per Step 5b.
 
 After writing the file, return to SKILL.md and proceed to Phase 2.

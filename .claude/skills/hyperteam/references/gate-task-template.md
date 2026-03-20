@@ -73,8 +73,15 @@ If checks 3–5 fail:
 2. Write remediation entries to team-state.json (new task objects with status: pending) and append
    a summary of each remediation entry to plans/<branch>-progress.txt.
 
-3. Increment gate_iterations in team-state.json and signal the Team Lead to re-enter the dispatch
-   loop so the new remediation tasks are picked up and a fresh gate check is scheduled afterward.
+3. Increment gate_iterations in team-state.json.
+
+4. Signal the team lead to re-seed the native task list by sending a SendMessage to the lead:
+
+   > GATE FAIL — <summary of which checks failed>
+   > Remediation tasks written to team-state.json. Please re-seed native tasks.
+
+   Do NOT call TaskCreate yourself — the lead is responsible for seeding the native task list
+   from the remediation entries in team-state.json.
 ```
 
 ______________________________________________________________________
@@ -83,6 +90,7 @@ ______________________________________________________________________
 
 - **Gate iterations:** tracked via `gate_iterations` integer in `plans/<branch>-team-state.json`.
 - **Numbering:** Each successive gate increments `gate_iterations` by 1.
-- **Remediation tasks:** written as new objects in the `tasks` array with `status: pending` and
-  appropriate `blocked_by` entries. They are not created via an external task service — the
-  `team-state.json` file is the single source of truth.
+- **Remediation tasks:** written as new objects in the `tasks` array with `status: pending`,
+  appropriate `role_hint`, and appropriate `blocked_by` entries.
+- **Native task seeding:** the team lead calls `TaskCreate` for each remediation task after
+  receiving the GATE FAIL signal — the gate agent does not create native tasks directly.
