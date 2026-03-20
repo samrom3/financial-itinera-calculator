@@ -73,7 +73,7 @@ Following the acceptance criteria in the task:
    ```
 6. Return to **Step 1** to claim the next task.
 
-### Step 8 — Idle
+### Step 7 — Idle
 
 If all `hyperteam-techwriter` tasks are blocked (blockers not yet terminal): send a message to
 the lead via `SendMessage`:

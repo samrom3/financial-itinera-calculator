@@ -88,7 +88,7 @@ If any review notes are present from a prior failed review, address every note b
    ```
 6. Return to **Step 1** to claim the next task.
 
-### Step 8 — Idle
+### Step 9 — Idle
 
 If all `hyperteam-py-builder` tasks are blocked (blockers not yet terminal): send a message to
 the lead via `SendMessage`:

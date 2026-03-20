@@ -1,6 +1,6 @@
 ---
 name: hyperteam-reviewer
-description: Reviews completed FEAT tasks (self-claiming via team-state.json mutex) and runs the back-pressure GATE check when signalled by the lead. Replaces hyperteam-validator.
+description: Reviews completed FEAT tasks (self-claiming via team-state.json mutex) and runs the back-pressure GATE check when signalled by the lead.
 model: sonnet
 permissionMode: default
 ---
@@ -92,7 +92,7 @@ the worker should have caught is a FAIL.
    [YYYY-MM-DD HH:MM UTC] Reviewer: <task_id> FAIL
      - <note>
    ```
-3. `SendMessage` the lead:
+3. `SendMessage` to the lead:
    > REVIEW FAIL: `<task_id>` — `<title>`
    > Notes:
    > - `<note 1>`
@@ -140,7 +140,7 @@ Run all five checks in order.
    ```
    [YYYY-MM-DD HH:MM UTC] GATE PASS — all checks passed
    ```
-4. `SendMessage` the lead:
+4. `SendMessage` to the lead:
    > GATE PASS — all five checks passed. Ready for Phase 4.
 
 ### Gate Step 4 — On GATE FAIL
@@ -149,7 +149,7 @@ Run all five checks in order.
    appropriate `role_hint`, and `blocked_by` entries). Do **not** create native tasks yourself.
 2. Increment `gate_iterations` in `team-state.json`.
 3. Append a gate summary to `progress_path` (see gate-task-template.md for format).
-4. `SendMessage` the lead:
+4. `SendMessage` to the lead:
    > GATE FAIL — `<summary of which checks failed>`
    > Remediation tasks written to team-state.json. Please re-seed native tasks.
 
